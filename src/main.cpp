@@ -11,10 +11,15 @@ int main(int argc, char *argv[])
         return 1;
     }
     auto t = std::chrono::steady_clock::now();
+
     QApplication app(argc, argv);
-    GuiWidget widget(std::string(argv[1]), t);
+    app.setOrganizationName("ShibaSoft");
+    app.setApplicationName("ShibaView");
+
+    GuiWidget widget(t);
     widget.setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
-    widget.show();
+    widget.loadImageAsync(QString(argv[1]));
+
     std::cout << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t).count() / 1e3 << std::endl;
     return app.exec();
 }
