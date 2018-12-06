@@ -1,7 +1,12 @@
+/**
+* ShibaView
+*
+* The MIT License (MIT)
+* Copyright (c) 2018 Alexey Gruzdev
+*/
 
-
-#ifndef GUI_WIDGET_H
-#define GUI_WIDGET_H
+#ifndef CANVAS_WIDGET_H
+#define CANVAS_WIDGET_H
 
 #include <chrono>
 #include <memory>
@@ -10,22 +15,17 @@
 #include <QWidget>
 #include <QFuture>
 
-class GuiWidget : public QWidget
+class CanvasWidget
+    : public QWidget
 {
     Q_OBJECT
 
 public:
-    GuiWidget(std::chrono::steady_clock::time_point t);
+    CanvasWidget(std::chrono::steady_clock::time_point t);
+    ~CanvasWidget();
 
-    void loadImageAsync(const QString & path);
-
-private slots:
+public slots:
     void onImageReady(QPixmap p);
-    void onFatalError();
-
-signals:
-    void eventImageReady(QPixmap p);
-    void eventFatalError();
 
 protected:
     void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
@@ -49,4 +49,4 @@ private:
 };
 
 
-#endif // GUI_WIDGET_H
+#endif // CANVAS_WIDGET_H
