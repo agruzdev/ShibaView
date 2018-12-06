@@ -17,18 +17,18 @@ int main(int argc, char *argv[])
         if(argc < 2) {
             throw std::runtime_error("Wrong args");
         }
-        auto t = std::chrono::steady_clock::now();
+        const auto t = std::chrono::steady_clock::now();
 
         QApplication app{argc, argv};
-        app.setOrganizationName("ShibaSoft");
-        app.setApplicationName("ShibaView");
+        QApplication::setOrganizationName("ShibaSoft");
+        QApplication::setApplicationName("ShibaView");
 
         ViewerApplication viewer(t);
         viewer.loadImageAsync(QString{argv[1]});
 
         std::cout << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t).count() / 1e3 << std::endl;
 
-        return app.exec();
+        return QApplication::exec();
     }
     catch(...){
         return -1;
