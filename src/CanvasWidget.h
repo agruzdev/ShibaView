@@ -14,6 +14,9 @@
 #include <QPixmap>
 #include <QWidget>
 #include <QFuture>
+#include <QSizeGrip>
+
+enum class BorderPosition;
 
 class CanvasWidget
     : public QWidget
@@ -34,14 +37,23 @@ protected:
 
 private:
 
-    void mousePressEvent(QMouseEvent *event);
-    void mouseMoveEvent(QMouseEvent *event);
+    void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+    void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+    void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+    void mouseDoubleClickEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 
     bool mVisible = false;
     std::unique_ptr<QPixmap> mPendingImage;
 
+    bool mFullScreen = false;
+
+    bool mDragging = false;
     int mClickX = 0;
     int mClickY = 0;
+
+    bool mStretching = false;
+    BorderPosition mHoveredBorder;
+    QRect mClickGeometry;
 
     std::chrono::steady_clock::time_point mStartTime;
     bool mStartup = true;

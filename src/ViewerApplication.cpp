@@ -13,7 +13,7 @@
 ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
 {
     mCanvasWidget.reset(new CanvasWidget(t));
-    mCanvasWidget->setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
+    mCanvasWidget->setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::MSWindowsOwnDC);
 
     mBackgroundThread.reset(new QThread);
     mBackgroundThread->start();
