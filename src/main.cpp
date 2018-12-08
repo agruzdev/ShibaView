@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
         const auto t = std::chrono::steady_clock::now();
 
         QApplication app{argc, argv};
-        QApplication::setOrganizationName("ShibaSoft");
+        QApplication::setOrganizationName("Alexey Gruzdev");
         QApplication::setApplicationName("ShibaView");
 
         ViewerApplication viewer(t);
