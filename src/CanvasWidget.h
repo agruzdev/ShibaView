@@ -41,6 +41,7 @@ private:
     void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseDoubleClickEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+    void wheelEvent(QWheelEvent* event) Q_DECL_OVERRIDE;
 
     void updateSettings();
 
@@ -48,6 +49,8 @@ private:
     std::unique_ptr<QPixmap> mPendingImage;
 
     bool mFullScreen = false;
+
+    bool mClick = false;
 
     bool mDragging = false;
     int mClickX = 0;
@@ -60,6 +63,9 @@ private:
     std::chrono::steady_clock::time_point mStartTime;
     bool mStartup = true;
     QPixmap mPixmap;
+
+    //QTransform mPixmapTransform;
+    float mZoom = 1.0f;
 };
 
 
