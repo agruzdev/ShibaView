@@ -69,18 +69,36 @@ void ImageLoader::onRun(const QString & path)
 
         const uint32_t width  = FreeImage_GetWidth(img);
         const uint32_t height = FreeImage_GetHeight(img);
+        const uint32_t bpp    = FreeImage_GetBPP(img);
 
         std::unique_ptr<QImage> qimage;
         switch(FreeImage_GetImageType(img)){
         case FIT_BITMAP:
-            if(32 == FreeImage_GetBPP(img)) {
+            if(32 == bpp) {
                 qimage.reset(new QImage(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_RGBA8888));
                 break;
             }
-            else if(24 == FreeImage_GetBPP(img)) {
+            else if(24 == bpp) {
                 qimage.reset(new QImage(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_RGB888));
                 break;
             }
+            else if(8 == bpp) {
+                static constexpr uint32_t kPaletteSize = 256;
+                const RGBQUAD* palette = FreeImage_GetPalette(img);
+                if(palette != nullptr) {
+                    qimage.reset(new QImage(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_Indexed8));
+                    QVector<QRgb> qpalette(kPaletteSize);
+                    for (uint32_t i = 0; i < kPaletteSize; ++i) {
+                        qpalette[i] = qRgb(palette[i].rgbRed, palette[i].rgbGreen, palette[i].rgbBlue);
+                    }
+                    qimage->setColorTable(qpalette);
+                }
+                else {
+                    qimage.reset(new QImage(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_Grayscale8));
+                }
+                break;
+            }
+            // fallthrough
         default:
             throw std::runtime_error("Unsupported image format " + std::to_string(FreeImage_GetImageType(img)));
         }
