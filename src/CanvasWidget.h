@@ -42,6 +42,8 @@ private:
     void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseDoubleClickEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 
+    void updateSettings();
+
     bool mVisible = false;
     std::unique_ptr<QPixmap> mPendingImage;
 

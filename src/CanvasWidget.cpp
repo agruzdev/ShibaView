@@ -13,6 +13,7 @@
 #include <qdesktopwidget.h>
 #include <QKeyEvent>
 #include <QPainter>
+#include <QSettings>
 
 enum class BorderPosition
 {
@@ -31,6 +32,9 @@ namespace
 {
     Q_CONSTEXPR int kMinSize = 256;
     Q_CONSTEXPR int kFrameThickness = 8;
+
+    const QString kSettingsGeometry   = "canvas/geometry";
+    const QString kSettingsFullscreen = "canvas/fullscreen";
 
     Q_CONSTEXPR
     BorderPosition operator|(const BorderPosition & lh, const BorderPosition & rh)
@@ -51,14 +55,26 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     , mHoveredBorder(BorderPosition::eNone)
     , mStartTime(t)
 {
-    mFullScreen = false;
-    setGeometry(200, 200, 1280, 720);
-    setStyleSheet("background-color:black;");
+    QSettings settings;
+    setGeometry(settings.value(kSettingsGeometry, QRect(200, 200, 1280, 720)).toRect());
+    mFullScreen = settings.value(kSettingsFullscreen, false).toBool();
+    setStyleSheet("background-color:#2B2B2B;");
     setMouseTracking(true);
+    mClickGeometry = geometry();
+    if (mFullScreen) {
+        setGeometry(QApplication::desktop()->screenGeometry());
+    }
 }
 
 CanvasWidget::~CanvasWidget()
 { }
+
+void CanvasWidget::updateSettings()
+{
+    QSettings settings;
+    settings.setValue(kSettingsGeometry, mClickGeometry);
+    settings.setValue(kSettingsFullscreen, mFullScreen);
+}
 
 void CanvasWidget::onImageReady(QPixmap p)
 {
@@ -79,8 +95,8 @@ void CanvasWidget::paintEvent(QPaintEvent * /* event */)
     }
 
     if(mPendingImage != nullptr) {
-        //mPixmap = std::move(*mPendingImage);
-        mPixmap = mPendingImage->scaled(width(), height(), Qt::AspectRatioMode::KeepAspectRatio, Qt::TransformationMode::FastTransformation);
+        mPixmap = std::move(*mPendingImage);
+        //mPixmap = mPendingImage->scaled(width(), height(), Qt::AspectRatioMode::KeepAspectRatio, Qt::TransformationMode::FastTransformation);
         mPendingImage = nullptr;
         //resize(mPixmap.width(), mPixmap.height());
     }
@@ -131,6 +147,7 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event)
             mFullScreen = false;
         }
         mClickGeometry = geometry();
+        updateSettings();
     }
 }
 
@@ -146,6 +163,7 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event)
             setGeometry(QApplication::desktop()->screenGeometry());
             mFullScreen = true;
         }
+        updateSettings();
     }
 }
 
