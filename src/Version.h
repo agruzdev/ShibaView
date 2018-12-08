@@ -15,7 +15,7 @@
 #define VER_PRODUCTVERSION_STR      "1.0\0"
 
 #define VER_COMPANYNAME_STR         "Alexey Gruzdev"
-#define VER_FILEDESCRIPTION_STR     "Such image viewer"
+#define VER_FILEDESCRIPTION_STR     "ShibaView - Such image viewer"
 #define VER_INTERNALNAME_STR        "ShibaView"
 #define VER_LEGALCOPYRIGHT_STR      "Copyright © 2018 Alexey Gruzdev"
 #define VER_LEGALTRADEMARKS1_STR    "All Rights Reserved"
