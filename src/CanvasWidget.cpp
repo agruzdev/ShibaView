@@ -78,6 +78,10 @@ void CanvasWidget::updateSettings()
 
 void CanvasWidget::onImageReady(QPixmap p)
 {
+    if(p.isNull()) {
+        close();
+        return;
+    }
     mPendingImage.reset();
     mPendingImage.reset(new QPixmap(p));
     if(!mVisible) {
