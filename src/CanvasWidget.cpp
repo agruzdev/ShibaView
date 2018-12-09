@@ -91,6 +91,44 @@ void CanvasWidget::onImageReady(QPixmap p)
     update();
 }
 
+void CanvasWidget::updateImageRegion()
+{
+    const int w = static_cast<int>(mPixmap.width()  * mZoom);
+    const int h = static_cast<int>(mPixmap.height() * mZoom);
+
+    const int zeroX = width()  / 2;
+    const int zeroY = height() / 2;
+
+    QRect roi;
+    roi.setLeft(zeroX - w / 2);
+    roi.setTop(zeroY - h / 2);
+
+    if(w > width()) {
+        if(mOffsetX < 0) {
+            mOffsetX = std::max(width(), roi.left() + w + mOffsetX) - roi.left() - w;
+        }
+        if(mOffsetX > 0) {
+            mOffsetX = std::min(0, roi.left() + mOffsetX) - roi.left();
+        }
+        roi.setLeft(roi.left() + mOffsetX);
+    }
+
+    if(h > height()) {
+        if(mOffsetY < 0) {
+            mOffsetY = std::max(height(), roi.top() + h + mOffsetY) - roi.top() - h;
+        }
+        if(mOffsetY > 0) {
+            mOffsetY = std::min(0, roi.top() + mOffsetY) - roi.top();
+        }
+        roi.setTop(roi.top() + mOffsetY);
+    }
+
+    roi.setRight(roi.left() + w);
+    roi.setBottom(roi.top() + h);
+
+    mImageRegion = roi;
+}
+
 void CanvasWidget::paintEvent(QPaintEvent * /* event */)
 {
     if(mStartup){
@@ -103,16 +141,12 @@ void CanvasWidget::paintEvent(QPaintEvent * /* event */)
         mPendingImage = nullptr;
     }
 
-    const float dx = mPixmap.width()  * mZoom / 2.0f;
-    const float dy = mPixmap.height() * mZoom / 2.0f;
+    if(!mPixmap.isNull()) {
+        updateImageRegion();
 
-    QTransform viewTransform;
-    viewTransform.translate(width() / 2.0f - dx, height() / 2.0f - dy);
-    viewTransform.scale(mZoom, mZoom);
-
-    QPainter painter(this);
-    painter.setTransform(viewTransform);
-    painter.drawPixmap(0, 0, mPixmap);
+        QPainter painter(this);
+        painter.drawPixmap(mImageRegion, mPixmap);
+    }
 }
 
 void CanvasWidget::resizeEvent(QResizeEvent * /* event */)
@@ -144,6 +178,12 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event)
             mClickX = event->x();
             mClickY = event->y();
         }
+        else if(event->button() & Qt::MiddleButton) {
+            // drag image
+            mBrowsing = true;
+            mClickX = event->x();
+            mClickY = event->y();
+        }
     }
     mClick = true;
 }
@@ -160,13 +200,14 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event)
         mClickGeometry = geometry();
         updateSettings();
     }
+    mBrowsing = false;
     mClick = false;
 }
 
 void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event)
 {
     QWidget::mouseDoubleClickEvent(event);
-    if(mHoveredBorder == BorderPosition::eNone) {
+    if((event->button() & Qt::LeftButton) && (mHoveredBorder == BorderPosition::eNone)) {
         if(mFullScreen) {
             setGeometry(mClickGeometry);
             mFullScreen = false;
@@ -185,6 +226,14 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
     if(!mFullScreen) {
         if (mDragging) {
             move(event->globalX() - mClickX, event->globalY() - mClickY);
+        }
+        else if (mBrowsing) {
+            mOffsetX += event->x() - mClickX;
+            mOffsetY += event->y() - mClickY;
+            mClickX   = event->x();
+            mClickY   = event->y();
+            updateImageRegion();
+            repaint();
         }
         else if (mStretching) {
             QRect r = mClickGeometry;
@@ -239,6 +288,7 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
                 unsetCursor();
                 break;
             }
+            mCursorPosition = QPoint(x, y);
             mHoveredBorder = pos;
         }
     }
@@ -252,6 +302,7 @@ void CanvasWidget::wheelEvent(QWheelEvent* event)
             const float step   = 0.075f;
             const float factor = (degrees.y() > 0) ? 1.0f + step : 1.0f - step;
             mZoom = std::max(0.01f, std::min(mZoom * factor, 100.0f));
+            updateImageRegion();
             update();
         }
     }

@@ -45,6 +45,8 @@ private:
 
     void updateSettings();
 
+    void updateImageRegion();
+
     bool mVisible = false;
     std::unique_ptr<QPixmap> mPendingImage;
 
@@ -64,8 +66,15 @@ private:
     bool mStartup = true;
     QPixmap mPixmap;
 
-    //QTransform mPixmapTransform;
+    QRect mImageRegion;
+
     float mZoom = 1.0f;
+
+    bool mBrowsing = false;
+    int mOffsetX = 0;
+    int mOffsetY = 0;
+
+    QPoint mCursorPosition;
 };
 
 
