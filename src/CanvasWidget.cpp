@@ -121,8 +121,9 @@ void CanvasWidget::updateOffsets()
     }
 }
 
-void CanvasWidget::paintEvent(QPaintEvent * /* event */)
+void CanvasWidget::paintEvent(QPaintEvent * event)
 {
+    QWidget::paintEvent(event);
     if(mStartup){
         std::cout << (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - mStartTime).count() / 1e3) << std::endl;
         mStartup = false;
@@ -150,13 +151,16 @@ void CanvasWidget::paintEvent(QPaintEvent * /* event */)
     }
 }
 
-void CanvasWidget::resizeEvent(QResizeEvent * /* event */)
+void CanvasWidget::resizeEvent(QResizeEvent * event)
 {
+    QWidget::resizeEvent(event);
+    updateOffsets();
     repaint();
 }
 
 void CanvasWidget::keyPressEvent(QKeyEvent* event)
 {
+    QWidget::keyPressEvent(event);
     if(event->key() == Qt::Key_Escape) {
         close();
     }
@@ -217,6 +221,7 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event)
             setGeometry(QApplication::desktop()->screenGeometry());
             mFullScreen = true;
         }
+        updateOffsets();
         updateSettings();
     }
 }
@@ -250,6 +255,7 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
                 r.setHeight(std::max(kMinSize, event->y()));
             }
             setGeometry(r);
+            updateOffsets();
         }
         else {
             const int x = event->x();
