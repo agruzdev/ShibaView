@@ -44,8 +44,7 @@ private:
     void wheelEvent(QWheelEvent* event) Q_DECL_OVERRIDE;
 
     void updateSettings();
-
-    void updateImageRegion();
+    void updateOffsets();
 
     bool mVisible = false;
     std::unique_ptr<QPixmap> mPendingImage;
@@ -68,11 +67,7 @@ private:
 
     QRect mImageRegion;
 
-    float mZoom = 1.0f;
-
     bool mBrowsing = false;
-    int mOffsetX = 0;
-    int mOffsetY = 0;
 
     QPoint mCursorPosition;
 };

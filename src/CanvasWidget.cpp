@@ -91,42 +91,34 @@ void CanvasWidget::onImageReady(QPixmap p)
     update();
 }
 
-void CanvasWidget::updateImageRegion()
+void CanvasWidget::updateOffsets()
 {
-    const int w = static_cast<int>(mPixmap.width()  * mZoom);
-    const int h = static_cast<int>(mPixmap.height() * mZoom);
-
+    const int w = mImageRegion.width();
+    const int h = mImageRegion.height();
     const int zeroX = width()  / 2;
     const int zeroY = height() / 2;
-
-    QRect roi;
-    roi.setLeft(zeroX - w / 2);
-    roi.setTop(zeroY - h / 2);
-
-    if(w > width()) {
-        if(mOffsetX < 0) {
-            mOffsetX = std::max(width(), roi.left() + w + mOffsetX) - roi.left() - w;
+    if (w > width()) {
+        if (mImageRegion.left() + w < width()) {
+            mImageRegion.moveLeft(width() - w);
         }
-        if(mOffsetX > 0) {
-            mOffsetX = std::min(0, roi.left() + mOffsetX) - roi.left();
+        if (mImageRegion.left() > 0) {
+            mImageRegion.moveLeft(0);
         }
-        roi.setLeft(roi.left() + mOffsetX);
     }
-
+    else {
+        mImageRegion.moveLeft(zeroX - w / 2);
+    }
     if(h > height()) {
-        if(mOffsetY < 0) {
-            mOffsetY = std::max(height(), roi.top() + h + mOffsetY) - roi.top() - h;
+        if (mImageRegion.top() + h < height()) {
+            mImageRegion.moveTop(height() - h);
         }
-        if(mOffsetY > 0) {
-            mOffsetY = std::min(0, roi.top() + mOffsetY) - roi.top();
+        if (mImageRegion.top() > 0) {
+            mImageRegion.moveTop(0);
         }
-        roi.setTop(roi.top() + mOffsetY);
     }
-
-    roi.setRight(roi.left() + w);
-    roi.setBottom(roi.top() + h);
-
-    mImageRegion = roi;
+    else {
+        mImageRegion.moveTop(zeroY - h / 2);
+    }
 }
 
 void CanvasWidget::paintEvent(QPaintEvent * /* event */)
@@ -139,11 +131,20 @@ void CanvasWidget::paintEvent(QPaintEvent * /* event */)
     if(mPendingImage != nullptr) {
         mPixmap = std::move(*mPendingImage);
         mPendingImage = nullptr;
+
+        const int w = mPixmap.width();
+        const int h = mPixmap.height();
+
+        const int zeroX = width()  / 2;
+        const int zeroY = height() / 2;
+
+        mImageRegion.setLeft(zeroX - w / 2);
+        mImageRegion.setTop (zeroY - h / 2);
+        mImageRegion.setRight(mImageRegion.left() + w);
+        mImageRegion.setBottom(mImageRegion.top() + h);
     }
 
     if(!mPixmap.isNull()) {
-        updateImageRegion();
-
         QPainter painter(this);
         painter.drawPixmap(mImageRegion, mPixmap);
     }
@@ -228,11 +229,10 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
             move(event->globalX() - mClickX, event->globalY() - mClickY);
         }
         else if (mBrowsing) {
-            mOffsetX += event->x() - mClickX;
-            mOffsetY += event->y() - mClickY;
+            mImageRegion.translate(event->x() - mClickX, event->y() - mClickY);
             mClickX   = event->x();
             mClickY   = event->y();
-            updateImageRegion();
+            updateOffsets();
             repaint();
         }
         else if (mStretching) {
@@ -288,10 +288,10 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
                 unsetCursor();
                 break;
             }
-            mCursorPosition = QPoint(x, y);
             mHoveredBorder = pos;
         }
     }
+    mCursorPosition = QPoint(event->x(), event->y());
 }
 
 void CanvasWidget::wheelEvent(QWheelEvent* event)
@@ -300,9 +300,18 @@ void CanvasWidget::wheelEvent(QWheelEvent* event)
         const QPoint degrees = event->angleDelta();
         if (!degrees.isNull() && degrees.y() != 0) {
             const float step   = 0.075f;
-            const float factor = (degrees.y() > 0) ? 1.0f + step : 1.0f - step;
-            mZoom = std::max(0.01f, std::min(mZoom * factor, 100.0f));
-            updateImageRegion();
+            const float zoom = (degrees.y() > 0) ? 1.0f + step : 1.0f - step;
+
+            const int w = mImageRegion.width();
+            const int h = mImageRegion.height();
+
+            mImageRegion.setLeft(static_cast<int>((mImageRegion.left() - mCursorPosition.x()) * zoom + mCursorPosition.x()));
+            mImageRegion.setTop (static_cast<int>((mImageRegion.top()  - mCursorPosition.y()) * zoom + mCursorPosition.y()));
+
+            mImageRegion.setRight(mImageRegion.left() + static_cast<int>(w * zoom));
+            mImageRegion.setBottom(mImageRegion.top() + static_cast<int>(h * zoom));
+
+            updateOffsets();
             update();
         }
     }
