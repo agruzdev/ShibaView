@@ -14,6 +14,7 @@
 #include <QKeyEvent>
 #include <QPainter>
 #include <QSettings>
+#include <QScreen>
 
 enum class BorderPosition
 {
@@ -169,26 +170,24 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
 void CanvasWidget::mousePressEvent(QMouseEvent* event)
 {
     QWidget::mousePressEvent(event);
-    if(!mFullScreen) {
-        if(mHoveredBorder != BorderPosition::eNone) {
-            // resise window
-            mStretching = true;
-            mClickGeometry = geometry();
-            mClickX = event->globalX();
-            mClickY = event->globalY();
-        }
-        else if(event->buttons() & Qt::LeftButton) {
-            // drag window
-            mDragging = true;
-            mClickX = event->x();
-            mClickY = event->y();
-        }
-        else if(event->button() & Qt::MiddleButton) {
-            // drag image
-            mBrowsing = true;
-            mClickX = event->x();
-            mClickY = event->y();
-        }
+    if(!mFullScreen && mHoveredBorder != BorderPosition::eNone) {
+        // resise window
+        mStretching = true;
+        mClickGeometry = geometry();
+        mClickX = event->globalX();
+        mClickY = event->globalY();
+    }
+    else if(!mFullScreen && event->buttons() & Qt::LeftButton) {
+        // drag window
+        mDragging = true;
+        mClickX = event->x();
+        mClickY = event->y();
+    }
+    else if(event->button() & Qt::MiddleButton) {
+        // drag image
+        mBrowsing = true;
+        mClickX = event->x();
+        mClickY = event->y();
     }
     mClick = true;
 }
@@ -218,7 +217,13 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event)
             mFullScreen = false;
         } else {
             mClickGeometry = geometry();
-            setGeometry(QApplication::desktop()->screenGeometry());
+            const auto screen = QApplication::screenAt(mClickGeometry.center());
+            if (screen) {
+                setGeometry(screen->geometry());
+            }
+            else {
+                setGeometry(QApplication::desktop()->screenGeometry());
+            }
             mFullScreen = true;
         }
         updateOffsets();
@@ -229,74 +234,74 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event)
 void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
 {
     QWidget::mouseMoveEvent(event);
-    if(!mFullScreen) {
-        if (mDragging) {
-            move(event->globalX() - mClickX, event->globalY() - mClickY);
-        }
-        else if (mBrowsing) {
-            mImageRegion.translate(event->x() - mClickX, event->y() - mClickY);
-            mClickX   = event->x();
-            mClickY   = event->y();
-            updateOffsets();
-            repaint();
-        }
-        else if (mStretching) {
-            QRect r = mClickGeometry;
-            if ((mHoveredBorder & BorderPosition::eLeft) != BorderPosition::eNone) {
-                r.setX(std::min(r.x() + event->globalX() - mClickX, r.right() - kMinSize));
-            }
-            if ((mHoveredBorder & BorderPosition::eRight) != BorderPosition::eNone) {
-                r.setWidth(std::max(kMinSize, event->x()));
-            }
-            if ((mHoveredBorder & BorderPosition::eTop) != BorderPosition::eNone) {
-                r.setY(std::min(r.y() + event->globalY() - mClickY, r.bottom() - kMinSize));
-            }
-            if ((mHoveredBorder & BorderPosition::eBottom) != BorderPosition::eNone) {
-                r.setHeight(std::max(kMinSize, event->y()));
-            }
-            setGeometry(r);
-            updateOffsets();
-        }
-        else {
-            const int x = event->x();
-            const int y = event->y();
-            BorderPosition pos = BorderPosition::eNone;
-            if (x <= kFrameThickness) {
-                pos = pos | BorderPosition::eLeft;
-            }
-            if (width() - x <= kFrameThickness) {
-                pos = pos | BorderPosition::eRight;
-            }
-            if (y <= kFrameThickness) {
-                pos = pos | BorderPosition::eTop;
-            }
-            if (height() - y <= kFrameThickness) {
-                pos = pos | BorderPosition::eBottom;
-            }
-            switch (pos) {
-            case BorderPosition::eLeft:
-            case BorderPosition::eRight:
-                setCursor(Qt::SizeHorCursor);
-                break;
-            case BorderPosition::eTop:
-            case BorderPosition::eBottom:
-                setCursor(Qt::SizeVerCursor);
-                break;
-            case BorderPosition::eTopLeft:
-            case BorderPosition::eBotRight:
-                setCursor(Qt::SizeFDiagCursor);
-                break;
-            case BorderPosition::eTopRight:
-            case BorderPosition::eBotLeft:
-                setCursor(Qt::SizeBDiagCursor);
-                break;
-            default:
-                unsetCursor();
-                break;
-            }
-            mHoveredBorder = pos;
-        }
+    
+    if (!mFullScreen && mDragging) {
+        move(event->globalX() - mClickX, event->globalY() - mClickY);
     }
+    else if (mBrowsing) {
+        mImageRegion.translate(event->x() - mClickX, event->y() - mClickY);
+        mClickX   = event->x();
+        mClickY   = event->y();
+        updateOffsets();
+        repaint();
+    }
+    else if (!mFullScreen && mStretching) {
+        QRect r = mClickGeometry;
+        if ((mHoveredBorder & BorderPosition::eLeft) != BorderPosition::eNone) {
+            r.setX(std::min(r.x() + event->globalX() - mClickX, r.right() - kMinSize));
+        }
+        if ((mHoveredBorder & BorderPosition::eRight) != BorderPosition::eNone) {
+            r.setWidth(std::max(kMinSize, event->x()));
+        }
+        if ((mHoveredBorder & BorderPosition::eTop) != BorderPosition::eNone) {
+            r.setY(std::min(r.y() + event->globalY() - mClickY, r.bottom() - kMinSize));
+        }
+        if ((mHoveredBorder & BorderPosition::eBottom) != BorderPosition::eNone) {
+            r.setHeight(std::max(kMinSize, event->y()));
+        }
+        setGeometry(r);
+        updateOffsets();
+    }
+    else {
+        const int x = event->x();
+        const int y = event->y();
+        BorderPosition pos = BorderPosition::eNone;
+        if (x <= kFrameThickness) {
+            pos = pos | BorderPosition::eLeft;
+        }
+        if (width() - x <= kFrameThickness) {
+            pos = pos | BorderPosition::eRight;
+        }
+        if (y <= kFrameThickness) {
+            pos = pos | BorderPosition::eTop;
+        }
+        if (height() - y <= kFrameThickness) {
+            pos = pos | BorderPosition::eBottom;
+        }
+        switch (pos) {
+        case BorderPosition::eLeft:
+        case BorderPosition::eRight:
+            setCursor(Qt::SizeHorCursor);
+            break;
+        case BorderPosition::eTop:
+        case BorderPosition::eBottom:
+            setCursor(Qt::SizeVerCursor);
+            break;
+        case BorderPosition::eTopLeft:
+        case BorderPosition::eBotRight:
+            setCursor(Qt::SizeFDiagCursor);
+            break;
+        case BorderPosition::eTopRight:
+        case BorderPosition::eBotLeft:
+            setCursor(Qt::SizeBDiagCursor);
+            break;
+        default:
+            unsetCursor();
+            break;
+        }
+        mHoveredBorder = pos;
+    }
+    
     mCursorPosition = QPoint(event->x(), event->y());
 }
 
