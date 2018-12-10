@@ -5,13 +5,15 @@ TARGET = ShibaView
 HEADERS       = \
     ViewerApplication.h \
     ImageLoader.h \
-    CanvasWidget.h
+    CanvasWidget.h \
+    ZoomController.h
 
 SOURCES       = \
     main.cpp \
     ViewerApplication.cpp \
     ImageLoader.cpp \
-    CanvasWidget.cpp
+    CanvasWidget.cpp \
+    ZoomController.cpp
 
 RC_FILE = resources.rc
 

@@ -18,6 +18,8 @@
 
 enum class BorderPosition;
 
+class ZoomController;
+
 class CanvasWidget
     : public QWidget
 {
@@ -66,6 +68,8 @@ private:
     QPixmap mPixmap;
 
     QRect mImageRegion;
+
+    std::unique_ptr<ZoomController> mZoomController;
 
     bool mBrowsing = false;
 

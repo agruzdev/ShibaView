@@ -16,6 +16,8 @@
 #include <QSettings>
 #include <QScreen>
 
+#include <ZoomController.h>
+
 enum class BorderPosition
 {
     eNone   = 0x0,
@@ -142,8 +144,10 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
         mImageRegion.setLeft(zeroX - w / 2);
         mImageRegion.setTop (zeroY - h / 2);
-        mImageRegion.setRight(mImageRegion.left() + w);
-        mImageRegion.setBottom(mImageRegion.top() + h);
+        mImageRegion.setWidth(w);
+        mImageRegion.setHeight(h);
+
+        mZoomController = std::make_unique<ZoomController>(w, 8, 50 * w);
     }
 
     if(!mPixmap.isNull()) {
@@ -310,20 +314,21 @@ void CanvasWidget::wheelEvent(QWheelEvent* event)
     if(!mClick) {
         const QPoint degrees = event->angleDelta();
         if (!degrees.isNull() && degrees.y() != 0) {
-            const float step   = 0.075f;
-            const float zoom = (degrees.y() > 0) ? 1.0f + step : 1.0f - step;
+            if(mZoomController) {
+                const int w = mImageRegion.width();
 
-            const int w = mImageRegion.width();
-            const int h = mImageRegion.height();
+                const int dw = (degrees.y() > 0) ? mZoomController->zoomPlus() : mZoomController->zoomMinus();
+                const int dh = dw * mPixmap.height() / mPixmap.width();
 
-            mImageRegion.setLeft(static_cast<int>((mImageRegion.left() - mCursorPosition.x()) * zoom + mCursorPosition.x()));
-            mImageRegion.setTop (static_cast<int>((mImageRegion.top()  - mCursorPosition.y()) * zoom + mCursorPosition.y()));
+                mImageRegion.setLeft((mImageRegion.left() - mCursorPosition.x()) * dw / w + mCursorPosition.x());
+                mImageRegion.setTop ((mImageRegion.top()  - mCursorPosition.y()) * dw / w + mCursorPosition.y());
 
-            mImageRegion.setRight(mImageRegion.left() + static_cast<int>(w * zoom));
-            mImageRegion.setBottom(mImageRegion.top() + static_cast<int>(h * zoom));
+                mImageRegion.setWidth(dw);
+                mImageRegion.setHeight(dh);
 
-            updateOffsets();
-            update();
+                updateOffsets();
+                update();
+            }
         }
     }
 }
