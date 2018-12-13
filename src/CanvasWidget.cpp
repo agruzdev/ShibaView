@@ -12,7 +12,7 @@
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QKeyEvent>
-#include <Qlabel>
+#include <QLabel>
 #include <QPainter>
 #include <QSettings>
 #include <QScreen>
