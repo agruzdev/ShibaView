@@ -1,6 +1,7 @@
 #include "ZoomController.h"
 
 #include <algorithm>
+#include <cmath>
 
 ZoomController::ZoomController(int initValue, int minLimit, int maxLimit)
 {

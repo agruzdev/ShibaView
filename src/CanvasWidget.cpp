@@ -10,11 +10,13 @@
 #include <iostream>
 
 #include <QApplication>
-#include <qdesktopwidget.h>
+#include <QDesktopWidget>
 #include <QKeyEvent>
+#include <Qlabel>
 #include <QPainter>
 #include <QSettings>
 #include <QScreen>
+#include <QGraphicsDropShadowEffect>
 
 #include <ZoomController.h>
 
@@ -38,6 +40,7 @@ namespace
 
     const QString kSettingsGeometry   = "canvas/geometry";
     const QString kSettingsFullscreen = "canvas/fullscreen";
+    const QString kSettingsShowInfo   = "canvas/info";
 
     Q_CONSTEXPR
     BorderPosition operator|(const BorderPosition & lh, const BorderPosition & rh)
@@ -58,9 +61,30 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     , mHoveredBorder(BorderPosition::eNone)
     , mStartTime(t)
 {
+    mInfoLabel = new QLabel(this);
+    mInfoLabel->setMargin(25);
+    mInfoLabel->setStyleSheet(R"CSS(
+        QLabel { 
+            font-size: 14px;
+            font-weight: bold;
+            background-color : transparent;
+            color : white; 
+        }
+    )CSS");
+
+    QGraphicsDropShadowEffect *eff = new QGraphicsDropShadowEffect(this);
+    eff->setOffset(-1, -1);
+    eff->setBlurRadius(5.0);
+    eff->setColor(Qt::black);
+    mInfoLabel->setGraphicsEffect(eff);
+
+    connect(this, &CanvasWidget::eventInfoText, mInfoLabel, &QLabel::setText, Qt::QueuedConnection);
+    connect(this, &CanvasWidget::eventInfoText, mInfoLabel, [this](QString){mInfoLabel->adjustSize();}, Qt::QueuedConnection);
+
     QSettings settings;
     setGeometry(settings.value(kSettingsGeometry, QRect(200, 200, 1280, 720)).toRect());
     mFullScreen = settings.value(kSettingsFullscreen, false).toBool();
+    mShowInfo   = settings.value(kSettingsShowInfo, false).toBool();
     setStyleSheet("background-color:#2B2B2B;");
     setMouseTracking(true);
     mClickGeometry = geometry();
@@ -70,16 +94,19 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
 }
 
 CanvasWidget::~CanvasWidget()
-{ }
-
-void CanvasWidget::updateSettings()
 {
-    QSettings settings;
-    settings.setValue(kSettingsGeometry, mClickGeometry);
-    settings.setValue(kSettingsFullscreen, mFullScreen);
+    try {
+        QSettings settings;
+        settings.setValue(kSettingsGeometry,   mClickGeometry);
+        settings.setValue(kSettingsFullscreen, mFullScreen);
+        settings.setValue(kSettingsShowInfo,   mShowInfo);
+    }
+    catch(...) {
+        
+    }
 }
 
-void CanvasWidget::onImageReady(QPixmap p)
+void CanvasWidget::onImageReady(QPixmap p, const ImageInfo & i)
 {
     if(p.isNull()) {
         close();
@@ -87,6 +114,7 @@ void CanvasWidget::onImageReady(QPixmap p)
     }
     mPendingImage.reset();
     mPendingImage.reset(new QPixmap(p));
+    mImageInfo = i;
     if(!mVisible) {
         show();
         mVisible = false;
@@ -126,11 +154,12 @@ void CanvasWidget::updateOffsets()
 
 void CanvasWidget::paintEvent(QPaintEvent * event)
 {
-    QWidget::paintEvent(event);
     if(mStartup){
         std::cout << (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - mStartTime).count() / 1e3) << std::endl;
-        mStartup = false;
     }
+
+    QWidget::paintEvent(event);
+
 
     if(mPendingImage != nullptr) {
         mPixmap = std::move(*mPendingImage);
@@ -148,11 +177,25 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
         mImageRegion.setHeight(h);
 
         mZoomController = std::make_unique<ZoomController>(w, 8, 50 * w);
+
+        emit eventInfoText(mImageInfo.toString());
     }
 
     if(!mPixmap.isNull()) {
         QPainter painter(this);
         painter.drawPixmap(mImageRegion, mPixmap);
+
+        if (mShowInfo) {
+            mInfoLabel->show();
+        }
+        else {
+            mInfoLabel->hide();
+        }
+    }
+
+    if(mStartup){
+        std::cout << (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - mStartTime).count() / 1e3) << std::endl;
+        mStartup = false;
     }
 }
 
@@ -168,6 +211,9 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
     QWidget::keyPressEvent(event);
     if(event->key() == Qt::Key_Escape) {
         close();
+    }
+    else if(event->key() == Qt::Key_Tab) {
+        mShowInfo = !mShowInfo;
     }
 }
 
@@ -206,7 +252,6 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event)
             mFullScreen = false;
         }
         mClickGeometry = geometry();
-        updateSettings();
     }
     mBrowsing = false;
     mClick = false;
@@ -231,7 +276,6 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event)
             mFullScreen = true;
         }
         updateOffsets();
-        updateSettings();
     }
 }
 

@@ -8,6 +8,7 @@
 #include "ImageLoader.h"
 
 #include <QImage>
+#include <QFileInfo>
 
 #include <iostream>
 #include <memory>
@@ -18,42 +19,34 @@ namespace
     // From FreeImage manual
 
     /** Generic image loader
-    @param lpszPathName Pointer to the full file name
-    @param flag Optional load flag constant
-    @return Returns the loaded dib if successful, returns NULL otherwise
-    */
+     * @param lpszPathName Pointer to the full file name
+     * @param flag Optional load flag constant
+     * @return Returns the loaded dib if successful, returns NULL otherwise
+     */
     FIBITMAP* FreeImage_GenericLoadU(const wchar_t* lpszPathName, int flag = 0)
     {
-      FREE_IMAGE_FORMAT fif = FIF_UNKNOWN;
-      // check the file signature and deduce its format
-      // (the second argument is currently not used by FreeImage)
-      fif = FreeImage_GetFileTypeU(lpszPathName, 0);
-      if(fif == FIF_UNKNOWN) {
-        // no signature ?
-        // try to guess the file format from the file extension
-        fif = FreeImage_GetFIFFromFilenameU(lpszPathName);
-      }
-      // check that the plugin has reading capabilities ...
-      if((fif != FIF_UNKNOWN) && FreeImage_FIFSupportsReading(fif)) {
-        // ok, let's load the file
-        FIBITMAP *dib = FreeImage_LoadU(fif, lpszPathName, flag);
-        // unless a bad file format, we are done !
-        return dib;
-      }
-      return NULL;
+        FREE_IMAGE_FORMAT fif = FreeImage_GetFileTypeU(lpszPathName, 0);
+        if(fif == FIF_UNKNOWN) {
+            fif = FreeImage_GetFIFFromFilenameU(lpszPathName);
+        }
+        if((fif != FIF_UNKNOWN) && FreeImage_FIFSupportsReading(fif)) {
+            return FreeImage_LoadU(fif, lpszPathName, flag);
+        }
+        return nullptr;
     }
 }
 
 ImageLoader::ImageLoader()
     : QObject(nullptr)
-{ }
+{
+    qRegisterMetaType<ImageInfo>("ImageInfo");
+}
 
 ImageLoader::~ImageLoader()
 { }
 
 void ImageLoader::onRun(const QString & path)
 {
-    QPixmap res{};
     try {
         const auto upath = path.toStdWString();
         std::wcout << upath.c_str() << std::endl;
@@ -102,7 +95,16 @@ void ImageLoader::onRun(const QString & path)
         default:
             throw std::runtime_error("Unsupported image format " + std::to_string(FreeImage_GetImageType(img)));
         }
-        res = QPixmap::fromImage(*qimage);
+
+        QFileInfo file(path);
+
+        ImageInfo info;
+        info.name     = file.fileName();
+        info.dims     = QSize(width, height);
+        info.bytes    = file.size();
+        info.modified = file.lastModified();
+
+        emit eventResult(QPixmap::fromImage(*qimage), info);
     }
     catch(std::exception & e) {
         qCritical(e.what());
@@ -110,6 +112,6 @@ void ImageLoader::onRun(const QString & path)
     catch(...) {
         qCritical("Unknown exception!");
     }
-    emit eventResult(res);
     deleteLater();
 }
+

@@ -15,9 +15,11 @@
 #include <QWidget>
 #include <QFuture>
 #include <QSizeGrip>
+#include <ImageLoader.h>
 
 enum class BorderPosition;
 
+class QLabel;
 class ZoomController;
 
 class CanvasWidget
@@ -30,7 +32,10 @@ public:
     ~CanvasWidget();
 
 public slots:
-    void onImageReady(QPixmap p);
+    void onImageReady(QPixmap p, const ImageInfo & i);
+
+signals:
+    void eventInfoText(QString s);
 
 protected:
     void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
@@ -45,7 +50,6 @@ private:
     void mouseDoubleClickEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void wheelEvent(QWheelEvent* event) Q_DECL_OVERRIDE;
 
-    void updateSettings();
     void updateOffsets();
 
     bool mVisible = false;
@@ -65,15 +69,21 @@ private:
 
     std::chrono::steady_clock::time_point mStartTime;
     bool mStartup = true;
+
     QPixmap mPixmap;
+    ImageInfo mImageInfo;
 
     QRect mImageRegion;
+
+    bool mShowInfo = false;
 
     std::unique_ptr<ZoomController> mZoomController;
 
     bool mBrowsing = false;
 
     QPoint mCursorPosition;
+
+    QLabel* mInfoLabel = nullptr;
 };
 
 
