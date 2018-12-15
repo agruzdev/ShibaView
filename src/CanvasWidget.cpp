@@ -10,6 +10,7 @@
 #include <cmath>
 #include <iostream>
 
+#include <QAction>
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QKeyEvent>
@@ -47,6 +48,8 @@ namespace
     const QString kSettingsGeometry   = "canvas/geometry";
     const QString kSettingsFullscreen = "canvas/fullscreen";
     const QString kSettingsShowInfo   = "canvas/info";
+    const QString kSettingsZoomMode   = "canvas/zoom";
+    const QString kSettingsFilterMode = "canvas/filtering";
 
     const QString kZoomLine = "Zoom: ";
 
@@ -86,16 +89,49 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
 
     QSettings settings;
     setGeometry(settings.value(kSettingsGeometry, QRect(200, 200, 1280, 720)).toRect());
-    mFullScreen = settings.value(kSettingsFullscreen, false).toBool();
-    mShowInfo   = settings.value(kSettingsShowInfo, false).toBool();
-    setStyleSheet("background-color:#2B2B2B;");
+    mFullScreen    = settings.value(kSettingsFullscreen, false).toBool();
+    mShowInfo      = settings.value(kSettingsShowInfo, false).toBool();
+    mFilteringMode = static_cast<FilteringMode>(settings.value(kSettingsFilterMode, static_cast<int>(FilteringMode::eNone)).toInt());
+
+    mZoomMode = ZoomMode::eFitWidth;
+
+    QPalette palette;
+    palette.setColor(QPalette::ColorRole::Window, QColor(0x2B, 0x2B, 0x2B));
+    setPalette(palette);
+
     setMouseTracking(true);
     mClickGeometry = geometry();
     if (mFullScreen) {
         setGeometry(QApplication::desktop()->screenGeometry());
     }
 
-    mZoomMode = ZoomMode::eFitWidth;
+    setContextMenuPolicy(Qt::ActionsContextMenu);
+
+    mActNoFilter = std::make_unique<QAction>("No filter", this);
+    mActNoFilter->setStatusTip("Disable image filtering");
+    mActNoFilter->setCheckable(true);
+    addAction(mActNoFilter.get());
+
+    mActAntialiasing = std::make_unique<QAction>("Antialiasing", this);
+    mActAntialiasing->setStatusTip("Default image smoothing");
+    mActAntialiasing->setCheckable(true);
+    addAction(mActAntialiasing.get());
+
+    mActGroupFiltering = std::make_unique<QActionGroup>(this);
+    mActGroupFiltering->addAction(mActNoFilter.get());
+    mActGroupFiltering->addAction(mActAntialiasing.get());
+
+    switch(mFilteringMode) {
+    case FilteringMode::eNone:
+        mActNoFilter->setChecked(true);
+        break;
+    case FilteringMode::eAntialiasing:
+        mActAntialiasing->setChecked(true);
+        break;
+    }
+
+    connect(mActNoFilter.get(), &QAction::triggered, this, &CanvasWidget::onActNoFilter);
+    connect(mActAntialiasing.get(), &QAction::triggered, this, &CanvasWidget::onActAntialiasing);
 }
 
 CanvasWidget::~CanvasWidget()
@@ -105,6 +141,7 @@ CanvasWidget::~CanvasWidget()
         settings.setValue(kSettingsGeometry,   mClickGeometry);
         settings.setValue(kSettingsFullscreen, mFullScreen);
         settings.setValue(kSettingsShowInfo,   mShowInfo);
+        settings.setValue(kSettingsFilterMode, static_cast<int>(mFilteringMode));
     }
     catch(...) {
         
@@ -203,6 +240,9 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
     if(!mPixmap.isNull()) {
         QPainter painter(this);
+        if(mFilteringMode == FilteringMode::eAntialiasing) {
+            painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, true);
+        }
         painter.drawPixmap(mImageRegion, mPixmap);
 
         if (mShowInfo) {
@@ -450,3 +490,20 @@ void CanvasWidget::wheelEvent(QWheelEvent* event)
     }
 }
 
+// Actions
+
+void CanvasWidget::onActNoFilter(bool checked)
+{
+    if(checked) {
+        mFilteringMode = FilteringMode::eNone;
+        update();
+    }
+}
+
+void CanvasWidget::onActAntialiasing(bool checked)
+{
+    if(checked) {
+        mFilteringMode = FilteringMode::eAntialiasing;
+        update();
+    }
+}

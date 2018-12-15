@@ -11,6 +11,8 @@
 #include <chrono>
 #include <memory>
 
+#include <QAction>
+#include <QActionGroup>
 #include <QPixmap>
 #include <QWidget>
 #include <QFuture>
@@ -30,6 +32,12 @@ enum class ZoomMode
     eCustom
 };
 
+enum class FilteringMode
+{
+    eNone,
+    eAntialiasing
+};
+
 class CanvasWidget
     : public QWidget
 {
@@ -42,6 +50,10 @@ public:
 public slots:
     void onImageReady(QPixmap p, const ImageInfo & i);
 
+    // Actions
+    void onActNoFilter(bool checked);
+    void onActAntialiasing(bool checked);
+
 signals:
     void eventInfoText(QString s);
 
@@ -49,6 +61,7 @@ protected:
     void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
     void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE;
     void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
+
 
 private:
 
@@ -96,6 +109,13 @@ private:
     QPoint mCursorPosition;
 
     TextWidget* mInfoText = nullptr;
+
+    FilteringMode mFilteringMode;
+
+    // Menu actions
+    std::unique_ptr<QActionGroup> mActGroupFiltering;
+    std::unique_ptr<QAction> mActNoFilter;
+    std::unique_ptr<QAction> mActAntialiasing;
 };
 
 

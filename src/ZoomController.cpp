@@ -12,7 +12,7 @@ ZoomController::ZoomController(int pos100, int posFit, int minValue, int maxValu
 
     mScales.push_back(node1);
     int offset1 = 0;
-    float v = node1;
+    float v = static_cast<float>(node1);
     for(;;) {
         v = v * (1.0f - step);
         const int s = std::max(static_cast<int>(std::floor(v)), minValue);
@@ -25,7 +25,7 @@ ZoomController::ZoomController(int pos100, int posFit, int minValue, int maxValu
         }
     }
 
-    v = node1;
+    v = static_cast<float>(node1);
     int offset2 = offset1;
     for(;;) {
         v = v * (1.0f + step);
@@ -39,7 +39,7 @@ ZoomController::ZoomController(int pos100, int posFit, int minValue, int maxValu
         }
     }
 
-    v = node2;
+    v = static_cast<float>(node2);
     for(;;) {
         v = v * (1.0f + step);
         const int s = std::min(static_cast<int>(std::ceil(v)), maxValue);
