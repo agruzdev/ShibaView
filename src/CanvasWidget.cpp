@@ -355,8 +355,8 @@ void CanvasWidget::wheelEvent(QWheelEvent* event)
                 const int dw = (degrees.y() > 0) ? mZoomController->zoomPlus() : mZoomController->zoomMinus();
                 const int dh = dw * mPixmap.height() / mPixmap.width();
 
-                mImageRegion.setLeft((mImageRegion.left() - mCursorPosition.x()) * dw / w + mCursorPosition.x());
-                mImageRegion.setTop ((mImageRegion.top()  - mCursorPosition.y()) * dw / w + mCursorPosition.y());
+                mImageRegion.setLeft(static_cast<int>(static_cast<int64_t>(mImageRegion.left() - mCursorPosition.x()) * dw / w + mCursorPosition.x()));
+                mImageRegion.setTop (static_cast<int>(static_cast<int64_t>(mImageRegion.top()  - mCursorPosition.y()) * dw / w + mCursorPosition.y()));
 
                 mImageRegion.setWidth(dw);
                 mImageRegion.setHeight(dh);
