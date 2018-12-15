@@ -47,6 +47,8 @@ namespace
     const QString kSettingsFullscreen = "canvas/fullscreen";
     const QString kSettingsShowInfo   = "canvas/info";
 
+    const QString kZoomLine = "Zoom: ";
+
     Q_CONSTEXPR
     BorderPosition operator|(const BorderPosition & lh, const BorderPosition & rh)
     {
@@ -57,6 +59,12 @@ namespace
     BorderPosition operator&(const BorderPosition & lh, const BorderPosition & rh)
     {
         return static_cast<BorderPosition>(static_cast<std::underlying_type_t<BorderPosition>>(lh) & static_cast<std::underlying_type_t<BorderPosition>>(rh));
+    }
+
+    inline
+    QString zoomPercents(float z)
+    {
+        return QString::number(100.0f * z, 'f', 0) + QString("%");
     }
 }
 
@@ -187,7 +195,9 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
         mImageRegion    = fitWidth(w, h);
         mZoomController = std::make_unique<ZoomController>(w, mImageRegion.width(), w / kMinZoomRatio, w * kMaxZoomRatio);
 
-        mInfoText->setText(mImageInfo.toLines());
+        auto infoLines = mImageInfo.toLines();
+        infoLines.push_back(kZoomLine + zoomPercents(static_cast<float>(mImageRegion.width()) / w));
+        mInfoText->setText(infoLines);
     }
 
     if(!mPixmap.isNull()) {
@@ -213,6 +223,9 @@ void CanvasWidget::recalculateZoom()
     if(!mPixmap.isNull()) {
         const int w = mPixmap.width();
         mZoomController = std::make_unique<ZoomController>(w, mImageRegion.width(), w / kMinZoomRatio, w * kMaxZoomRatio);
+        if (mInfoText) {
+            mInfoText->setLine(ImageInfo::linesNumber(), kZoomLine + zoomPercents(static_cast<float>(mImageRegion.width()) / mPixmap.width()));
+        }
     }
 }
 
@@ -222,6 +235,9 @@ void CanvasWidget::resizeEvent(QResizeEvent * event)
     updateOffsets();
     if(mZoomMode == ZoomMode::eFitWidth && !mPixmap.isNull()) {
         mImageRegion = fitWidth(mPixmap.width(), mPixmap.height());
+        if (mInfoText) {
+            mInfoText->setLine(ImageInfo::linesNumber(), kZoomLine + zoomPercents(static_cast<float>(mImageRegion.width()) / mPixmap.width()));
+        }
     }
     repaint();
 }
@@ -245,7 +261,6 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
             if(mZoomController) {
                 mZoomController->moveToPosFit();
             }
-            update();
             break;
         case ZoomMode::eFitWidth:
             mZoomMode = ZoomMode::e100Percent;
@@ -257,9 +272,9 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
             if(mZoomController) {
                 mZoomController->moveToPos100();
             }
-            update();
             break;
         }
+        update();
     }
 }
 
@@ -409,7 +424,7 @@ void CanvasWidget::wheelEvent(QWheelEvent* event)
     if(!mClick) {
         const QPoint degrees = event->angleDelta();
         if (!degrees.isNull() && degrees.y() != 0) {
-            if(mZoomController) {
+            if(mZoomController && !mPixmap.isNull()) {
                 mZoomMode = ZoomMode::eCustom;
 
                 const int w = mImageRegion.width();
@@ -422,6 +437,10 @@ void CanvasWidget::wheelEvent(QWheelEvent* event)
 
                 mImageRegion.setWidth(dw);
                 mImageRegion.setHeight(dh);
+
+                if (mInfoText) {
+                    mInfoText->setLine(ImageInfo::linesNumber(), kZoomLine + zoomPercents(static_cast<float>(dw) / mPixmap.width()));
+                }
 
                 updateOffsets();
                 update();
