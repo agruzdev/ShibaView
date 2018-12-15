@@ -7,6 +7,7 @@
 
 #include "CanvasWidget.h"
 
+#include <cmath>
 #include <iostream>
 
 #include <QApplication>
