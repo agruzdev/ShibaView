@@ -19,13 +19,14 @@ struct ImageInfo
     size_t bytes;
     QDateTime modified;
 
-    QString toString()
+    QVector<QString> toLines() const
     {
-        return
-            "File name: " + name + "\n" +
-            "File size: " + QString::number(bytes / 1024.0f) + "KB\n" +
-            "Last modified: " + modified.toString("yyyy/MM/dd hh:mm:ss") + "\n" +
-            "Resolution: " + QString::number(dims.width()) + "x" + QString::number(dims.height());
+        QVector<QString> res;
+        res.push_back("File name: " + name);
+        res.push_back("File size: " + QString::number(bytes / 1024.0f) + "KB");
+        res.push_back("Last modified: " + modified.toString("yyyy/MM/dd hh:mm:ss"));
+        res.push_back("Resolution: " + QString::number(dims.width()) + "x" + QString::number(dims.height()));
+        return res;
     }
 };
 

@@ -17,7 +17,9 @@
 #include <QSettings>
 #include <QScreen>
 #include <QGraphicsDropShadowEffect>
+#include <QRawFont>
 
+#include <TextWidget.h>
 #include <ZoomController.h>
 
 enum class BorderPosition
@@ -61,25 +63,14 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     , mHoveredBorder(BorderPosition::eNone)
     , mStartTime(t)
 {
-    mInfoLabel = new QLabel(this);
-    mInfoLabel->setMargin(25);
-    mInfoLabel->setStyleSheet(R"CSS(
-        QLabel { 
-            font-size: 14px;
-            font-weight: bold;
-            background-color : transparent;
-            color : white; 
-        }
-    )CSS");
+    mInfoText = new TextWidget(QFont("Arial", 12), this);
+    mInfoText->move(20, 30);
 
     QGraphicsDropShadowEffect *eff = new QGraphicsDropShadowEffect(this);
-    eff->setOffset(-1, -1);
+    eff->setOffset(-1, 0);
     eff->setBlurRadius(5.0);
     eff->setColor(Qt::black);
-    mInfoLabel->setGraphicsEffect(eff);
-
-    connect(this, &CanvasWidget::eventInfoText, mInfoLabel, &QLabel::setText, Qt::QueuedConnection);
-    connect(this, &CanvasWidget::eventInfoText, mInfoLabel, [this](QString){mInfoLabel->adjustSize();}, Qt::QueuedConnection);
+    mInfoText->setGraphicsEffect(eff);
 
     QSettings settings;
     setGeometry(settings.value(kSettingsGeometry, QRect(200, 200, 1280, 720)).toRect());
@@ -178,7 +169,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
         mZoomController = std::make_unique<ZoomController>(w, 8, 50 * w);
 
-        emit eventInfoText(mImageInfo.toString());
+        mInfoText->setText(mImageInfo.toLines());
     }
 
     if(!mPixmap.isNull()) {
@@ -186,10 +177,10 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
         painter.drawPixmap(mImageRegion, mPixmap);
 
         if (mShowInfo) {
-            mInfoLabel->show();
+            mInfoText->show();
         }
         else {
-            mInfoLabel->hide();
+            mInfoText->hide();
         }
     }
 

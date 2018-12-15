@@ -21,6 +21,7 @@ enum class BorderPosition;
 
 class QLabel;
 class ZoomController;
+class TextWidget;
 
 class CanvasWidget
     : public QWidget
@@ -83,7 +84,7 @@ private:
 
     QPoint mCursorPosition;
 
-    QLabel* mInfoLabel = nullptr;
+    TextWidget* mInfoText = nullptr;
 };
 
 

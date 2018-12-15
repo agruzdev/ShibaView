@@ -6,14 +6,16 @@ HEADERS       = \
     ViewerApplication.h \
     ImageLoader.h \
     CanvasWidget.h \
-    ZoomController.h
+    ZoomController.h \
+    TextWidget.h
 
 SOURCES       = \
     main.cpp \
     ViewerApplication.cpp \
     ImageLoader.cpp \
     CanvasWidget.cpp \
-    ZoomController.cpp
+    ZoomController.cpp \
+    TextWidget.cpp
 
 RC_FILE = resources.rc
 
