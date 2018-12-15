@@ -63,7 +63,7 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     , mHoveredBorder(BorderPosition::eNone)
     , mStartTime(t)
 {
-    mInfoText = new TextWidget(QFont("Arial", 12), this);
+    mInfoText = new TextWidget(this);
     mInfoText->move(15, 30);
 
     QGraphicsDropShadowEffect *eff = new QGraphicsDropShadowEffect(this);

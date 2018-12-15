@@ -12,7 +12,7 @@ class TextWidget
 {
     Q_OBJECT
 public:
-    explicit TextWidget(const QFont & font, QWidget *parent = nullptr);
+    explicit TextWidget(QWidget *parent = nullptr);
     ~TextWidget();
 
 signals:

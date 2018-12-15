@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>../fonts/ArchivoNarrow-Regular.otf</file>
+    </qresource>
+</RCC>
