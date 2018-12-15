@@ -23,6 +23,13 @@ class QLabel;
 class ZoomController;
 class TextWidget;
 
+enum class ZoomMode
+{
+    eFitWidth,
+    e100Percent,
+    eCustom
+};
+
 class CanvasWidget
     : public QWidget
 {
@@ -52,6 +59,9 @@ private:
     void wheelEvent(QWheelEvent* event) Q_DECL_OVERRIDE;
 
     void updateOffsets();
+    QRect fitWidth(int w, int h) const;
+
+    void recalculateZoom();
 
     bool mVisible = false;
     std::unique_ptr<QPixmap> mPendingImage;
@@ -79,6 +89,7 @@ private:
     bool mShowInfo = false;
 
     std::unique_ptr<ZoomController> mZoomController;
+    ZoomMode mZoomMode;
 
     bool mBrowsing = false;
 

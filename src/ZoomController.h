@@ -6,33 +6,47 @@
 class ZoomController
 {
 public:
-    ZoomController(int initValue, int minLimit, int maxLimit);
+    ZoomController(int pos100, int posFit, int minValue, int maxValue);
     ~ZoomController();
 
     int get() const
     {
-        return *mPos;
+        return *mPosCurrent;
     }
 
     int zoomPlus()
     {
-        if(mPos != std::prev(mScales.cend())) {
-            ++mPos;
+        if(mPosCurrent != std::prev(mScales.cend())) {
+            ++mPosCurrent;
         }
-        return *mPos;
+        return *mPosCurrent;
     }
 
     int zoomMinus()
     {
-        if(mPos != mScales.cbegin()) {
-            --mPos;
+        if(mPosCurrent != mScales.cbegin()) {
+            --mPosCurrent;
         }
-        return *mPos;
+        return *mPosCurrent;
+    }
+
+    int moveToPos100()
+    {
+        mPosCurrent = mPos100;
+        return *mPosCurrent;
+    }
+
+    int moveToPosFit()
+    {
+        mPosCurrent = mPosFit;
+        return *mPosCurrent;
     }
 
 private:
     std::deque<int> mScales;
-    std::deque<int>::const_iterator mPos;
+    std::deque<int>::const_iterator mPos100;
+    std::deque<int>::const_iterator mPosFit;
+    std::deque<int>::const_iterator mPosCurrent;
 };
 
 #endif // ZOOMCONTROLLER_H

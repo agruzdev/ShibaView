@@ -40,6 +40,9 @@ namespace
     Q_CONSTEXPR int kMinSize = 256;
     Q_CONSTEXPR int kFrameThickness = 8;
 
+    Q_CONSTEXPR int kMinZoomRatio = 30;
+    Q_CONSTEXPR int kMaxZoomRatio = 30;
+
     const QString kSettingsGeometry   = "canvas/geometry";
     const QString kSettingsFullscreen = "canvas/fullscreen";
     const QString kSettingsShowInfo   = "canvas/info";
@@ -82,6 +85,8 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     if (mFullScreen) {
         setGeometry(QApplication::desktop()->screenGeometry());
     }
+
+    mZoomMode = ZoomMode::eFitWidth;
 }
 
 CanvasWidget::~CanvasWidget()
@@ -143,6 +148,26 @@ void CanvasWidget::updateOffsets()
     }
 }
 
+QRect CanvasWidget::fitWidth(int w, int h) const
+{
+    const int zeroX = width()  / 2;
+    const int zeroY = height() / 2;
+
+    const float kx = static_cast<float>(width())  / w;
+    const float ky = static_cast<float>(height()) / h;
+    const int fitWidth = static_cast<int>(std::floor(std::min(kx, ky) * w));
+
+    const int fitHeight = static_cast<int>(static_cast<int64_t>(fitWidth) * mPixmap.height() / mPixmap.width());
+
+    QRect r;
+    r.setLeft(zeroX - fitWidth  / 2);
+    r.setTop (zeroY - fitHeight / 2);
+    r.setWidth(fitWidth);
+    r.setHeight(fitHeight);
+
+    return r;
+}
+
 void CanvasWidget::paintEvent(QPaintEvent * event)
 {
     if(mStartup){
@@ -159,15 +184,8 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
         const int w = mPixmap.width();
         const int h = mPixmap.height();
 
-        const int zeroX = width()  / 2;
-        const int zeroY = height() / 2;
-
-        mImageRegion.setLeft(zeroX - w / 2);
-        mImageRegion.setTop (zeroY - h / 2);
-        mImageRegion.setWidth(w);
-        mImageRegion.setHeight(h);
-
-        mZoomController = std::make_unique<ZoomController>(w, 8, 50 * w);
+        mImageRegion    = fitWidth(w, h);
+        mZoomController = std::make_unique<ZoomController>(w, mImageRegion.width(), w / kMinZoomRatio, w * kMaxZoomRatio);
 
         mInfoText->setText(mImageInfo.toLines());
     }
@@ -190,10 +208,21 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
     }
 }
 
+void CanvasWidget::recalculateZoom()
+{
+    if(!mPixmap.isNull()) {
+        const int w = mPixmap.width();
+        mZoomController = std::make_unique<ZoomController>(w, mImageRegion.width(), w / kMinZoomRatio, w * kMaxZoomRatio);
+    }
+}
+
 void CanvasWidget::resizeEvent(QResizeEvent * event)
 {
     QWidget::resizeEvent(event);
     updateOffsets();
+    if(mZoomMode == ZoomMode::eFitWidth && !mPixmap.isNull()) {
+        mImageRegion = fitWidth(mPixmap.width(), mPixmap.height());
+    }
     repaint();
 }
 
@@ -205,6 +234,32 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
     }
     else if(event->key() == Qt::Key_Tab) {
         mShowInfo = !mShowInfo;
+    }
+    else if((event->key() == Qt::Key_Asterisk) && !mPixmap.isNull()) {
+        switch (mZoomMode) {
+        case ZoomMode::eCustom:
+        case ZoomMode::e100Percent:
+            mZoomMode = ZoomMode::eFitWidth;
+            mImageRegion = fitWidth(mPixmap.width(), mPixmap.height());
+            recalculateZoom();
+            if(mZoomController) {
+                mZoomController->moveToPosFit();
+            }
+            update();
+            break;
+        case ZoomMode::eFitWidth:
+            mZoomMode = ZoomMode::e100Percent;
+            mImageRegion.setLeft(width()  / 2 - mPixmap.width()  / 2);
+            mImageRegion.setTop (height() / 2 - mPixmap.height() / 2);
+            mImageRegion.setWidth(mPixmap.width());
+            mImageRegion.setHeight(mPixmap.height());
+            recalculateZoom();
+            if(mZoomController) {
+                mZoomController->moveToPos100();
+            }
+            update();
+            break;
+        }
     }
 }
 
@@ -241,6 +296,9 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event)
         if (mStretching) {
             mStretching = false;
             mFullScreen = false;
+
+            // After stretching
+            recalculateZoom();
         }
         mClickGeometry = geometry();
     }
@@ -267,6 +325,8 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event)
             mFullScreen = true;
         }
         updateOffsets();
+        // After full screen
+        recalculateZoom();
     }
 }
 
@@ -350,6 +410,8 @@ void CanvasWidget::wheelEvent(QWheelEvent* event)
         const QPoint degrees = event->angleDelta();
         if (!degrees.isNull() && degrees.y() != 0) {
             if(mZoomController) {
+                mZoomMode = ZoomMode::eCustom;
+
                 const int w = mImageRegion.width();
 
                 const int dw = (degrees.y() > 0) ? mZoomController->zoomPlus() : mZoomController->zoomMinus();
