@@ -1,5 +1,7 @@
 #include "TextWidget.h"
 
+#include <cmath>
+
 #include <QPainter>
 
 TextWidget::TextWidget(QWidget *parent) 
