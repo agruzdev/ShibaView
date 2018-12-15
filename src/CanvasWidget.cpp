@@ -64,7 +64,7 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     , mStartTime(t)
 {
     mInfoText = new TextWidget(QFont("Arial", 12), this);
-    mInfoText->move(20, 30);
+    mInfoText->move(15, 30);
 
     QGraphicsDropShadowEffect *eff = new QGraphicsDropShadowEffect(this);
     eff->setOffset(-1, 0);

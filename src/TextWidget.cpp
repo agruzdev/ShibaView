@@ -9,7 +9,7 @@ TextWidget::TextWidget(const QFont & font, QWidget *parent)
     mPen     = QPen(Qt::white);
     mBrush   = QBrush(Qt::white, Qt::BrushStyle::SolidPattern);
 
-    mLineHeight = mRawFont.capHeight() + 16;
+    mLineHeight = mRawFont.capHeight() + 12;
 }
 
 TextWidget::~TextWidget()
@@ -58,6 +58,7 @@ void TextWidget::paintEvent(QPaintEvent *event)
         if(mLines[i].size() > 0) {
             auto glyphs = mRawFont.glyphIndexesForString(mLines[i]);
             painter.resetTransform();
+            painter.scale(0.9, 1.0);
             painter.translate(0, (i + 1) * mLineHeight);
             for (int32_t j = 0; j < glyphs.size(); ++j) {
                 const auto path = mRawFont.pathForGlyph(glyphs[j]);
