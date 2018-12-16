@@ -86,6 +86,7 @@ void ImageLoader::onRun(const QString & path)
                 qimage = std::make_unique<QImage>(FreeImage_GetBits(pTmp.get()), width, height, FreeImage_GetPitch(pTmp.get()), QImage::Format_RGB888);
                 break;
             }
+            throw std::runtime_error("Unsupported image format " + std::to_string(FreeImage_GetImageType(img)));
         }
         case FIT_RGBA16: {
             assert(bpp == 64);
@@ -97,8 +98,9 @@ void ImageLoader::onRun(const QString & path)
             pTmp.reset(FreeImage_ConvertToRGBA16(img));
             if(pTmp) {
                 qimage = std::make_unique<QImage>(FreeImage_GetBits(pTmp.get()), width, height, FreeImage_GetPitch(pTmp.get()), QImage::Format_RGBA64);
+                break;
             }
-            break;
+            throw std::runtime_error("Unsupported image format " + std::to_string(FreeImage_GetImageType(img)));
         }
         case FIT_BITMAP:
             if (32 == bpp) {
