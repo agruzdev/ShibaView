@@ -20,9 +20,11 @@ namespace
         "*.png",
         "*.jpg", "*.jpeg",
         "*.tga",
-        "*.tiff",
+        "*.tif", "*.tiff",
         "*.bmp",
-        "*.gif"
+        "*.gif",
+        "*.pbm", "*.pgm", "*.ppm", "*.pnm", "*.pfm", "*.pam",
+        "*.hdr"
     };
 }
 
@@ -46,6 +48,7 @@ void ViewerApplication::loadImageAsync(const QString &path)
     ImageLoader* loader = new ImageLoader;
     connect(this, &ViewerApplication::eventLoadImage, loader, &ImageLoader::onRun);
     connect(loader, &ImageLoader::eventResult, mCanvasWidget.get(), &CanvasWidget::onImageReady);
+    connect(loader, &ImageLoader::eventError, this, &ViewerApplication::onError);
     loader->moveToThread(mBackgroundThread.get());
     emit eventLoadImage(path);
     disconnect(this, &ViewerApplication::eventLoadImage, loader, &ImageLoader::onRun);
@@ -65,6 +68,15 @@ void ViewerApplication::open(const QString & path)
     mFilesInDirectory = mDirectory.entryList(extensions);
 
     mCurrentFile = std::find(mFilesInDirectory.cbegin(), mFilesInDirectory.cend(), finfo.fileName());
+}
+
+void ViewerApplication::onError(const QString & what)
+{
+    qWarning() << what;
+    if(mCanvasWidget) {
+        mCanvasWidget->close();
+    }
+    QApplication::exit(-1);
 }
 
 void ViewerApplication::onNextImage()

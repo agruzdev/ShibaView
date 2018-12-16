@@ -26,6 +26,8 @@ public:
 signals:
     void eventResult(QPixmap p, ImageInfo i);
 
+    void eventError(QString what);
+
 public slots:
     void onRun(const QString & path);
 

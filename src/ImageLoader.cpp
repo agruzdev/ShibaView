@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <memory>
+
 #include "FreeImage.h"
 
 namespace
@@ -33,6 +34,16 @@ namespace
             return FreeImage_LoadU(fif, lpszPathName, flag);
         }
         return nullptr;
+    }
+
+    QVector<QRgb> cvtPalette(const RGBQUAD* palette)
+    {
+        static constexpr uint32_t kPaletteSize = 256;
+        QVector<QRgb> qpalette(kPaletteSize);
+        for (uint32_t i = 0; i < kPaletteSize; ++i) {
+            qpalette[i] = qRgb(palette[i].rgbRed, palette[i].rgbGreen, palette[i].rgbBlue);
+        }
+        return qpalette;
     }
 }
 
@@ -64,31 +75,64 @@ void ImageLoader::onRun(const QString & path)
         const uint32_t height = FreeImage_GetHeight(img);
         const uint32_t bpp    = FreeImage_GetBPP(img);
 
+        std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> pTmp(nullptr, &::FreeImage_Unload);
+
         std::unique_ptr<QImage> qimage;
         switch(FreeImage_GetImageType(img)){
+        case FIT_RGBAF:
+        case FIT_RGBF: {
+            pTmp.reset(FreeImage_ToneMapping(img, FITMO_DRAGO03));
+            if(pTmp) {
+                qimage = std::make_unique<QImage>(FreeImage_GetBits(pTmp.get()), width, height, FreeImage_GetPitch(pTmp.get()), QImage::Format_RGB888);
+                break;
+            }
+        }
+        case FIT_RGBA16: {
+            assert(bpp == 64);
+            qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_RGBA64);
+            break;
+        }
+        case FIT_RGB16: {
+            assert(bpp == 48);
+            pTmp.reset(FreeImage_ConvertToRGBA16(img));
+            if(pTmp) {
+                qimage = std::make_unique<QImage>(FreeImage_GetBits(pTmp.get()), width, height, FreeImage_GetPitch(pTmp.get()), QImage::Format_RGBA64);
+            }
+            break;
+        }
         case FIT_BITMAP:
-            if(32 == bpp) {
-                qimage.reset(new QImage(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_RGBA8888));
+            if (32 == bpp) {
+                qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_RGBA8888);
                 break;
             }
-            else if(24 == bpp) {
-                qimage.reset(new QImage(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_RGB888));
+            else if (24 == bpp) {
+                qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_RGB888);
                 break;
             }
-            else if(8 == bpp) {
-                static constexpr uint32_t kPaletteSize = 256;
+            else if (8 == bpp) {
                 const RGBQUAD* palette = FreeImage_GetPalette(img);
                 if(palette != nullptr) {
-                    qimage.reset(new QImage(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_Indexed8));
-                    QVector<QRgb> qpalette(kPaletteSize);
-                    for (uint32_t i = 0; i < kPaletteSize; ++i) {
-                        qpalette[i] = qRgb(palette[i].rgbRed, palette[i].rgbGreen, palette[i].rgbBlue);
-                    }
-                    qimage->setColorTable(qpalette);
+                    qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_Indexed8);
+                    qimage->setColorTable(cvtPalette(palette));
                 }
                 else {
-                    qimage.reset(new QImage(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_Grayscale8));
+                    qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_Grayscale8);
                 }
+                break;
+            }
+            else if(4 == bpp) {
+                const RGBQUAD* palette = FreeImage_GetPalette(img);
+                if(palette != nullptr) {
+                    pTmp.reset(FreeImage_ConvertTo8Bits(img));
+                    if(pTmp) {
+                        qimage = std::make_unique<QImage>(FreeImage_GetBits(pTmp.get()), width, height, FreeImage_GetPitch(pTmp.get()), QImage::Format_Indexed8);
+                        qimage->setColorTable(cvtPalette(palette));
+                        break;
+                    }
+                }
+            }
+            else if(1 == bpp) {
+                qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_Mono);
                 break;
             }
             // fallthrough
@@ -107,10 +151,10 @@ void ImageLoader::onRun(const QString & path)
         emit eventResult(QPixmap::fromImage(*qimage), info);
     }
     catch(std::exception & e) {
-        qCritical(e.what());
+        emit eventError(QString(e.what()));
     }
     catch(...) {
-        qCritical("Unknown exception!");
+        emit eventError("Unknown error!");
     }
     deleteLater();
 }

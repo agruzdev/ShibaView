@@ -43,6 +43,8 @@ public slots:
     void onNextImage();
     void onPrevImage();
 
+    void onError(const QString & what);
+
 private:
     std::unique_ptr<CanvasWidget> mCanvasWidget = nullptr;
     std::unique_ptr<QThread> mBackgroundThread = nullptr;
