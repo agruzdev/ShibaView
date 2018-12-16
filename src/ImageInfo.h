@@ -11,15 +11,17 @@
 struct ImageInfo
 {
     QString name;
-    QSize dims;
     size_t bytes = 0;
+    QString format;
     QDateTime modified;
+    QSize dims;
 
     QVector<QString> toLines() const
     {
         QVector<QString> res;
         res.push_back("File name: " + name);
         res.push_back("File size: " + QString::number(bytes / 1024.0f, 'f', 1) + "KB");
+        res.push_back("Format: " + format);
         res.push_back("Last modified: " + modified.toString("yyyy/MM/dd hh:mm:ss"));
         res.push_back("Resolution: " + QString::number(dims.width()) + "x" + QString::number(dims.height()));
         res.push_back("");
@@ -29,7 +31,7 @@ struct ImageInfo
     static
     int linesNumber()
     {
-        return 5;
+        return 6;
     }
 };
 

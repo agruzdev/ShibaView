@@ -60,7 +60,9 @@ void ImageLoader::onRun(const QString & path)
 {
     try {
         const auto upath = path.toStdWString();
+#ifdef _MSC_VER
         std::wcout << upath.c_str() << std::endl;
+#endif
 
         std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> pImg(FreeImage_GenericLoadU(upath.c_str()), &::FreeImage_Unload);
         FIBITMAP* const img = pImg.get();
@@ -77,6 +79,8 @@ void ImageLoader::onRun(const QString & path)
 
         std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> pTmp(nullptr, &::FreeImage_Unload);
 
+        QString formatInfo = "None";
+
         std::unique_ptr<QImage> qimage;
         switch(FreeImage_GetImageType(img)){
         case FIT_RGBAF:
@@ -84,6 +88,7 @@ void ImageLoader::onRun(const QString & path)
             pTmp.reset(FreeImage_ToneMapping(img, FITMO_DRAGO03));
             if(pTmp) {
                 qimage = std::make_unique<QImage>(FreeImage_GetBits(pTmp.get()), width, height, FreeImage_GetPitch(pTmp.get()), QImage::Format_RGB888);
+                formatInfo = "RGB HDR (tonemapped)";
                 break;
             }
             throw std::runtime_error("Unsupported image format " + std::to_string(FreeImage_GetImageType(img)));
@@ -91,6 +96,7 @@ void ImageLoader::onRun(const QString & path)
         case FIT_RGBA16: {
             assert(bpp == 64);
             qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_RGBA64);
+            formatInfo = "RGBA16";
             break;
         }
         case FIT_RGB16: {
@@ -98,6 +104,7 @@ void ImageLoader::onRun(const QString & path)
             pTmp.reset(FreeImage_ConvertToRGBA16(img));
             if(pTmp) {
                 qimage = std::make_unique<QImage>(FreeImage_GetBits(pTmp.get()), width, height, FreeImage_GetPitch(pTmp.get()), QImage::Format_RGBA64);
+                formatInfo = "RGB16";
                 break;
             }
             throw std::runtime_error("Unsupported image format " + std::to_string(FreeImage_GetImageType(img)));
@@ -105,10 +112,12 @@ void ImageLoader::onRun(const QString & path)
         case FIT_BITMAP:
             if (32 == bpp) {
                 qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_RGBA8888);
+                formatInfo = "RGBA8888";
                 break;
             }
             else if (24 == bpp) {
                 qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_RGB888);
+                formatInfo = "RGB888";
                 break;
             }
             else if (8 == bpp) {
@@ -116,9 +125,11 @@ void ImageLoader::onRun(const QString & path)
                 if(palette != nullptr) {
                     qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_Indexed8);
                     qimage->setColorTable(cvtPalette(palette));
+                    formatInfo = "RGB Indexed 8bit";
                 }
                 else {
                     qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_Grayscale8);
+                    formatInfo = "Greyscale 8bit";
                 }
                 break;
             }
@@ -129,12 +140,14 @@ void ImageLoader::onRun(const QString & path)
                     if(pTmp) {
                         qimage = std::make_unique<QImage>(FreeImage_GetBits(pTmp.get()), width, height, FreeImage_GetPitch(pTmp.get()), QImage::Format_Indexed8);
                         qimage->setColorTable(cvtPalette(palette));
+                        formatInfo = "RGB Indexed 4bit";
                         break;
                     }
                 }
             }
             else if(1 == bpp) {
                 qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_Mono);
+                formatInfo = "Mono 1bit";
                 break;
             }
             // fallthrough
@@ -146,9 +159,10 @@ void ImageLoader::onRun(const QString & path)
 
         ImageInfo info;
         info.name     = file.fileName();
-        info.dims     = QSize(width, height);
         info.bytes    = file.size();
+        info.format   = formatInfo;
         info.modified = file.lastModified();
+        info.dims     = QSize(width, height);
 
         emit eventResult(QPixmap::fromImage(*qimage), info);
     }

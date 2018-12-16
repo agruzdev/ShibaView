@@ -225,7 +225,9 @@ QRect CanvasWidget::fitWidth(int w, int h) const
 void CanvasWidget::paintEvent(QPaintEvent * event)
 {
     if(mStartup){
+#ifdef _MSC_VER
         std::cout << (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - mStartTime).count() / 1e3) << std::endl;
+#endif
     }
 
     QWidget::paintEvent(event);
@@ -262,7 +264,9 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
     }
 
     if(mStartup){
+#ifdef _MSC_VER
         std::cout << (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - mStartTime).count() / 1e3) << std::endl;
+#endif
         mStartup = false;
     }
 }
