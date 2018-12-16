@@ -6,13 +6,29 @@
 */
 
 #include "ViewerApplication.h"
-#include "ImageLoader.h"
 
 #include <iostream>
 
+#include <QDir>
+#include <QFileInfo>
+
+#include "ImageLoader.h"
+
+namespace
+{
+    const char* kSupportedExtensions[] = {
+        "*.png",
+        "*.jpg", "*.jpeg",
+        "*.tga",
+        "*.tiff",
+        "*.bmp",
+        "*.gif"
+    };
+}
+
 ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
 {
-    mCanvasWidget.reset(new CanvasWidget(t));
+    mCanvasWidget.reset(new CanvasWidget(this, t));
     mCanvasWidget->setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::MSWindowsOwnDC);
 
     mBackgroundThread.reset(new QThread);
@@ -33,4 +49,42 @@ void ViewerApplication::loadImageAsync(const QString &path)
     loader->moveToThread(mBackgroundThread.get());
     emit eventLoadImage(path);
     disconnect(this, &ViewerApplication::eventLoadImage, loader, &ImageLoader::onRun);
+}
+
+void ViewerApplication::open(const QString & path)
+{
+    QFileInfo finfo(path);
+    if(!finfo.exists() | finfo.isDir()) {
+        throw std::runtime_error("Input doesn't exist");
+    }
+    mDirectory = finfo.dir();
+    QStringList extensions;
+    for(const auto & ext : kSupportedExtensions) {
+        extensions << ext;
+    }
+    mFilesInDirectory = mDirectory.entryList(extensions);
+
+    mCurrentFile = std::find(mFilesInDirectory.cbegin(), mFilesInDirectory.cend(), finfo.fileName());
+}
+
+void ViewerApplication::onNextImage()
+{
+    if(mCurrentFile != mFilesInDirectory.cend() && !mFilesInDirectory.empty()) {
+        ++mCurrentFile;
+        if(mCurrentFile == mFilesInDirectory.cend()) {
+            mCurrentFile = mFilesInDirectory.cbegin();
+        }
+        loadImageAsync(mDirectory.absoluteFilePath(*mCurrentFile));
+    }
+}
+
+void ViewerApplication::onPrevImage()
+{
+    if(mCurrentFile != mFilesInDirectory.cend() && !mFilesInDirectory.empty()) {
+        if(mCurrentFile == mFilesInDirectory.begin()) {
+            mCurrentFile = mFilesInDirectory.cend();
+        }
+        --mCurrentFile;
+        loadImageAsync(mDirectory.absoluteFilePath(*mCurrentFile));
+    }
 }

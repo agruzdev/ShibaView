@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
         QApplication::setApplicationName("ShibaView");
 
         ViewerApplication viewer(t);
+        viewer.open(QString{argv[1]});
         viewer.loadImageAsync(QString{argv[1]});
 
         std::cout << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t).count() / 1e3 << std::endl;

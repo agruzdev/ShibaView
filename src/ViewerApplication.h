@@ -11,7 +11,9 @@
 #include <memory>
 
 #include <QApplication>
+#include <QDir>
 #include <QThread>
+#include <QStringList>
 
 #include <CanvasWidget.h>
 
@@ -26,6 +28,8 @@ public:
 
     void loadImageAsync(const QString & path);
 
+    void open(const QString & path);
+
     ViewerApplication(const ViewerApplication&) = delete;
     ViewerApplication(ViewerApplication&&) = delete;
 
@@ -35,9 +39,17 @@ public:
 signals:
     void eventLoadImage(const QString & path);
 
+public slots:
+    void onNextImage();
+    void onPrevImage();
+
 private:
     std::unique_ptr<CanvasWidget> mCanvasWidget = nullptr;
     std::unique_ptr<QThread> mBackgroundThread = nullptr;
+
+    QDir mDirectory;
+    QStringList mFilesInDirectory;
+    QStringList::const_iterator mCurrentFile;
 };
 
 #endif // VIEWERAPPLICATION_H

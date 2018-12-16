@@ -21,8 +21,9 @@
 #include <QGraphicsDropShadowEffect>
 #include <QRawFont>
 
-#include <TextWidget.h>
-#include <ZoomController.h>
+#include "TextWidget.h"
+#include "ZoomController.h"
+#include "ViewerApplication.h"
 
 enum class BorderPosition
 {
@@ -73,8 +74,9 @@ namespace
 }
 
 
-CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
+CanvasWidget::CanvasWidget(ViewerApplication* app, std::chrono::steady_clock::time_point t)
     : QWidget(nullptr)
+    , mParentApplication(app)
     , mHoveredBorder(BorderPosition::eNone)
     , mStartTime(t)
 {
@@ -132,6 +134,11 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
 
     connect(mActNoFilter.get(), &QAction::triggered, this, &CanvasWidget::onActNoFilter);
     connect(mActAntialiasing.get(), &QAction::triggered, this, &CanvasWidget::onActAntialiasing);
+
+    if(mParentApplication) {
+        connect(this, &CanvasWidget::eventNextImage, mParentApplication, &ViewerApplication::onNextImage, Qt::QueuedConnection);
+        connect(this, &CanvasWidget::eventPrevImage, mParentApplication, &ViewerApplication::onPrevImage, Qt::QueuedConnection);
+    }
 }
 
 CanvasWidget::~CanvasWidget()
@@ -161,6 +168,7 @@ void CanvasWidget::onImageReady(QPixmap p, const ImageInfo & i)
         show();
         mVisible = false;
     }
+    mTransitionRequested = false;
     update();
 }
 
@@ -286,13 +294,13 @@ void CanvasWidget::resizeEvent(QResizeEvent * event)
 void CanvasWidget::keyPressEvent(QKeyEvent* event)
 {
     QWidget::keyPressEvent(event);
-    if(event->key() == Qt::Key_Escape) {
+    if (event->key() == Qt::Key_Escape) {
         close();
     }
-    else if(event->key() == Qt::Key_Tab) {
+    else if (event->key() == Qt::Key_Tab) {
         mShowInfo = !mShowInfo;
     }
-    else if((event->key() == Qt::Key_Asterisk) && !mPixmap.isNull()) {
+    else if ((event->key() == Qt::Key_Asterisk) && !mPixmap.isNull()) {
         switch (mZoomMode) {
         case ZoomMode::eCustom:
         case ZoomMode::e100Percent:
@@ -316,6 +324,18 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
             break;
         }
         update();
+    }
+    else if (event->key() == Qt::Key_Left) {
+        if (!mTransitionRequested) {
+            mTransitionRequested = true;
+            emit eventPrevImage();
+        }
+    }
+    else if (event->key() == Qt::Key_Right) {
+        if (!mTransitionRequested) {
+            mTransitionRequested = true;
+            emit eventNextImage();
+        }
     }
 }
 

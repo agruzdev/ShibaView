@@ -24,6 +24,7 @@ enum class BorderPosition;
 class QLabel;
 class ZoomController;
 class TextWidget;
+class ViewerApplication;
 
 enum class ZoomMode
 {
@@ -38,13 +39,14 @@ enum class FilteringMode
     eAntialiasing
 };
 
+
 class CanvasWidget
     : public QWidget
 {
     Q_OBJECT
 
 public:
-    CanvasWidget(std::chrono::steady_clock::time_point t);
+    CanvasWidget(ViewerApplication* app, std::chrono::steady_clock::time_point t);
     ~CanvasWidget();
 
 public slots:
@@ -56,6 +58,9 @@ public slots:
 
 signals:
     void eventInfoText(QString s);
+
+    void eventNextImage();
+    void eventPrevImage();
 
 protected:
     void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
@@ -76,8 +81,12 @@ private:
 
     void recalculateZoom();
 
+    ViewerApplication* mParentApplication = nullptr;
+
     bool mVisible = false;
     std::unique_ptr<QPixmap> mPendingImage;
+
+    bool mTransitionRequested = true;
 
     bool mFullScreen = false;
 

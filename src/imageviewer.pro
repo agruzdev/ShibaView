@@ -7,7 +7,8 @@ HEADERS       = \
     ImageLoader.h \
     CanvasWidget.h \
     ZoomController.h \
-    TextWidget.h
+    TextWidget.h \
+    ImageInfo.h
 
 SOURCES       = \
     main.cpp \
