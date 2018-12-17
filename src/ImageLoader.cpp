@@ -190,6 +190,7 @@ void ImageLoader::onRun(const QString & path)
         info.dims     = QSize(width, height);
 
         emit eventResult(QPixmap::fromImage(*qimage), info);
+        success = true;
     }
     catch(std::exception & e) {
         qWarning() << QString(e.what());
