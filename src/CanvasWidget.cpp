@@ -90,7 +90,7 @@ CanvasWidget::CanvasWidget(ViewerApplication* app, std::chrono::steady_clock::ti
     mInfoText->setGraphicsEffect(eff);
 
     QSettings settings;
-    setGeometry(settings.value(kSettingsGeometry, QRect(200, 200, 1280, 720)).toRect());
+    mClickGeometry = settings.value(kSettingsGeometry, QRect(200, 200, 1280, 720)).toRect();
     mFullScreen    = settings.value(kSettingsFullscreen, false).toBool();
     mShowInfo      = settings.value(kSettingsShowInfo, false).toBool();
     mFilteringMode = static_cast<FilteringMode>(settings.value(kSettingsFilterMode, static_cast<int>(FilteringMode::eNone)).toInt());
@@ -102,9 +102,12 @@ CanvasWidget::CanvasWidget(ViewerApplication* app, std::chrono::steady_clock::ti
     setPalette(palette);
 
     setMouseTracking(true);
-    mClickGeometry = geometry();
+
     if (mFullScreen) {
-        setGeometry(QApplication::desktop()->screenGeometry());
+        setFullscreenGeometry();
+    }
+    else {
+        setGeometry(mClickGeometry);
     }
 
     setContextMenuPolicy(Qt::ActionsContextMenu);
@@ -341,6 +344,12 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
             emit eventNextImage();
         }
     }
+    else if (event->key() == Qt::Key_Plus) {
+        zoomToTarget(QPoint(width() / 2, height() / 2), 1);
+    }
+    else if (event->key() == Qt::Key_Minus) {
+        zoomToTarget(QPoint(width() / 2, height() / 2), -1);
+    }
 }
 
 void CanvasWidget::mousePressEvent(QMouseEvent* event)
@@ -386,6 +395,17 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event)
     mClick = false;
 }
 
+void CanvasWidget::setFullscreenGeometry()
+{
+    const auto screen = QApplication::screenAt(mClickGeometry.center());
+    if (screen) {
+        setGeometry(screen->geometry());
+    }
+    else {
+        setGeometry(QApplication::desktop()->screenGeometry());
+    }
+}
+
 void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event)
 {
     QWidget::mouseDoubleClickEvent(event);
@@ -395,13 +415,7 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event)
             mFullScreen = false;
         } else {
             mClickGeometry = geometry();
-            const auto screen = QApplication::screenAt(mClickGeometry.center());
-            if (screen) {
-                setGeometry(screen->geometry());
-            }
-            else {
-                setGeometry(QApplication::desktop()->screenGeometry());
-            }
+            setFullscreenGeometry();
             mFullScreen = true;
         }
         updateOffsets();
@@ -484,32 +498,38 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
     mCursorPosition = QPoint(event->x(), event->y());
 }
 
+void CanvasWidget::zoomToTarget(QPoint target, int dir)
+{
+    if(mZoomController && !mPixmap.isNull()) {
+        mZoomMode = ZoomMode::eCustom;
+
+        const int w = mImageRegion.width();
+
+        const int dw = (dir > 0) ? mZoomController->zoomPlus() : mZoomController->zoomMinus();
+        const int dh = dw * mPixmap.height() / mPixmap.width();
+
+        mImageRegion.setLeft(static_cast<int>(static_cast<int64_t>(mImageRegion.left() - target.x()) * dw / w + target.x()));
+        mImageRegion.setTop (static_cast<int>(static_cast<int64_t>(mImageRegion.top()  - target.y()) * dw / w + target.y()));
+
+        mImageRegion.setWidth(dw);
+        mImageRegion.setHeight(dh);
+
+        if (mInfoText) {
+            mInfoText->setLine(ImageInfo::linesNumber(), kZoomLine + zoomPercents(static_cast<float>(dw) / mPixmap.width()));
+        }
+
+        updateOffsets();
+        update();
+    }
+}
+
 void CanvasWidget::wheelEvent(QWheelEvent* event)
 {
     if(!mClick) {
         const QPoint degrees = event->angleDelta();
         if (!degrees.isNull() && degrees.y() != 0) {
-            if(mZoomController && !mPixmap.isNull()) {
-                mZoomMode = ZoomMode::eCustom;
-
-                const int w = mImageRegion.width();
-
-                const int dw = (degrees.y() > 0) ? mZoomController->zoomPlus() : mZoomController->zoomMinus();
-                const int dh = dw * mPixmap.height() / mPixmap.width();
-
-                mImageRegion.setLeft(static_cast<int>(static_cast<int64_t>(mImageRegion.left() - mCursorPosition.x()) * dw / w + mCursorPosition.x()));
-                mImageRegion.setTop (static_cast<int>(static_cast<int64_t>(mImageRegion.top()  - mCursorPosition.y()) * dw / w + mCursorPosition.y()));
-
-                mImageRegion.setWidth(dw);
-                mImageRegion.setHeight(dh);
-
-                if (mInfoText) {
-                    mInfoText->setLine(ImageInfo::linesNumber(), kZoomLine + zoomPercents(static_cast<float>(dw) / mPixmap.width()));
-                }
-
-                updateOffsets();
-                update();
-            }
+            mCursorPosition = QPoint(event->x(), event->y());
+            zoomToTarget(mCursorPosition, (degrees.y() > 0) ? 1 : -1);
         }
     }
 }

@@ -81,6 +81,10 @@ private:
 
     void recalculateZoom();
 
+    void setFullscreenGeometry();
+
+    void zoomToTarget(QPoint target, int dir);
+
     ViewerApplication* mParentApplication = nullptr;
 
     bool mVisible = false;
