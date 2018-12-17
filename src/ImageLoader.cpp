@@ -84,41 +84,62 @@ void ImageLoader::onRun(const QString & path)
         std::unique_ptr<QImage> qimage;
         switch(FreeImage_GetImageType(img)){
         case FIT_RGBAF:
-        case FIT_RGBF: {
+        case FIT_RGBF:
             pTmp.reset(FreeImage_ToneMapping(img, FITMO_DRAGO03));
             if(pTmp) {
                 qimage = std::make_unique<QImage>(FreeImage_GetBits(pTmp.get()), width, height, FreeImage_GetPitch(pTmp.get()), QImage::Format_RGB888);
                 formatInfo = "RGB HDR (tonemapped)";
-                break;
             }
-            throw std::runtime_error("Unsupported image format " + std::to_string(FreeImage_GetImageType(img)));
-        }
-        case FIT_RGBA16: {
+            break;
+
+        case FIT_RGBA16:
             assert(bpp == 64);
             qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_RGBA64);
             formatInfo = "RGBA16";
             break;
-        }
-        case FIT_RGB16: {
+
+        case FIT_RGB16:
             assert(bpp == 48);
             pTmp.reset(FreeImage_ConvertToRGBA16(img));
             if(pTmp) {
                 qimage = std::make_unique<QImage>(FreeImage_GetBits(pTmp.get()), width, height, FreeImage_GetPitch(pTmp.get()), QImage::Format_RGBA64);
                 formatInfo = "RGB16";
-                break;
             }
-            throw std::runtime_error("Unsupported image format " + std::to_string(FreeImage_GetImageType(img)));
-        }
+            break;
+
+        case FIT_UINT16:
+            formatInfo = "Greyscale 16bit";
+            goto ConvertToStandardType;
+        case FIT_INT16:
+            formatInfo = "Greyscale 16bit (signed)";
+            goto ConvertToStandardType;
+        case FIT_UINT32:
+            formatInfo = "Greyscale 32bit";
+            goto ConvertToStandardType;
+        case FIT_INT32:
+            formatInfo = "Greyscale 32bit (signed)";
+            goto ConvertToStandardType;
+        case FIT_FLOAT:
+            formatInfo = "Greyscale float";
+            goto ConvertToStandardType;
+        case FIT_DOUBLE:
+            formatInfo = "Greyscale double";
+
+        ConvertToStandardType:
+            pTmp.reset(FreeImage_ConvertToStandardType(img));
+            if (pTmp) {
+                qimage = std::make_unique<QImage>(FreeImage_GetBits(pTmp.get()), width, height, FreeImage_GetPitch(pTmp.get()), QImage::Format_Grayscale8);
+            }
+            break;
+
         case FIT_BITMAP:
             if (32 == bpp) {
                 qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_RGBA8888);
                 formatInfo = "RGBA8888";
-                break;
             }
             else if (24 == bpp) {
                 qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_RGB888);
                 formatInfo = "RGB888";
-                break;
             }
             else if (8 == bpp) {
                 const RGBQUAD* palette = FreeImage_GetPalette(img);
@@ -131,7 +152,6 @@ void ImageLoader::onRun(const QString & path)
                     qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_Grayscale8);
                     formatInfo = "Greyscale 8bit";
                 }
-                break;
             }
             else if(4 == bpp) {
                 const RGBQUAD* palette = FreeImage_GetPalette(img);
@@ -141,17 +161,19 @@ void ImageLoader::onRun(const QString & path)
                         qimage = std::make_unique<QImage>(FreeImage_GetBits(pTmp.get()), width, height, FreeImage_GetPitch(pTmp.get()), QImage::Format_Indexed8);
                         qimage->setColorTable(cvtPalette(palette));
                         formatInfo = "RGB Indexed 4bit";
-                        break;
                     }
                 }
             }
             else if(1 == bpp) {
                 qimage = std::make_unique<QImage>(FreeImage_GetBits(img), width, height, FreeImage_GetPitch(img), QImage::Format_Mono);
                 formatInfo = "Mono 1bit";
-                break;
             }
-            // fallthrough
+            break;
+
         default:
+            break;
+        }
+        if(!qimage) {
             throw std::runtime_error("Unsupported image format " + std::to_string(FreeImage_GetImageType(img)));
         }
 
