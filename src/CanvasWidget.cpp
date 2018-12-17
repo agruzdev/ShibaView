@@ -83,11 +83,14 @@ CanvasWidget::CanvasWidget(ViewerApplication* app, std::chrono::steady_clock::ti
     mInfoText = new TextWidget(this);
     mInfoText->move(15, 30);
 
+    mErrorText = new TextWidget(this);
+
     QGraphicsDropShadowEffect *eff = new QGraphicsDropShadowEffect(this);
     eff->setOffset(-1, 0);
     eff->setBlurRadius(5.0);
     eff->setColor(Qt::black);
     mInfoText->setGraphicsEffect(eff);
+    mErrorText->setGraphicsEffect(eff);
 
     QSettings settings;
     mClickGeometry = settings.value(kSettingsGeometry, QRect(200, 200, 1280, 720)).toRect();
@@ -160,18 +163,17 @@ CanvasWidget::~CanvasWidget()
 
 void CanvasWidget::onImageReady(QPixmap p, const ImageInfo & i)
 {
-    if(p.isNull()) {
-        close();
-        return;
-    }
     mPendingImage.reset();
-    mPendingImage.reset(new QPixmap(p));
+    if(!p.isNull()) {
+        mPendingImage.reset(new QPixmap(p));
+    }
     mImageInfo = i;
     if(!mVisible) {
         show();
         mVisible = false;
     }
     mTransitionRequested = false;
+    mErrorText->hide();
     update();
 }
 
@@ -214,7 +216,7 @@ QRect CanvasWidget::fitWidth(int w, int h) const
     const float ky = static_cast<float>(height()) / h;
     const int fitWidth = static_cast<int>(std::floor(std::min(kx, ky) * w));
 
-    const int fitHeight = static_cast<int>(static_cast<int64_t>(fitWidth) * mPixmap.height() / mPixmap.width());
+    const int fitHeight = static_cast<int>(static_cast<int64_t>(fitWidth) * h / w);
 
     QRect r;
     r.setLeft(zeroX - fitWidth  / 2);
@@ -264,6 +266,22 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
         else {
             mInfoText->hide();
         }
+    }
+    else {
+        const auto dstRegion = fitWidth(512, 512);
+        QPainter painter(this);
+        painter.setBrush(Qt::black);
+        painter.drawRect(dstRegion);
+        painter.setPen(Qt::red);
+        painter.setBrush(Qt::red);
+        painter.drawLine(dstRegion.topLeft(), dstRegion.bottomRight());
+        painter.drawLine(dstRegion.topRight(), dstRegion.bottomLeft());
+
+        QVector<QString> error;
+        error.push_back(mImageInfo.path);
+        mErrorText->setText(error);
+        mErrorText->move(width() / 2 - mErrorText->width() / 2, height() / 2- mErrorText->height() / 2);
+        mErrorText->show();
     }
 
     if(mStartup){

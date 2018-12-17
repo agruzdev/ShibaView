@@ -9,6 +9,7 @@
 
 #include <QImage>
 #include <QFileInfo>
+#include <QDebug>
 
 #include <iostream>
 #include <memory>
@@ -58,6 +59,7 @@ ImageLoader::~ImageLoader()
 
 void ImageLoader::onRun(const QString & path)
 {
+    bool success = false;
     try {
         const auto upath = path.toStdWString();
 #ifdef _MSC_VER
@@ -180,6 +182,7 @@ void ImageLoader::onRun(const QString & path)
         QFileInfo file(path);
 
         ImageInfo info;
+        info.path     = path;
         info.name     = file.fileName();
         info.bytes    = file.size();
         info.format   = formatInfo;
@@ -189,10 +192,16 @@ void ImageLoader::onRun(const QString & path)
         emit eventResult(QPixmap::fromImage(*qimage), info);
     }
     catch(std::exception & e) {
-        emit eventError(QString(e.what()));
+        qWarning() << QString(e.what());
     }
     catch(...) {
-        emit eventError("Unknown error!");
+        qWarning() << QString("Unknown error!");
+    }
+
+    if(!success) {
+        ImageInfo info;
+        info.path = path;
+        emit eventResult(QPixmap{}, info);
     }
     deleteLater();
 }

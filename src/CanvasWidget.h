@@ -121,7 +121,8 @@ private:
 
     QPoint mCursorPosition;
 
-    TextWidget* mInfoText = nullptr;
+    TextWidget* mInfoText  = nullptr;
+    TextWidget* mErrorText = nullptr;
 
     FilteringMode mFilteringMode;
 

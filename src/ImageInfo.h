@@ -10,6 +10,7 @@
 
 struct ImageInfo
 {
+    QString path;
     QString name;
     size_t bytes = 0;
     QString format;

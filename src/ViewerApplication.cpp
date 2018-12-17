@@ -11,6 +11,7 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QCollator>
 
 #include "ImageLoader.h"
 
@@ -57,17 +58,22 @@ void ViewerApplication::loadImageAsync(const QString &path)
 void ViewerApplication::open(const QString & path)
 {
     QFileInfo finfo(path);
-    if(!finfo.exists() | finfo.isDir()) {
-        throw std::runtime_error("Input doesn't exist");
-    }
     mDirectory = finfo.dir();
-    QStringList extensions;
-    for(const auto & ext : kSupportedExtensions) {
-        extensions << ext;
+    if(!mDirectory.exists()) {
+        mFilesInDirectory.clear();
+        mCurrentFile  = mFilesInDirectory.cend();
     }
-    mFilesInDirectory = mDirectory.entryList(extensions);
-
-    mCurrentFile = std::find(mFilesInDirectory.cbegin(), mFilesInDirectory.cend(), finfo.fileName());
+    else {
+        QStringList extensions;
+        for(const auto & ext : kSupportedExtensions) {
+            extensions << ext;
+        }
+        QCollator collator;
+        collator.setNumericMode(true);
+        mFilesInDirectory = mDirectory.entryList(extensions);
+        std::sort(mFilesInDirectory.begin(), mFilesInDirectory.end(), collator);
+        mCurrentFile = std::find(mFilesInDirectory.cbegin(), mFilesInDirectory.cend(), finfo.fileName());
+    }
 }
 
 void ViewerApplication::onError(const QString & what)
@@ -81,9 +87,14 @@ void ViewerApplication::onError(const QString & what)
 
 void ViewerApplication::onNextImage()
 {
-    if(mCurrentFile != mFilesInDirectory.cend() && !mFilesInDirectory.empty()) {
-        ++mCurrentFile;
-        if(mCurrentFile == mFilesInDirectory.cend()) {
+    if(!mFilesInDirectory.empty()) {
+        if(mCurrentFile != mFilesInDirectory.cend()) {
+            ++mCurrentFile;
+            if(mCurrentFile == mFilesInDirectory.cend()) {
+                mCurrentFile = mFilesInDirectory.cbegin();
+            }
+        }
+        else {
             mCurrentFile = mFilesInDirectory.cbegin();
         }
         loadImageAsync(mDirectory.absoluteFilePath(*mCurrentFile));
@@ -92,11 +103,16 @@ void ViewerApplication::onNextImage()
 
 void ViewerApplication::onPrevImage()
 {
-    if(mCurrentFile != mFilesInDirectory.cend() && !mFilesInDirectory.empty()) {
-        if(mCurrentFile == mFilesInDirectory.begin()) {
-            mCurrentFile = mFilesInDirectory.cend();
+    if(!mFilesInDirectory.empty()) {
+        if(mCurrentFile != mFilesInDirectory.cend()) {
+            if(mCurrentFile == mFilesInDirectory.begin()) {
+                mCurrentFile = mFilesInDirectory.cend();
+            }
+            --mCurrentFile;
         }
-        --mCurrentFile;
+        else {
+            mCurrentFile = std::prev(mFilesInDirectory.cend());
+        }
         loadImageAsync(mDirectory.absoluteFilePath(*mCurrentFile));
     }
 }
