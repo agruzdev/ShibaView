@@ -90,7 +90,6 @@ CanvasWidget::CanvasWidget(ViewerApplication* app, std::chrono::steady_clock::ti
     eff->setBlurRadius(5.0);
     eff->setColor(Qt::black);
     mInfoText->setGraphicsEffect(eff);
-    mErrorText->setGraphicsEffect(eff);
 
     QSettings settings;
     mClickGeometry = settings.value(kSettingsGeometry, QRect(200, 200, 1280, 720)).toRect();
