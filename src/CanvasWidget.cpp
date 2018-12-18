@@ -23,7 +23,6 @@
 
 #include "TextWidget.h"
 #include "ZoomController.h"
-#include "ViewerApplication.h"
 
 enum class BorderPosition
 {
@@ -74,9 +73,8 @@ namespace
 }
 
 
-CanvasWidget::CanvasWidget(ViewerApplication* app, std::chrono::steady_clock::time_point t)
+CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     : QWidget(nullptr)
-    , mParentApplication(app)
     , mHoveredBorder(BorderPosition::eNone)
     , mStartTime(t)
 {
@@ -139,11 +137,6 @@ CanvasWidget::CanvasWidget(ViewerApplication* app, std::chrono::steady_clock::ti
 
     connect(mActNoFilter.get(), &QAction::triggered, this, &CanvasWidget::onActNoFilter);
     connect(mActAntialiasing.get(), &QAction::triggered, this, &CanvasWidget::onActAntialiasing);
-
-    if(mParentApplication) {
-        connect(this, &CanvasWidget::eventNextImage, mParentApplication, &ViewerApplication::onNextImage, Qt::QueuedConnection);
-        connect(this, &CanvasWidget::eventPrevImage, mParentApplication, &ViewerApplication::onPrevImage, Qt::QueuedConnection);
-    }
 }
 
 CanvasWidget::~CanvasWidget()
@@ -349,6 +342,12 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         }
         update();
     }
+    else if (event->key() == Qt::Key_Plus) {
+        zoomToTarget(QPoint(width() / 2, height() / 2), 1);
+    }
+    else if (event->key() == Qt::Key_Minus) {
+        zoomToTarget(QPoint(width() / 2, height() / 2), -1);
+    }
     else if (event->key() == Qt::Key_Left) {
         if (!mTransitionRequested) {
             mTransitionRequested = true;
@@ -361,12 +360,23 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
             emit eventNextImage();
         }
     }
-    else if (event->key() == Qt::Key_Plus) {
-        zoomToTarget(QPoint(width() / 2, height() / 2), 1);
+    else if (event->key() == Qt::Key_Home) {
+        if (!mTransitionRequested) {
+            mTransitionRequested = true;
+            emit eventFirstImage();
+        }
     }
-    else if (event->key() == Qt::Key_Minus) {
-        zoomToTarget(QPoint(width() / 2, height() / 2), -1);
+    else if (event->key() == Qt::Key_End) {
+        if (!mTransitionRequested) {
+            mTransitionRequested = true;
+            emit eventLastImage();
+        }
     }
+}
+
+void CanvasWidget::onTransitionCanceled()
+{
+    mTransitionRequested = false;
 }
 
 void CanvasWidget::mousePressEvent(QMouseEvent* event)

@@ -48,8 +48,9 @@ namespace
     }
 }
 
-ImageLoader::ImageLoader()
+ImageLoader::ImageLoader(const QString & name)
     : QObject(nullptr)
+    , mName(name)
 {
     qRegisterMetaType<ImageInfo>("ImageInfo");
 }
@@ -183,7 +184,7 @@ void ImageLoader::onRun(const QString & path)
 
         ImageInfo info;
         info.path     = path;
-        info.name     = file.fileName();
+        info.name     = mName;
         info.bytes    = file.size();
         info.format   = formatInfo;
         info.modified = file.lastModified();

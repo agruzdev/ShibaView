@@ -38,10 +38,13 @@ public:
 
 signals:
     void eventLoadImage(const QString & path);
+    void eventCancelTransition();
 
 public slots:
     void onNextImage();
     void onPrevImage();
+    void onFirstImage();
+    void onLastImage();
 
     void onError(const QString & what);
 

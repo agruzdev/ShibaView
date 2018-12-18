@@ -20,7 +20,7 @@ class ImageLoader
     Q_OBJECT
 
 public:
-    ImageLoader();
+    ImageLoader(const QString & name);
     ~ImageLoader();
 
 signals:
@@ -32,6 +32,7 @@ public slots:
     void onRun(const QString & path);
 
 private:
+    QString mName;
 };
 
 #endif // IMAGELOADER_H
