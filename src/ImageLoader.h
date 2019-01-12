@@ -9,10 +9,8 @@
 #define IMAGELOADER_H
 
 #include <QObject>
-#include <QPixmap>
-#include <QDateTime>
 
-#include "ImageInfo.h"
+#include "Image.h"
 
 class ImageLoader
     : public QObject
@@ -24,7 +22,7 @@ public:
     ~ImageLoader();
 
 signals:
-    void eventResult(QPixmap p, ImageInfo i);
+    void eventResult(ImagePtr image);
 
     void eventError(QString what);
 

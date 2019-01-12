@@ -16,8 +16,8 @@
 #include <QPixmap>
 #include <QWidget>
 #include <QFuture>
-#include <QSizeGrip>
-#include <ImageLoader.h>
+
+#include <Image.h>
 
 enum class BorderPosition;
 
@@ -49,7 +49,7 @@ public:
     ~CanvasWidget();
 
 public slots:
-    void onImageReady(QPixmap p, const ImageInfo & i);
+    void onImageReady(ImagePtr image);
 
     void onTransitionCanceled();
 
@@ -89,8 +89,10 @@ private:
 
     void zoomToTarget(QPoint target, int dir);
 
+    QSharedPointer<Image> mPendingImage;
+    QSharedPointer<Image> mImage;
+
     bool mVisible = false;
-    std::unique_ptr<QPixmap> mPendingImage;
 
     bool mTransitionRequested = true;
 
@@ -108,9 +110,6 @@ private:
 
     std::chrono::steady_clock::time_point mStartTime;
     bool mStartup = true;
-
-    QPixmap mPixmap;
-    ImageInfo mImageInfo;
 
     QRect mImageRegion;
 

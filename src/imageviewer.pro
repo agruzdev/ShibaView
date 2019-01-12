@@ -8,7 +8,8 @@ HEADERS       = \
     CanvasWidget.h \
     ZoomController.h \
     TextWidget.h \
-    ImageInfo.h
+    ImageInfo.h \
+    Image.h
 
 SOURCES       = \
     main.cpp \
@@ -16,7 +17,8 @@ SOURCES       = \
     ImageLoader.cpp \
     CanvasWidget.cpp \
     ZoomController.cpp \
-    TextWidget.cpp
+    TextWidget.cpp \
+    Image.cpp
 
 RC_FILE = resources.rc
 

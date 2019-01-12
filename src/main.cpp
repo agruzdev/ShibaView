@@ -28,8 +28,9 @@ int main(int argc, char *argv[])
         viewer.open(input);
         viewer.loadImageAsync(input);
 
+#ifdef _MSC_VER
         std::cout << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t).count() / 1e3 << std::endl;
-
+#endif
         return QApplication::exec();
     }
     catch(...){
