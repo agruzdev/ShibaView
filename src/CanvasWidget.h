@@ -57,6 +57,8 @@ public slots:
     void onActNoFilter(bool checked);
     void onActAntialiasing(bool checked);
 
+    void onActRotation(bool checked, Rotation r);
+
 signals:
     void eventInfoText(QString s);
 
@@ -79,6 +81,9 @@ private:
     void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseDoubleClickEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void wheelEvent(QWheelEvent* event) Q_DECL_OVERRIDE;
+
+    // Reset image region and zoom controller for new image extents
+    void invalidateImageExtents(bool keepTransform = true);
 
     void updateOffsets();
     QRect fitWidth(int w, int h) const;
@@ -131,6 +136,13 @@ private:
     std::unique_ptr<QActionGroup> mActGroupFiltering;
     std::unique_ptr<QAction> mActNoFilter;
     std::unique_ptr<QAction> mActAntialiasing;
+    std::unique_ptr<QAction> mActFilteringSeparator;
+
+    std::unique_ptr<QActionGroup> mActGroupRotation;
+    std::unique_ptr<QAction> mActRotation0;
+    std::unique_ptr<QAction> mActRotation90;
+    std::unique_ptr<QAction> mActRotation180;
+    std::unique_ptr<QAction> mActRotation270;
 };
 
 

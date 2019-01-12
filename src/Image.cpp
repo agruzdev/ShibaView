@@ -54,7 +54,7 @@ Image::Image(QString name, QString filename) noexcept
 
     // Load bitmap. Keep empty on fail.
     try {
-        std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> img(FreeImage_GenericLoadU(upath.c_str()), &::FreeImage_Unload);
+        std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> img(FreeImage_GenericLoadU(upath.c_str(), JPEG_EXIFROTATE), &::FreeImage_Unload);
         if (!img) {
             throw std::runtime_error("Failed to open image");
         }
@@ -197,7 +197,72 @@ Image::Image(QString name, QString filename) noexcept
 
 Image::~Image() = default;
 
+uint32_t Image::width() const
+{
+    if (mRotation == Rotation::eDegree90 || mRotation == Rotation::eDegree270) {
+        return sourceHeight();
+    }
+    else {
+        return sourceWidth();
+    }
+}
+
+uint32_t Image::height() const
+{
+    if (mRotation == Rotation::eDegree90 || mRotation == Rotation::eDegree270) {
+        return sourceWidth();
+    }
+    else {
+        return sourceHeight();
+    }
+}
+
+uint32_t Image::sourceWidth() const
+{
+    return FreeImage_GetWidth(mBitmap.get());
+}
+
+uint32_t Image::sourceHeight() const
+{
+    return FreeImage_GetHeight(mBitmap.get());
+}
+
 const QPixmap & Image::pixmap() const
 {
+    if(isValid() && mInvalidTransform) {
+        mPixmap = RecalculatePixmap();
+        mInvalidTransform = false;
+    }
     return mPixmap;
+}
+
+QPixmap Image::RecalculatePixmap() const
+{
+    assert(mBitmap != nullptr);
+
+    std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> rotated(nullptr, &::FreeImage_Unload);
+    FIBITMAP* target  = mBitmap.get();
+    if (mRotation != Rotation::eDegree0) {
+        rotated.reset(FreeImage_Rotate(target, static_cast<double>(mRotation)));
+        target = rotated.get();
+    }
+
+    QImage imageView;
+
+    assert(target != nullptr);
+    const uint32_t width  = FreeImage_GetWidth(target);
+    const uint32_t height = FreeImage_GetHeight(target);
+    const uint32_t bpp    = FreeImage_GetBPP(target);
+    switch (bpp) {
+    case 24:
+        imageView = QImage(FreeImage_GetBits(target), width, height, FreeImage_GetPitch(target), QImage::Format_RGB888);
+        break;
+    case 32:
+        imageView = QImage(FreeImage_GetBits(target), width, height, FreeImage_GetPitch(target), QImage::Format_RGBA8888);
+        break;
+    default:
+        throw std::logic_error("Internal image is 24 or 32 bit");
+    }
+
+    return QPixmap::fromImage(imageView);
 }

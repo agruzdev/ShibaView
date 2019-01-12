@@ -8,6 +8,14 @@
 
 #include "FreeImage.h"
 
+enum class Rotation
+{
+    eDegree0   = 0,
+    eDegree90  = 90,
+    eDegree180 = 180,
+    eDegree270 = 270
+};
+
 class Image
 {
     using BitmapPtr = std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)>;
@@ -29,26 +37,35 @@ public:
         return mInfo;
     }
 
-    uint32_t width() const
-    {
-        return mInfo.dims.width();
-    }
+    uint32_t width() const;
+    uint32_t height() const;
 
-    uint32_t height() const
-    {
-        return mInfo.dims.height();
-    }
+    uint32_t sourceWidth() const;
+    uint32_t sourceHeight() const;
 
     bool isValid() const
     {
         return (mBitmap != nullptr);
     }
 
+    void setRotation(Rotation r)
+    {
+        if (mRotation != r) {
+            mRotation = r;
+            mInvalidTransform = true;
+        }
+    }
+
+    QPixmap RecalculatePixmap() const;
+
 private:
     BitmapPtr mBitmap{ nullptr, &::FreeImage_Unload };
     ImageInfo mInfo;
 
-    QPixmap mPixmap;
+    mutable QPixmap mPixmap;
+
+    mutable bool mInvalidTransform = false;
+    Rotation mRotation = Rotation::eDegree0;
 };
 
 using ImagePtr = QSharedPointer<Image>;

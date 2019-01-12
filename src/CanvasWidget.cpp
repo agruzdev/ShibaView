@@ -115,16 +115,17 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     mActNoFilter = std::make_unique<QAction>("No filter", this);
     mActNoFilter->setStatusTip("Disable image filtering");
     mActNoFilter->setCheckable(true);
-    addAction(mActNoFilter.get());
 
     mActAntialiasing = std::make_unique<QAction>("Antialiasing", this);
     mActAntialiasing->setStatusTip("Default image smoothing");
     mActAntialiasing->setCheckable(true);
-    addAction(mActAntialiasing.get());
 
     mActGroupFiltering = std::make_unique<QActionGroup>(this);
     mActGroupFiltering->addAction(mActNoFilter.get());
     mActGroupFiltering->addAction(mActAntialiasing.get());
+
+    mActFilteringSeparator = std::make_unique<QAction>("FilteringSeparator", this);
+    mActFilteringSeparator->setSeparator(true);
 
     switch(mFilteringMode) {
     case FilteringMode::eNone:
@@ -135,8 +136,40 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
         break;
     }
 
+    mActRotation0 = std::make_unique<QAction>("Rotation 0",   this);
+    mActRotation0->setCheckable(true);
+    mActRotation90 = std::make_unique<QAction>("Rotation 90",  this);
+    mActRotation90->setCheckable(true);
+    mActRotation180 = std::make_unique<QAction>("Rotation 180", this);
+    mActRotation180->setCheckable(true);
+    mActRotation270 = std::make_unique<QAction>("Rotation 270", this);
+    mActRotation270->setCheckable(true);
+
+    mActGroupRotation = std::make_unique<QActionGroup>(this);
+    mActGroupRotation->addAction(mActRotation0.get());
+    mActGroupRotation->addAction(mActRotation90.get());
+    mActGroupRotation->addAction(mActRotation180.get());
+    mActGroupRotation->addAction(mActRotation270.get());
+
+    mActRotation0->setChecked(true);
+
     connect(mActNoFilter.get(), &QAction::triggered, this, &CanvasWidget::onActNoFilter);
     connect(mActAntialiasing.get(), &QAction::triggered, this, &CanvasWidget::onActAntialiasing);
+
+    connect(mActRotation0.get(),   &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree0));
+    connect(mActRotation90.get(),  &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree90));
+    connect(mActRotation180.get(), &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree180));
+    connect(mActRotation270.get(), &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree270));
+
+    addAction(mActNoFilter.get());
+    addAction(mActAntialiasing.get());
+
+    addAction(mActFilteringSeparator.get());
+
+    addAction(mActRotation0.get());
+    addAction(mActRotation90.get());
+    addAction(mActRotation180.get());
+    addAction(mActRotation270.get());
 }
 
 CanvasWidget::~CanvasWidget()
@@ -215,6 +248,21 @@ QRect CanvasWidget::fitWidth(int w, int h) const
     return r;
 }
 
+void CanvasWidget::invalidateImageExtents(bool keepTransform)
+{
+    (void)keepTransform;
+
+    const int w = mImage->width();
+    const int h = mImage->height();
+
+    mImageRegion    = fitWidth(w, h);
+    mZoomController = std::make_unique<ZoomController>(w, mImageRegion.width(), w / kMinZoomRatio, w * kMaxZoomRatio);
+
+    auto infoLines = mImage->info().toLines();
+    infoLines.push_back(kZoomLine + toPercent(static_cast<float>(mImageRegion.width()) / mImage->width()));
+    mInfoText->setText(infoLines);
+}
+
 void CanvasWidget::paintEvent(QPaintEvent * event)
 {
     if(mStartup){
@@ -231,15 +279,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
         mPendingImage = nullptr;
 
         if (mImage->isValid()) {
-            const int w = mImage->width();
-            const int h = mImage->height();
-
-            mImageRegion    = fitWidth(w, h);
-            mZoomController = std::make_unique<ZoomController>(w, mImageRegion.width(), w / kMinZoomRatio, w * kMaxZoomRatio);
-
-            auto infoLines = mImage->info().toLines();
-            infoLines.push_back(kZoomLine + toPercent(static_cast<float>(mImageRegion.width()) / w));
-            mInfoText->setText(infoLines);
+            invalidateImageExtents(false);
         }
     }
 
@@ -311,65 +351,93 @@ void CanvasWidget::resizeEvent(QResizeEvent * event)
 void CanvasWidget::keyPressEvent(QKeyEvent* event)
 {
     QWidget::keyPressEvent(event);
-    if (event->key() == Qt::Key_Escape) {
-        close();
-    }
-    else if (event->key() == Qt::Key_Tab) {
-        mShowInfo = !mShowInfo;
-    }
-    else if ((event->key() == Qt::Key_Asterisk) && mImage && mImage->isValid()) {
-        switch (mZoomMode) {
-        case ZoomMode::eCustom:
-        case ZoomMode::e100Percent:
-            mZoomMode = ZoomMode::eFitWidth;
-            mImageRegion = fitWidth(mImage->width(), mImage->height());
-            recalculateZoom();
-            if(mZoomController) {
-                mZoomController->moveToPosFit();
+    if (QApplication::keyboardModifiers() == Qt::AltModifier) {
+        // Alt + Key
+        if(mImage && mImage->isValid()) {
+            if (event->key() == Qt::Key_Up) {
+                mImage->setRotation(Rotation::eDegree0);
+                invalidateImageExtents();
+                update();
             }
-            break;
-        case ZoomMode::eFitWidth:
-            mZoomMode = ZoomMode::e100Percent;
-            mImageRegion.setLeft(width()  / 2 - mImage->width()  / 2);
-            mImageRegion.setTop (height() / 2 - mImage->height() / 2);
-            mImageRegion.setWidth(mImage->width());
-            mImageRegion.setHeight(mImage->height());
-            recalculateZoom();
-            if(mZoomController) {
-                mZoomController->moveToPos100();
+            else if (event->key() == Qt::Key_Left) {
+                mImage->setRotation(Rotation::eDegree270);
+                invalidateImageExtents();
+                update();
             }
-            break;
-        }
-        update();
-    }
-    else if (event->key() == Qt::Key_Plus) {
-        zoomToTarget(QPoint(width() / 2, height() / 2), 1);
-    }
-    else if (event->key() == Qt::Key_Minus) {
-        zoomToTarget(QPoint(width() / 2, height() / 2), -1);
-    }
-    else if (event->key() == Qt::Key_Left) {
-        if (!mTransitionRequested) {
-            mTransitionRequested = true;
-            emit eventPrevImage();
+            else if (event->key() == Qt::Key_Right) {
+                mImage->setRotation(Rotation::eDegree90);
+                invalidateImageExtents();
+                update();
+            }
+            else if (event->key() == Qt::Key_Down) {
+                mImage->setRotation(Rotation::eDegree180);
+                invalidateImageExtents();
+                update();
+            }
         }
     }
-    else if (event->key() == Qt::Key_Right) {
-        if (!mTransitionRequested) {
-            mTransitionRequested = true;
-            emit eventNextImage();
+     else {
+         // No Modifiers
+        if (event->key() == Qt::Key_Escape) {
+            close();
         }
-    }
-    else if (event->key() == Qt::Key_Home) {
-        if (!mTransitionRequested) {
-            mTransitionRequested = true;
-            emit eventFirstImage();
+        else if (event->key() == Qt::Key_Tab) {
+            mShowInfo = !mShowInfo;
         }
-    }
-    else if (event->key() == Qt::Key_End) {
-        if (!mTransitionRequested) {
-            mTransitionRequested = true;
-            emit eventLastImage();
+        else if ((event->key() == Qt::Key_Asterisk) && mImage && mImage->isValid()) {
+            switch (mZoomMode) {
+            case ZoomMode::eCustom:
+            case ZoomMode::e100Percent:
+                mZoomMode = ZoomMode::eFitWidth;
+                mImageRegion = fitWidth(mImage->width(), mImage->height());
+                recalculateZoom();
+                if(mZoomController) {
+                    mZoomController->moveToPosFit();
+                }
+                break;
+            case ZoomMode::eFitWidth:
+                mZoomMode = ZoomMode::e100Percent;
+                mImageRegion.setLeft(width()  / 2 - mImage->width()  / 2);
+                mImageRegion.setTop (height() / 2 - mImage->height() / 2);
+                mImageRegion.setWidth(mImage->width());
+                mImageRegion.setHeight(mImage->height());
+                recalculateZoom();
+                if(mZoomController) {
+                    mZoomController->moveToPos100();
+                }
+                break;
+            }
+            update();
+        }
+        else if (event->key() == Qt::Key_Plus) {
+            zoomToTarget(QPoint(width() / 2, height() / 2), 1);
+        }
+        else if (event->key() == Qt::Key_Minus) {
+            zoomToTarget(QPoint(width() / 2, height() / 2), -1);
+        }
+        else if (event->key() == Qt::Key_Left) {
+            if (!mTransitionRequested) {
+                mTransitionRequested = true;
+                emit eventPrevImage();
+            }
+        }
+        else if (event->key() == Qt::Key_Right) {
+            if (!mTransitionRequested) {
+                mTransitionRequested = true;
+                emit eventNextImage();
+            }
+        }
+        else if (event->key() == Qt::Key_Home) {
+            if (!mTransitionRequested) {
+                mTransitionRequested = true;
+                emit eventFirstImage();
+            }
+        }
+        else if (event->key() == Qt::Key_End) {
+            if (!mTransitionRequested) {
+                mTransitionRequested = true;
+                emit eventLastImage();
+            }
         }
     }
 }
@@ -565,7 +633,7 @@ void CanvasWidget::wheelEvent(QWheelEvent* event)
 
 void CanvasWidget::onActNoFilter(bool checked)
 {
-    if(checked) {
+    if (checked) {
         mFilteringMode = FilteringMode::eNone;
         update();
     }
@@ -573,8 +641,17 @@ void CanvasWidget::onActNoFilter(bool checked)
 
 void CanvasWidget::onActAntialiasing(bool checked)
 {
-    if(checked) {
+    if (checked) {
         mFilteringMode = FilteringMode::eAntialiasing;
+        update();
+    }
+}
+
+void CanvasWidget::onActRotation(bool checked, Rotation r)
+{
+    if (checked && mImage && mImage->isValid()) {
+        mImage->setRotation(r);
+        invalidateImageExtents();
         update();
     }
 }
