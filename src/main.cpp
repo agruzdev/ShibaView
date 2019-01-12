@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
         QApplication::setApplicationName("ShibaView");
 
         ViewerApplication viewer(t);
-        const QString input = QString(argv[1]);
+        const QString input = QApplication::arguments().at(1);
         viewer.open(input);
         viewer.loadImageAsync(input);
 

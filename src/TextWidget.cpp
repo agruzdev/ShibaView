@@ -3,18 +3,19 @@
 #include <cmath>
 
 #include <QPainter>
+#include <QGlyphRun>
 
 TextWidget::TextWidget(QWidget *parent) 
     : QWidget(parent)
 {
-    mRawFont = QRawFont(QString(":/fonts/ArchivoNarrow-Regular.otf"), 16);
+    mRawFont = QRawFont(QString(":/fonts/DejaVuSansCondensed.ttf"), 14);
     if(!mRawFont.isValid()) {
         mRawFont = QRawFont::fromFont(QFont());
     }
     mPen     = QPen(Qt::white);
     mBrush   = QBrush(Qt::white, Qt::BrushStyle::SolidPattern);
 
-    mLineHeight = mRawFont.capHeight() + 12;
+    mLineHeight = mRawFont.capHeight() + 10;
 }
 
 TextWidget::~TextWidget()
@@ -48,7 +49,7 @@ void TextWidget::autoResize()
         }
         width = std::max<uint32_t>(width, std::ceil(lineWidth));
     }
-    resize(width, mLines.size() * mLineHeight);
+    resize(width, mLines.size() * mLineHeight + 8);
 }
 
 void TextWidget::paintEvent(QPaintEvent *event)
@@ -59,11 +60,12 @@ void TextWidget::paintEvent(QPaintEvent *event)
     painter.setBrush(mBrush);
     painter.setRenderHint(QPainter::RenderHint::Antialiasing);
 
+    QGlyphRun glyphRun;
+    glyphRun.setRawFont(mRawFont);
     for (int32_t i = 0; i < mLines.size(); ++i) {
-        if(mLines[i].size() > 0) {
+        if (mLines[i].size() > 0) {
             auto glyphs = mRawFont.glyphIndexesForString(mLines[i]);
             painter.resetTransform();
-            painter.scale(1.0, 0.9);
             painter.translate(0, (i + 1) * mLineHeight);
             for (int32_t j = 0; j < glyphs.size(); ++j) {
                 const auto path = mRawFont.pathForGlyph(glyphs[j]);

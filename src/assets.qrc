@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>../fonts/ArchivoNarrow-Regular.otf</file>
+        <file>../fonts/DejaVuSansCondensed.ttf</file>
     </qresource>
 </RCC>
