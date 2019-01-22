@@ -24,6 +24,8 @@
 #include "TextWidget.h"
 #include "ZoomController.h"
 
+#define UTF8_DEGREE "\xc2\xb0"
+
 enum class BorderPosition
 {
     eNone   = 0x0,
@@ -136,13 +138,13 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
         break;
     }
 
-    mActRotation0 = std::make_unique<QAction>("Rotation 0",   this);
+    mActRotation0 = std::make_unique<QAction>(QString::fromUtf8("Rotation 0" UTF8_DEGREE), this);
     mActRotation0->setCheckable(true);
-    mActRotation90 = std::make_unique<QAction>("Rotation 90",  this);
+    mActRotation90 = std::make_unique<QAction>(QString::fromUtf8("Rotation 90" UTF8_DEGREE), this);
     mActRotation90->setCheckable(true);
-    mActRotation180 = std::make_unique<QAction>("Rotation 180", this);
+    mActRotation180 = std::make_unique<QAction>(QString::fromUtf8("Rotation 180" UTF8_DEGREE), this);
     mActRotation180->setCheckable(true);
-    mActRotation270 = std::make_unique<QAction>("Rotation 270", this);
+    mActRotation270 = std::make_unique<QAction>(QString::fromUtf8("Rotation -90" UTF8_DEGREE), this);
     mActRotation270->setCheckable(true);
 
     mActGroupRotation = std::make_unique<QActionGroup>(this);
