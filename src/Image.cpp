@@ -26,17 +26,6 @@ namespace
         }
         return nullptr;
     }
-
-    QVector<QRgb> cvtPalette(const RGBQUAD* palette)
-    {
-        static constexpr uint32_t kPaletteSize = 256;
-        QVector<QRgb> qpalette(kPaletteSize);
-        for (uint32_t i = 0; i < kPaletteSize; ++i) {
-            qpalette[i] = qRgb(palette[i].rgbRed, palette[i].rgbGreen, palette[i].rgbBlue);
-        }
-        return qpalette;
-    }
-
 }
 
 
@@ -133,28 +122,21 @@ Image::Image(QString name, QString filename) noexcept
                 formatInfo = "RGB888";
             }
             else if (8 == bpp) {
-                mBitmap = std::move(img);
-                const RGBQUAD* palette = FreeImage_GetPalette(mBitmap.get());
-                if(palette != nullptr) {
-                    imageView = QImage(FreeImage_GetBits(mBitmap.get()), width, height, FreeImage_GetPitch(mBitmap.get()), QImage::Format_Indexed8);
-                    imageView.setColorTable(cvtPalette(palette));
+                if (FIC_PALETTE == FreeImage_GetColorType(img.get())) {
+                    mBitmap.reset(FreeImage_ConvertTo24Bits(img.get()));
+                    imageView  = QImage(FreeImage_GetBits(mBitmap.get()), width, height, FreeImage_GetPitch(mBitmap.get()), QImage::Format_RGB888);
                     formatInfo = "RGB Indexed 8bit";
                 }
                 else {
+                    mBitmap    = std::move(img);
                     imageView  = QImage(FreeImage_GetBits(mBitmap.get()), width, height, FreeImage_GetPitch(mBitmap.get()), QImage::Format_Grayscale8);
                     formatInfo = "Greyscale 8bit";
                 }
             }
             else if(4 == bpp) {
-                const RGBQUAD* palette = FreeImage_GetPalette(img.get());
-                if(palette != nullptr) {
-                    mBitmap.reset(FreeImage_ConvertTo8Bits(img.get()));
-                    if (mBitmap) {
-                        imageView = QImage(FreeImage_GetBits(mBitmap.get()), width, height, FreeImage_GetPitch(mBitmap.get()), QImage::Format_Indexed8);
-                        imageView.setColorTable(cvtPalette(palette));
-                        formatInfo = "RGB Indexed 4bit";
-                    }
-                }
+                mBitmap.reset(FreeImage_ConvertTo24Bits(img.get()));
+                imageView  = QImage(FreeImage_GetBits(mBitmap.get()), width, height, FreeImage_GetPitch(mBitmap.get()), QImage::Format_RGB888);
+                formatInfo = "RGB Indexed 4bit";
             }
             else if(1 == bpp) {
                 mBitmap    = std::move(img);
@@ -254,6 +236,12 @@ QPixmap Image::RecalculatePixmap() const
     const uint32_t height = FreeImage_GetHeight(target);
     const uint32_t bpp    = FreeImage_GetBPP(target);
     switch (bpp) {
+    case 1:
+        imageView = QImage(FreeImage_GetBits(target), width, height, FreeImage_GetPitch(target), QImage::Format_Mono);
+        break;
+    case 8:
+        imageView = QImage(FreeImage_GetBits(target), width, height, FreeImage_GetPitch(target), QImage::Format_Grayscale8);
+        break;
     case 24:
         imageView = QImage(FreeImage_GetBits(target), width, height, FreeImage_GetPitch(target), QImage::Format_RGB888);
         break;
