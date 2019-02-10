@@ -1,3 +1,10 @@
+/**
+* ShibaView
+*
+* The MIT License (MIT)
+* Copyright (c) 2018 Alexey Gruzdev
+*/
+
 #include "TextWidget.h"
 
 #include <cmath>
@@ -5,22 +12,40 @@
 #include <QPainter>
 #include <QGlyphRun>
 
-TextWidget::TextWidget(QWidget *parent) 
+#include "Global.h"
+
+namespace
+{
+    Q_DECL_CONSTEXPR uint32_t FONT_HPADDING = 4;
+    Q_DECL_CONSTEXPR uint32_t FONT_VPADDING = 5;
+}
+
+TextWidget::TextWidget(QWidget *parent)
+    : TextWidget(parent, Qt::white)
+{ }
+
+TextWidget::TextWidget(QWidget* parent, Qt::GlobalColor color, int fsize)
     : QWidget(parent)
 {
-    mRawFont = QRawFont(QString(":/fonts/DejaVuSansCondensed.ttf"), 14);
+    mRawFont = QRawFont(Global::defaultFont, fsize);
     if(!mRawFont.isValid()) {
         mRawFont = QRawFont::fromFont(QFont());
     }
-    mPen     = QPen(Qt::white);
-    mBrush   = QBrush(Qt::white, Qt::BrushStyle::SolidPattern);
+    mPen     = QPen(color);
+    mBrush   = QBrush(color, Qt::BrushStyle::SolidPattern);
 
-    mLineHeight = mRawFont.capHeight() + 10;
+    mLineHeight = mRawFont.capHeight() + 2 * FONT_VPADDING;
 }
 
 TextWidget::~TextWidget()
 {
     
+}
+
+void TextWidget::setText(const QString & line)
+{
+    mLines = QVector<QString>{ line };
+    autoResize();
 }
 
 void TextWidget::setText(const QVector<QString> & lines)
@@ -39,17 +64,17 @@ void TextWidget::setLine(uint32_t idx, const QString & line)
 
 void TextWidget::autoResize()
 {
-    uint32_t width = 1;
+    mWidth = 1;
     for (int32_t i = 0; i < mLines.size(); ++i) {
         qreal lineWidth = 0;
         auto glyphs = mRawFont.glyphIndexesForString(mLines[i]);
         for (int32_t j = 0; j < glyphs.size(); ++j) {
             const auto path = mRawFont.pathForGlyph(glyphs[j]);
-            lineWidth += path.boundingRect().width() + 4;
+            lineWidth += path.boundingRect().width() + FONT_HPADDING;
         }
-        width = std::max<uint32_t>(width, std::ceil(lineWidth));
+        mWidth = std::max<uint32_t>(mWidth, std::ceil(lineWidth));
     }
-    resize(width, mLines.size() * mLineHeight + 8);
+    resize(mWidth, mLines.size() * mLineHeight + FONT_VPADDING);
 }
 
 void TextWidget::paintEvent(QPaintEvent *event)
@@ -66,11 +91,11 @@ void TextWidget::paintEvent(QPaintEvent *event)
         if (mLines[i].size() > 0) {
             auto glyphs = mRawFont.glyphIndexesForString(mLines[i]);
             painter.resetTransform();
-            painter.translate(0, (i + 1) * mLineHeight);
+            painter.translate(0, (i + 1) * mLineHeight - FONT_VPADDING);
             for (int32_t j = 0; j < glyphs.size(); ++j) {
                 const auto path = mRawFont.pathForGlyph(glyphs[j]);
                 painter.drawPath(path);
-                painter.translate(path.boundingRect().width() + 4, 0);
+                painter.translate(path.boundingRect().width() + FONT_HPADDING, 0);
             }
         }
     }

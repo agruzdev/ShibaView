@@ -20,7 +20,10 @@
 #include <QScreen>
 #include <QGraphicsDropShadowEffect>
 #include <QRawFont>
+#include <QWidgetAction>
 
+#include "Global.h"
+#include "MenuWidget.h"
 #include "TextWidget.h"
 #include "ZoomController.h"
 
@@ -112,66 +115,87 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
         setGeometry(mClickGeometry);
     }
 
-    setContextMenuPolicy(Qt::ActionsContextMenu);
+    setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(this, &QWidget::customContextMenuRequested, this, &CanvasWidget::onShowContextMenu);
 
-    mActNoFilter = std::make_unique<QAction>("No filter", this);
-    mActNoFilter->setStatusTip("Disable image filtering");
-    mActNoFilter->setCheckable(true);
+    // Context menu
+    {
+        const auto makeAction = [this](const QString & text) -> QWidgetAction* {
+            auto action = new QWidgetAction(this);
+            auto widget = new MenuWidget(text);
+            connect(action, &QAction::toggled, widget, &MenuWidget::onActionToggled);
+            action->setDefaultWidget(widget);
+            return action;
+        };
 
-    mActAntialiasing = std::make_unique<QAction>("Antialiasing", this);
-    mActAntialiasing->setStatusTip("Default image smoothing");
-    mActAntialiasing->setCheckable(true);
+        // Filtering
+        {
+            auto filteringGroup = new QActionGroup(this);
 
-    mActGroupFiltering = std::make_unique<QActionGroup>(this);
-    mActGroupFiltering->addAction(mActNoFilter.get());
-    mActGroupFiltering->addAction(mActAntialiasing.get());
+            auto actNoFilter = makeAction("No filter");
+            actNoFilter->setCheckable(true);
+            actNoFilter->setActionGroup(filteringGroup);
 
-    mActFilteringSeparator = std::make_unique<QAction>("FilteringSeparator", this);
-    mActFilteringSeparator->setSeparator(true);
+            auto actAntialiasing = makeAction("Antialiasing");
+            actAntialiasing->setCheckable(true);
+            actAntialiasing->setActionGroup(filteringGroup);
 
-    switch(mFilteringMode) {
-    case FilteringMode::eNone:
-        mActNoFilter->setChecked(true);
-        break;
-    case FilteringMode::eAntialiasing:
-        mActAntialiasing->setChecked(true);
-        break;
+            switch(mFilteringMode) {
+            case FilteringMode::eNone:
+                actNoFilter->setChecked(true);
+                break;
+            case FilteringMode::eAntialiasing:
+                actAntialiasing->setChecked(true);
+                break;
+            }
+
+            connect(actNoFilter,     &QAction::triggered, this, &CanvasWidget::onActNoFilter);
+            connect(actAntialiasing, &QAction::triggered, this, &CanvasWidget::onActAntialiasing);
+
+            mContextMenu.addAction(actNoFilter);
+            mContextMenu.addAction(actAntialiasing);
+            mContextMenu.addSeparator();
+        }
+
+        // Rotation
+        {
+            auto rotationGroup = new QActionGroup(this);
+
+            auto actRotation0 = makeAction(QString::fromUtf8("Rotation 0" UTF8_DEGREE));
+            actRotation0->setCheckable(true);
+            actRotation0->setActionGroup(rotationGroup);
+            actRotation0->setChecked(true);
+
+            auto actRotation90 = makeAction(QString::fromUtf8("Rotation 90" UTF8_DEGREE));
+            actRotation90->setCheckable(true);
+            actRotation90->setActionGroup(rotationGroup);
+
+            auto actRotation180 = makeAction(QString::fromUtf8("Rotation 180" UTF8_DEGREE));
+            actRotation180->setCheckable(true);
+            actRotation180->setActionGroup(rotationGroup);
+
+            auto actRotation270 = makeAction(QString::fromUtf8("Rotation -90" UTF8_DEGREE));
+            actRotation270->setCheckable(true);
+            actRotation270->setActionGroup(rotationGroup);
+
+            connect(actRotation0,   &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree0));
+            connect(actRotation90,  &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree90));
+            connect(actRotation180, &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree180));
+            connect(actRotation270, &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree270));
+
+            mContextMenu.addAction(actRotation0);
+            mContextMenu.addAction(actRotation90);
+            mContextMenu.addAction(actRotation180);
+            mContextMenu.addAction(actRotation270);
+            mContextMenu.addSeparator();
+        }
+
+        const auto actQuit = makeAction("Quit");
+        connect(actQuit, &QAction::triggered, this, &QWidget::close);
+        mContextMenu.addAction(actQuit);
+
+        mContextMenu.setFont(QFont(Global::defaultFont, 10));
     }
-
-    mActRotation0 = std::make_unique<QAction>(QString::fromUtf8("Rotation 0" UTF8_DEGREE), this);
-    mActRotation0->setCheckable(true);
-    mActRotation90 = std::make_unique<QAction>(QString::fromUtf8("Rotation 90" UTF8_DEGREE), this);
-    mActRotation90->setCheckable(true);
-    mActRotation180 = std::make_unique<QAction>(QString::fromUtf8("Rotation 180" UTF8_DEGREE), this);
-    mActRotation180->setCheckable(true);
-    mActRotation270 = std::make_unique<QAction>(QString::fromUtf8("Rotation -90" UTF8_DEGREE), this);
-    mActRotation270->setCheckable(true);
-
-    mActGroupRotation = std::make_unique<QActionGroup>(this);
-    mActGroupRotation->addAction(mActRotation0.get());
-    mActGroupRotation->addAction(mActRotation90.get());
-    mActGroupRotation->addAction(mActRotation180.get());
-    mActGroupRotation->addAction(mActRotation270.get());
-
-    mActRotation0->setChecked(true);
-
-    connect(mActNoFilter.get(), &QAction::triggered, this, &CanvasWidget::onActNoFilter);
-    connect(mActAntialiasing.get(), &QAction::triggered, this, &CanvasWidget::onActAntialiasing);
-
-    connect(mActRotation0.get(),   &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree0));
-    connect(mActRotation90.get(),  &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree90));
-    connect(mActRotation180.get(), &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree180));
-    connect(mActRotation270.get(), &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree270));
-
-    addAction(mActNoFilter.get());
-    addAction(mActAntialiasing.get());
-
-    addAction(mActFilteringSeparator.get());
-
-    addAction(mActRotation0.get());
-    addAction(mActRotation90.get());
-    addAction(mActRotation180.get());
-    addAction(mActRotation270.get());
 }
 
 CanvasWidget::~CanvasWidget()
@@ -186,6 +210,11 @@ CanvasWidget::~CanvasWidget()
     catch(...) {
         
     }
+}
+
+void CanvasWidget::onShowContextMenu(const QPoint & p)
+{
+    mContextMenu.exec(mapToGlobal(p));
 }
 
 void CanvasWidget::onImageReady(QSharedPointer<Image> image)

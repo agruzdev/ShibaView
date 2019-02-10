@@ -13,6 +13,7 @@
 
 #include <QAction>
 #include <QActionGroup>
+#include <QMenu>
 #include <QPixmap>
 #include <QWidget>
 #include <QFuture>
@@ -58,6 +59,8 @@ public slots:
     void onActAntialiasing(bool checked);
 
     void onActRotation(bool checked, Rotation r);
+
+    void onShowContextMenu(const QPoint &pos);
 
 signals:
     void eventInfoText(QString s);
@@ -132,17 +135,7 @@ private:
 
     FilteringMode mFilteringMode;
 
-    // Menu actions
-    std::unique_ptr<QActionGroup> mActGroupFiltering;
-    std::unique_ptr<QAction> mActNoFilter;
-    std::unique_ptr<QAction> mActAntialiasing;
-    std::unique_ptr<QAction> mActFilteringSeparator;
-
-    std::unique_ptr<QActionGroup> mActGroupRotation;
-    std::unique_ptr<QAction> mActRotation0;
-    std::unique_ptr<QAction> mActRotation90;
-    std::unique_ptr<QAction> mActRotation180;
-    std::unique_ptr<QAction> mActRotation270;
+    QMenu mContextMenu;
 };
 
 

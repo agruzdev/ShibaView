@@ -9,7 +9,9 @@ HEADERS       = \
     ZoomController.h \
     TextWidget.h \
     ImageInfo.h \
-    Image.h
+    Image.h \
+    Global.h \
+    MenuWidget.h
 
 SOURCES       = \
     main.cpp \
@@ -18,7 +20,9 @@ SOURCES       = \
     CanvasWidget.cpp \
     ZoomController.cpp \
     TextWidget.cpp \
-    Image.cpp
+    Image.cpp \
+    Global.cpp \
+    MenuWidget.cpp
 
 RC_FILE = resources.rc
 
@@ -28,3 +32,5 @@ DEFINES += FREEIMAGE_COLORORDER=FREEIMAGE_COLORORDER_RGB
 
 RESOURCES += \
     assets.qrc
+
+FORMS +=

@@ -1,3 +1,10 @@
+/**
+* ShibaView
+*
+* The MIT License (MIT)
+* Copyright (c) 2018 Alexey Gruzdev
+*/
+
 #include "Image.h"
 
 #include <iostream>
@@ -229,27 +236,24 @@ QPixmap Image::RecalculatePixmap() const
         target = rotated.get();
     }
 
-    QImage imageView;
-
     assert(target != nullptr);
-    const uint32_t width  = FreeImage_GetWidth(target);
-    const uint32_t height = FreeImage_GetHeight(target);
-    const uint32_t bpp    = FreeImage_GetBPP(target);
-    switch (bpp) {
+
+    QImage imageView;
+    switch (FreeImage_GetBPP(target)) {
     case 1:
-        imageView = QImage(FreeImage_GetBits(target), width, height, FreeImage_GetPitch(target), QImage::Format_Mono);
+        imageView = QImage(FreeImage_GetBits(target), FreeImage_GetWidth(target), FreeImage_GetHeight(target), FreeImage_GetPitch(target), QImage::Format_Mono);
         break;
     case 8:
-        imageView = QImage(FreeImage_GetBits(target), width, height, FreeImage_GetPitch(target), QImage::Format_Grayscale8);
+        imageView = QImage(FreeImage_GetBits(target), FreeImage_GetWidth(target), FreeImage_GetHeight(target), FreeImage_GetPitch(target), QImage::Format_Grayscale8);
         break;
     case 24:
-        imageView = QImage(FreeImage_GetBits(target), width, height, FreeImage_GetPitch(target), QImage::Format_RGB888);
+        imageView = QImage(FreeImage_GetBits(target), FreeImage_GetWidth(target), FreeImage_GetHeight(target), FreeImage_GetPitch(target), QImage::Format_RGB888);
         break;
     case 32:
-        imageView = QImage(FreeImage_GetBits(target), width, height, FreeImage_GetPitch(target), QImage::Format_RGBA8888);
+        imageView = QImage(FreeImage_GetBits(target), FreeImage_GetWidth(target), FreeImage_GetHeight(target), FreeImage_GetPitch(target), QImage::Format_RGBA8888);
         break;
     default:
-        throw std::logic_error("Internal image is 24 or 32 bit");
+        throw std::logic_error("Internal image is 1, 8, 24 or 32 bit");
     }
 
     return QPixmap::fromImage(imageView);
