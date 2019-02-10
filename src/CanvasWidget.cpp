@@ -119,7 +119,7 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     connect(this, &QWidget::customContextMenuRequested, this, &CanvasWidget::onShowContextMenu);
 
     // Context menu
-    {
+    mContextMenu = std::async(std::launch::deferred, [this]() -> QMenu* {
         const auto makeAction = [this](const QString & text) -> QWidgetAction* {
             auto action = new QWidgetAction(this);
             auto widget = new MenuWidget(text);
@@ -127,6 +127,8 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
             action->setDefaultWidget(widget);
             return action;
         };
+
+        QMenu* menu = new QMenu(this);
 
         // Filtering
         {
@@ -152,9 +154,9 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
             connect(actNoFilter,     &QAction::triggered, this, &CanvasWidget::onActNoFilter);
             connect(actAntialiasing, &QAction::triggered, this, &CanvasWidget::onActAntialiasing);
 
-            mContextMenu.addAction(actNoFilter);
-            mContextMenu.addAction(actAntialiasing);
-            mContextMenu.addSeparator();
+            menu->addAction(actNoFilter);
+            menu->addAction(actAntialiasing);
+            menu->addSeparator();
         }
 
         // Rotation
@@ -183,19 +185,19 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
             connect(actRotation180, &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree180));
             connect(actRotation270, &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree270));
 
-            mContextMenu.addAction(actRotation0);
-            mContextMenu.addAction(actRotation90);
-            mContextMenu.addAction(actRotation180);
-            mContextMenu.addAction(actRotation270);
-            mContextMenu.addSeparator();
+            menu->addAction(actRotation0);
+            menu->addAction(actRotation90);
+            menu->addAction(actRotation180);
+            menu->addAction(actRotation270);
+            menu->addSeparator();
         }
 
         const auto actQuit = makeAction("Quit");
         connect(actQuit, &QAction::triggered, this, &QWidget::close);
-        mContextMenu.addAction(actQuit);
+        menu->addAction(actQuit);
 
-        mContextMenu.setFont(QFont(Global::defaultFont, 10));
-    }
+        return menu;
+    });
 }
 
 CanvasWidget::~CanvasWidget()
@@ -214,7 +216,12 @@ CanvasWidget::~CanvasWidget()
 
 void CanvasWidget::onShowContextMenu(const QPoint & p)
 {
-    mContextMenu.exec(mapToGlobal(p));
+    try {
+        mContextMenu.get()->exec(mapToGlobal(p));
+    }
+    catch(std::exception & err) {
+        qWarning() << QString("CanvasWidget[onShowContextMenu]: ") + QString(err.what());
+    }
 }
 
 void CanvasWidget::onImageReady(QSharedPointer<Image> image)

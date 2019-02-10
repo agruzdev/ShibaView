@@ -10,6 +10,7 @@
 
 #include <chrono>
 #include <memory>
+#include <future>
 
 #include <QAction>
 #include <QActionGroup>
@@ -135,7 +136,7 @@ private:
 
     FilteringMode mFilteringMode;
 
-    QMenu mContextMenu;
+    std::shared_future<QMenu*> mContextMenu;
 };
 
 
