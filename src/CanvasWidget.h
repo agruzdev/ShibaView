@@ -10,14 +10,12 @@
 
 #include <chrono>
 #include <memory>
-#include <future>
 
-#include <QAction>
-#include <QActionGroup>
+#include <QFuture>
 #include <QMenu>
 #include <QPixmap>
+#include <QTimer>
 #include <QWidget>
-#include <QFuture>
 
 #include <Image.h>
 
@@ -63,6 +61,8 @@ public slots:
 
     void onShowContextMenu(const QPoint &pos);
 
+    void onAnimationTick();
+
 signals:
     void eventInfoText(QString s);
 
@@ -97,6 +97,10 @@ private:
     void setFullscreenGeometry();
 
     void zoomToTarget(QPoint target, int dir);
+
+    void repositionPageText();
+
+    QMenu* createContextMenu();
 
     QSharedPointer<Image> mPendingImage;
     QSharedPointer<Image> mImage;
@@ -134,9 +138,13 @@ private:
     TextWidget* mInfoText  = nullptr;
     TextWidget* mErrorText = nullptr;
 
+    TextWidget* mPageText = nullptr;
+
     FilteringMode mFilteringMode;
 
-    std::shared_future<QMenu*> mContextMenu;
+    QMenu* mContextMenu = nullptr;
+
+    QTimer* mAnimationTimer = nullptr;
 };
 
 

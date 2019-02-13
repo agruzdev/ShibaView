@@ -23,6 +23,8 @@ enum class Rotation
     eDegree270 = 270
 };
 
+class ImageSource;
+
 class Image
 {
     using BitmapPtr = std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)>;
@@ -52,7 +54,7 @@ public:
 
     bool isValid() const
     {
-        return (mBitmap != nullptr);
+        return (mBitmapInternal != nullptr);
     }
 
     void setRotation(Rotation r)
@@ -63,13 +65,31 @@ public:
         }
     }
 
-    QPixmap RecalculatePixmap() const;
+    uint32_t pageIdx() const
+    {
+        return mPageIdx;
+    }
+
+    uint32_t pagesCount() const Q_DECL_NOEXCEPT;
+
+    void setPageIdx(uint32_t idx) Q_DECL_NOEXCEPT;
 
 private:
-    BitmapPtr mBitmap{ nullptr, &::FreeImage_Unload };
+
+    bool readCurrentPage(QString & format) Q_DECL_NOEXCEPT;
+    QPixmap recalculatePixmap() const;
+
+    std::unique_ptr<ImageSource> mImageSource;
     ImageInfo mInfo;
 
+    uint32_t mPageIdx = 0;
+    FIBITMAP* mPage = nullptr;
+
+    FIBITMAP* mBitmapInternal = nullptr;
+    bool mNeedUnloadBitmap = false;
+
     mutable QPixmap mPixmap;
+    mutable bool mInvalidPixmap = false;
 
     mutable bool mInvalidTransform = false;
     Rotation mRotation = Rotation::eDegree0;

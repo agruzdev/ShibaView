@@ -13,6 +13,7 @@
 #include <QRawFont>
 #include <QPen>
 #include <QBrush>
+#include <QGraphicsDropShadowEffect>
 
 class TextWidget 
     : public QWidget
@@ -33,7 +34,7 @@ public:
         return mLineHeight;
     }
 
-signals:
+    void enableShadow();
 
 public slots:
     void setText(const QString & line);
@@ -56,6 +57,8 @@ private:
     uint32_t mWidth;
 
     QPoint mPadding;
+
+    QGraphicsDropShadowEffect* mShadow = nullptr;
 };
 
 #endif // TEXTWIDGET_H

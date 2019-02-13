@@ -11,7 +11,10 @@ HEADERS       = \
     ImageInfo.h \
     Image.h \
     Global.h \
-    MenuWidget.h
+    MenuWidget.h \
+    ImageSource.h \
+    BitmapSource.h \
+    MultiBitmapsource.h
 
 SOURCES       = \
     main.cpp \
@@ -22,7 +25,10 @@ SOURCES       = \
     TextWidget.cpp \
     Image.cpp \
     Global.cpp \
-    MenuWidget.cpp
+    MenuWidget.cpp \
+    BitmapSource.cpp \
+    MultiBitmapsource.cpp \
+    ImageSource.cpp
 
 RC_FILE = resources.rc
 

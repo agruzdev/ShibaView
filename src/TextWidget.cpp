@@ -100,3 +100,12 @@ void TextWidget::paintEvent(QPaintEvent *event)
         }
     }
 }
+
+void TextWidget::enableShadow()
+{
+    QGraphicsDropShadowEffect *eff = new QGraphicsDropShadowEffect(this);
+    eff->setOffset(-1, 0);
+    eff->setBlurRadius(5.0);
+    eff->setColor(Qt::black);
+    this->setGraphicsEffect(eff);
+}

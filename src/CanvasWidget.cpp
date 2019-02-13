@@ -58,6 +58,11 @@ namespace
 
     const QString kZoomLine = "Zoom: ";
 
+    Q_CONSTEXPR int kTextPaddingLeft = 15;
+    Q_CONSTEXPR int kTextPaddingTop  = 30;
+
+    Q_CONSTEXPR int kAnimationTick = 100;
+
     Q_CONSTEXPR
     BorderPosition operator|(const BorderPosition & lh, const BorderPosition & rh)
     {
@@ -84,15 +89,10 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     , mStartTime(t)
 {
     mInfoText = new TextWidget(this);
-    mInfoText->move(15, 30);
+    mInfoText->move(kTextPaddingLeft, kTextPaddingTop);
+    mInfoText->enableShadow();
 
     mErrorText = new TextWidget(this);
-
-    QGraphicsDropShadowEffect *eff = new QGraphicsDropShadowEffect(this);
-    eff->setOffset(-1, 0);
-    eff->setBlurRadius(5.0);
-    eff->setColor(Qt::black);
-    mInfoText->setGraphicsEffect(eff);
 
     QSettings settings;
     mClickGeometry = settings.value(kSettingsGeometry, QRect(200, 200, 1280, 720)).toRect();
@@ -117,87 +117,6 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
 
     setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, &QWidget::customContextMenuRequested, this, &CanvasWidget::onShowContextMenu);
-
-    // Context menu
-    mContextMenu = std::async(std::launch::deferred, [this]() -> QMenu* {
-        const auto makeAction = [this](const QString & text) -> QWidgetAction* {
-            auto action = new QWidgetAction(this);
-            auto widget = new MenuWidget(text);
-            connect(action, &QAction::toggled, widget, &MenuWidget::onActionToggled);
-            action->setDefaultWidget(widget);
-            return action;
-        };
-
-        QMenu* menu = new QMenu(this);
-
-        // Filtering
-        {
-            auto filteringGroup = new QActionGroup(this);
-
-            auto actNoFilter = makeAction("No filter");
-            actNoFilter->setCheckable(true);
-            actNoFilter->setActionGroup(filteringGroup);
-
-            auto actAntialiasing = makeAction("Antialiasing");
-            actAntialiasing->setCheckable(true);
-            actAntialiasing->setActionGroup(filteringGroup);
-
-            switch(mFilteringMode) {
-            case FilteringMode::eNone:
-                actNoFilter->setChecked(true);
-                break;
-            case FilteringMode::eAntialiasing:
-                actAntialiasing->setChecked(true);
-                break;
-            }
-
-            connect(actNoFilter,     &QAction::triggered, this, &CanvasWidget::onActNoFilter);
-            connect(actAntialiasing, &QAction::triggered, this, &CanvasWidget::onActAntialiasing);
-
-            menu->addAction(actNoFilter);
-            menu->addAction(actAntialiasing);
-            menu->addSeparator();
-        }
-
-        // Rotation
-        {
-            auto rotationGroup = new QActionGroup(this);
-
-            auto actRotation0 = makeAction(QString::fromUtf8("Rotation 0" UTF8_DEGREE));
-            actRotation0->setCheckable(true);
-            actRotation0->setActionGroup(rotationGroup);
-            actRotation0->setChecked(true);
-
-            auto actRotation90 = makeAction(QString::fromUtf8("Rotation 90" UTF8_DEGREE));
-            actRotation90->setCheckable(true);
-            actRotation90->setActionGroup(rotationGroup);
-
-            auto actRotation180 = makeAction(QString::fromUtf8("Rotation 180" UTF8_DEGREE));
-            actRotation180->setCheckable(true);
-            actRotation180->setActionGroup(rotationGroup);
-
-            auto actRotation270 = makeAction(QString::fromUtf8("Rotation -90" UTF8_DEGREE));
-            actRotation270->setCheckable(true);
-            actRotation270->setActionGroup(rotationGroup);
-
-            connect(actRotation0,   &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree0));
-            connect(actRotation90,  &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree90));
-            connect(actRotation180, &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree180));
-            connect(actRotation270, &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree270));
-
-            menu->addAction(actRotation0);
-            menu->addAction(actRotation90);
-            menu->addAction(actRotation180);
-            menu->addAction(actRotation270);
-            menu->addSeparator();
-        }
-
-        const auto actQuit = makeAction("Quit");
-        connect(actQuit, &QAction::triggered, this, &QWidget::close);
-        menu->addAction(actQuit);
-
-        return menu;
-    });
 }
 
 CanvasWidget::~CanvasWidget()
@@ -214,10 +133,97 @@ CanvasWidget::~CanvasWidget()
     }
 }
 
+QMenu* CanvasWidget::createContextMenu()
+{
+    const auto makeAction = [this](const QString & text) -> QWidgetAction* {
+        auto action = new QWidgetAction(this);
+        auto widget = new MenuWidget(text);
+        connect(action, &QAction::toggled, widget, &MenuWidget::onActionToggled);
+        action->setDefaultWidget(widget);
+        return action;
+    };
+
+    QMenu* menu = new QMenu(this);
+
+    // Filtering
+    {
+        auto filteringGroup = new QActionGroup(this);
+
+        auto actNoFilter = makeAction("No filter");
+        actNoFilter->setCheckable(true);
+        actNoFilter->setActionGroup(filteringGroup);
+
+        auto actAntialiasing = makeAction("Antialiasing");
+        actAntialiasing->setCheckable(true);
+        actAntialiasing->setActionGroup(filteringGroup);
+
+        switch(mFilteringMode) {
+        case FilteringMode::eNone:
+            actNoFilter->setChecked(true);
+            break;
+        case FilteringMode::eAntialiasing:
+            actAntialiasing->setChecked(true);
+            break;
+        }
+
+        connect(actNoFilter,     &QAction::triggered, this, &CanvasWidget::onActNoFilter);
+        connect(actAntialiasing, &QAction::triggered, this, &CanvasWidget::onActAntialiasing);
+
+        menu->addAction(actNoFilter);
+        menu->addAction(actAntialiasing);
+        menu->addSeparator();
+    }
+
+    // Rotation
+    {
+        auto rotationGroup = new QActionGroup(this);
+
+        auto actRotation0 = makeAction(QString::fromUtf8("Rotation 0" UTF8_DEGREE));
+        actRotation0->setCheckable(true);
+        actRotation0->setActionGroup(rotationGroup);
+        actRotation0->setChecked(true);
+
+        auto actRotation90 = makeAction(QString::fromUtf8("Rotation 90" UTF8_DEGREE));
+        actRotation90->setCheckable(true);
+        actRotation90->setActionGroup(rotationGroup);
+
+        auto actRotation180 = makeAction(QString::fromUtf8("Rotation 180" UTF8_DEGREE));
+        actRotation180->setCheckable(true);
+        actRotation180->setActionGroup(rotationGroup);
+
+        auto actRotation270 = makeAction(QString::fromUtf8("Rotation -90" UTF8_DEGREE));
+        actRotation270->setCheckable(true);
+        actRotation270->setActionGroup(rotationGroup);
+
+        connect(actRotation0,   &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree0));
+        connect(actRotation90,  &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree90));
+        connect(actRotation180, &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree180));
+        connect(actRotation270, &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree270));
+
+        menu->addAction(actRotation0);
+        menu->addAction(actRotation90);
+        menu->addAction(actRotation180);
+        menu->addAction(actRotation270);
+        menu->addSeparator();
+    }
+
+    const auto actQuit = makeAction("Quit");
+    connect(actQuit, &QAction::triggered, this, &QWidget::close);
+    menu->addAction(actQuit);
+
+    return menu;
+}
+
 void CanvasWidget::onShowContextMenu(const QPoint & p)
 {
     try {
-        mContextMenu.get()->exec(mapToGlobal(p));
+        // Deferred initialization
+        if (!mContextMenu) {
+            mContextMenu = createContextMenu();
+        }
+        if (mContextMenu) {
+            mContextMenu->exec(mapToGlobal(p));
+        }
     }
     catch(std::exception & err) {
         qWarning() << QString("CanvasWidget[onShowContextMenu]: ") + QString(err.what());
@@ -301,6 +307,12 @@ void CanvasWidget::invalidateImageExtents(bool keepTransform)
     mInfoText->setText(infoLines);
 }
 
+void CanvasWidget::repositionPageText()
+{
+    assert(mPageText != nullptr);
+    mPageText->move(kTextPaddingLeft, height() - mPageText->height() * 2);
+}
+
 void CanvasWidget::paintEvent(QPaintEvent * event)
 {
     if(mStartup){
@@ -318,6 +330,27 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
         if (mImage->isValid()) {
             invalidateImageExtents(false);
+
+            if (mImage->pagesCount() > 1) {
+                mPageText = new TextWidget(this);
+                mPageText->setText("Page 1/" + QString::number(mImage->pagesCount()));
+                mPageText->enableShadow();
+                repositionPageText();
+
+                mAnimationTimer = new QTimer(this);
+                connect(mAnimationTimer, &QTimer::timeout, this, &CanvasWidget::onAnimationTick);
+                mAnimationTimer->start(kAnimationTick);
+            }
+            else {
+                delete mPageText;
+                mPageText = nullptr;
+
+                if(mAnimationTimer) {
+                    mAnimationTimer->stop();
+                    delete mAnimationTimer;
+                    mAnimationTimer = nullptr;
+                }
+            }
         }
     }
 
@@ -331,9 +364,16 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
             if (mShowInfo) {
                 mInfoText->show();
+                if (mPageText) {
+                    mPageText->setText("Page " + QString::number(mImage->pageIdx() + 1) + "/" + QString::number(mImage->pagesCount()));
+                    mPageText->show();
+                }
             }
             else {
                 mInfoText->hide();
+                if (mPageText) {
+                    mPageText->hide();
+                }
             }
         }
         else {
@@ -383,6 +423,9 @@ void CanvasWidget::resizeEvent(QResizeEvent * event)
             mInfoText->setLine(ImageInfo::linesNumber(), kZoomLine + toPercent(static_cast<float>(mImageRegion.width()) / mImage->width()));
         }
     }
+    if (mPageText) {
+        repositionPageText();
+    }
     repaint();
 }
 
@@ -414,7 +457,7 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
             }
         }
     }
-     else {
+    else {
          // No Modifiers
         if (event->key() == Qt::Key_Escape) {
             close();
@@ -690,6 +733,18 @@ void CanvasWidget::onActRotation(bool checked, Rotation r)
     if (checked && mImage && mImage->isValid()) {
         mImage->setRotation(r);
         invalidateImageExtents();
+        update();
+    }
+}
+
+void CanvasWidget::onAnimationTick()
+{
+    if (mImage && mImage->isValid()) {
+        uint32_t nextPage = mImage->pageIdx() + 1;
+        if (nextPage >= mImage->pagesCount()) {
+            nextPage = 0;
+        }
+        mImage->setPageIdx(nextPage);
         update();
     }
 }
