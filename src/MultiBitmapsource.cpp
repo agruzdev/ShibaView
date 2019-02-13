@@ -28,13 +28,6 @@ namespace
 }
 
 
-// Internal buffer for FreeImage_OpenMultiBitmapU issue workaround
-struct MultibitmapBuffer
-{
-    std::vector<unsigned char> data;
-    FIMEMORY* stream = nullptr;
-};
-
 
 MultibitmapSource::MultibitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif)
     : mFormat(fif)
