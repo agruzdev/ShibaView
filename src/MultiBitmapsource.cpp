@@ -7,6 +7,7 @@
 
 #include "MultiBitmapsource.h"
 
+#include <stdio.h>
 #include <limits>
 #include <vector>
 #include <fstream>
@@ -41,15 +42,15 @@ MultibitmapSource::MultibitmapSource(const QString & filename, FREE_IMAGE_FORMAT
 #ifdef _WIN32
     const auto uniName = filename.toStdWString();
     // ToDo: Since FreeImage is missing FreeImage_OpenMultiBitmapU function, read through memory buffer
-    std::ifstream file(uniName, std::ios::binary);
-    if (file.is_open()) {
+    FILE* file = _wfopen(uniName.c_str(), L"rb");
+    if (file) {
         mBuffer = std::make_unique<MultibitmapBuffer>();
 
-        file.seekg(0, std::ios::end);
-        mBuffer->data.resize(file.tellg());
-        file.seekg(0, std::ios::beg);
-        file.read(reinterpret_cast<char*>(mBuffer->data.data()), mBuffer->data.size());
-        file.close();
+        fseek(file, 0, SEEK_END);
+        mBuffer->data.resize(ftell(file));
+        fseek(file, 0, SEEK_SET);
+        fread(mBuffer->data.data(), sizeof(unsigned char), mBuffer->data.size(), file);
+        fclose(file);
 
         if(mBuffer->data.size() > std::numeric_limits<DWORD>::max()) {
             throw std::runtime_error("MultibitmapSource[MultibitmapSource]: Input file is too big!");
