@@ -332,20 +332,29 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             invalidateImageExtents(false);
 
             if (mImage->pagesCount() > 1) {
-                mPageText = new TextWidget(this);
+                if (mPageText == nullptr) {
+                    mPageText = new TextWidget(this);
+                    mPageText->enableShadow();
+                }
                 mPageText->setText("Page 1/" + QString::number(mImage->pagesCount()));
-                mPageText->enableShadow();
                 repositionPageText();
 
-                mAnimationTimer = new QTimer(this);
-                connect(mAnimationTimer, &QTimer::timeout, this, &CanvasWidget::onAnimationTick);
+                if (!mAnimationTimer) {
+                    mAnimationTimer = new QTimer(this);
+                    connect(mAnimationTimer, &QTimer::timeout, this, &CanvasWidget::onAnimationTick);
+                }
+                else {
+                    mAnimationTimer->stop();
+                }
                 mAnimationTimer->start(kAnimationTick);
             }
             else {
-                delete mPageText;
-                mPageText = nullptr;
+                if (mPageText) {
+                    delete mPageText;
+                    mPageText = nullptr;
+                }
 
-                if(mAnimationTimer) {
+                if (mAnimationTimer) {
                     mAnimationTimer->stop();
                     delete mAnimationTimer;
                     mAnimationTimer = nullptr;
