@@ -14,7 +14,8 @@ HEADERS       = \
     MenuWidget.h \
     ImageSource.h \
     BitmapSource.h \
-    MultiBitmapsource.h
+    MultiBitmapsource.h \
+    UniqueTick.h
 
 SOURCES       = \
     main.cpp \
@@ -28,7 +29,8 @@ SOURCES       = \
     MenuWidget.cpp \
     BitmapSource.cpp \
     MultiBitmapsource.cpp \
-    ImageSource.cpp
+    ImageSource.cpp \
+    UniqueTick.cpp
 
 RC_FILE = resources.rc
 

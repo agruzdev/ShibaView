@@ -7,6 +7,7 @@
 
 #include "Image.h"
 
+#include <atomic>
 #include <iostream>
 
 #include <QDateTime>
@@ -17,8 +18,15 @@
 
 namespace
 {
+    uint64_t generateId()
+    {
+        static std::atomic<uint64_t> nextId{ 0 };
+        return nextId.fetch_add(1, std::memory_order::memory_order_relaxed);
+    }
+
     FIBITMAP* cvtToInternalType(FIBITMAP* src, QString & srcFormat, bool & dstNeedUnload)
     {
+        std::cout << "cvtToInternalType" << std::endl;
         assert(src != nullptr);
         FIBITMAP* dst = nullptr;
         const uint32_t bpp = FreeImage_GetBPP(src);
@@ -139,6 +147,7 @@ namespace
 }
 
 Image::Image(QString name, QString filename) noexcept
+    : mId(generateId())
 {
 #ifdef _MSC_VER
     std::wcout << filename.toStdWString() << std::endl;
@@ -185,6 +194,7 @@ Image::Image(QString name, QString filename) noexcept
     mInfo.modified = file.lastModified();
     mInfo.dims     = QSize(width, height);
 
+    mInvalidPixmap    = false;
     mInvalidTransform = true;
 }
 
@@ -220,17 +230,17 @@ uint32_t Image::height() const
 
 uint32_t Image::sourceWidth() const
 {
-    return isValid() ? FreeImage_GetWidth(mBitmapInternal) : 0;
+    return isNull() ? FreeImage_GetWidth(mBitmapInternal) : 0;
 }
 
 uint32_t Image::sourceHeight() const
 {
-    return isValid() ? FreeImage_GetHeight(mBitmapInternal) : 0;
+    return isNull() ? FreeImage_GetHeight(mBitmapInternal) : 0;
 }
 
-const QPixmap & Image::pixmap() const
+const QPixmap & Image::pixmap(PageInfo* info) const
 {
-    if (isValid()) {
+    if (isNull()) {
         if (mInvalidPixmap) {
             QString ignoreFormat;
             mInvalidPixmap = !const_cast<Image*>(this)->readCurrentPage(ignoreFormat);
@@ -240,6 +250,9 @@ const QPixmap & Image::pixmap() const
             mPixmap = recalculatePixmap();
             mInvalidTransform = false;
         }
+    }
+    if (info) {
+        *info = mPageInfo;
     }
     return mPixmap;
 }
@@ -263,15 +276,6 @@ QPixmap Image::recalculatePixmap() const
 uint32_t Image::pagesCount() const Q_DECL_NOEXCEPT
 {
     return mImageSource ? mImageSource->pagesCount() : 0;
-}
-
-void Image::setPageIdx(uint32_t idx) Q_DECL_NOEXCEPT
-{
-    idx = std::min(idx, pagesCount());
-    if(mPageIdx != idx) {
-        mPageIdx = idx;
-        mInvalidPixmap = true;
-    }
 }
 
 bool Image::readCurrentPage(QString & format) Q_DECL_NOEXCEPT
@@ -298,6 +302,7 @@ bool Image::readCurrentPage(QString & format) Q_DECL_NOEXCEPT
         if (!mPage) {
             return false;
         }
+
         // Convert to internal bitmap
         mBitmapInternal = cvtToInternalType(mPage, format, mNeedUnloadBitmap);
         if (!mBitmapInternal) {
@@ -338,7 +343,23 @@ bool Image::readCurrentPage(QString & format) Q_DECL_NOEXCEPT
             mImageSource->releasePage(mPage);
             mPage = nullptr;
         }
+
+        mPageInfo.index    = mPageIdx;
+        mPageInfo.duration = anim.duration;
+
         return true;
     }
     return false;
+}
+
+void Image::readNextPage() Q_DECL_NOEXCEPT
+{
+    const uint32_t count = pagesCount();
+    if (count > 1) {
+        mPageIdx = mPageIdx + 1;
+        if(mPageIdx >= count) {
+            mPageIdx = 0;
+        }
+        mInvalidPixmap = true;
+    }
 }

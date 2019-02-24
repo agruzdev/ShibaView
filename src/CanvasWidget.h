@@ -61,7 +61,7 @@ public slots:
 
     void onShowContextMenu(const QPoint &pos);
 
-    void onAnimationTick();
+    void onAnimationTick(uint64_t imgId);
 
 signals:
     void eventInfoText(QString s);
@@ -79,7 +79,6 @@ protected:
 
 
 private:
-
     void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
@@ -144,7 +143,7 @@ private:
 
     QMenu* mContextMenu = nullptr;
 
-    QTimer* mAnimationTimer = nullptr;
+    uint32_t mCurrPage = Image::kNonePage;
 };
 
 

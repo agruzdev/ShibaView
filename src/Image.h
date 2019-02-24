@@ -8,9 +8,11 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
+#include <limits>
 #include <memory>
 
 #include <QPixmap>
+
 #include "ImageInfo.h"
 
 #include "FreeImage.h"
@@ -30,6 +32,15 @@ class Image
     using BitmapPtr = std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)>;
 
 public:
+    static Q_CONSTEXPR uint32_t kNonePage = std::numeric_limits<uint32_t>::max();
+
+    struct PageInfo
+    {
+        uint32_t index    = kNonePage;
+        uint32_t duration = 0;
+    };
+
+
     Image(QString name, QString filename) noexcept;
     ~Image();
 
@@ -39,7 +50,7 @@ public:
     Image& operator=(const Image&) = delete;
     Image& operator=(Image&&) = delete;
 
-    const QPixmap & pixmap() const;
+    const QPixmap & pixmap(PageInfo* info) const;
 
     const ImageInfo & info() const
     {
@@ -52,7 +63,7 @@ public:
     uint32_t sourceWidth() const;
     uint32_t sourceHeight() const;
 
-    bool isValid() const
+    bool isNull() const
     {
         return (mBitmapInternal != nullptr);
     }
@@ -65,24 +76,26 @@ public:
         }
     }
 
-    uint32_t pageIdx() const
-    {
-        return mPageIdx;
-    }
-
     uint32_t pagesCount() const Q_DECL_NOEXCEPT;
 
-    void setPageIdx(uint32_t idx) Q_DECL_NOEXCEPT;
+    void readNextPage() Q_DECL_NOEXCEPT;
+
+    uint64_t id() const
+    {
+        return mId;
+    }
 
 private:
 
     bool readCurrentPage(QString & format) Q_DECL_NOEXCEPT;
     QPixmap recalculatePixmap() const;
 
+    uint64_t mId;
+
     std::unique_ptr<ImageSource> mImageSource;
     ImageInfo mInfo;
 
-    uint32_t mPageIdx = 0;
+    uint32_t mPageIdx = kNonePage;
     FIBITMAP* mPage = nullptr;
 
     FIBITMAP* mBitmapInternal = nullptr;
@@ -93,6 +106,8 @@ private:
 
     mutable bool mInvalidTransform = false;
     Rotation mRotation = Rotation::eDegree0;
+
+    mutable PageInfo mPageInfo;
 };
 
 using ImagePtr = QSharedPointer<Image>;

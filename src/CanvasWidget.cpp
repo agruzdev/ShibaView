@@ -26,6 +26,7 @@
 #include "MenuWidget.h"
 #include "TextWidget.h"
 #include "ZoomController.h"
+#include "UniqueTick.h"
 
 #define UTF8_DEGREE "\xc2\xb0"
 
@@ -60,8 +61,6 @@ namespace
 
     Q_CONSTEXPR int kTextPaddingLeft = 15;
     Q_CONSTEXPR int kTextPaddingTop  = 30;
-
-    Q_CONSTEXPR int kAnimationTick = 100;
 
     Q_CONSTEXPR
     BorderPosition operator|(const BorderPosition & lh, const BorderPosition & rh)
@@ -323,12 +322,12 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
     QWidget::paintEvent(event);
 
-
     if (mPendingImage) {
         mImage = std::move(mPendingImage);
         mPendingImage = nullptr;
+        mCurrPage = Image::kNonePage;
 
-        if (mImage->isValid()) {
+        if (mImage->isNull()) {
             invalidateImageExtents(false);
 
             if (mImage->pagesCount() > 1) {
@@ -338,43 +337,29 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
                 }
                 mPageText->setText("Page 1/" + QString::number(mImage->pagesCount()));
                 repositionPageText();
-
-                if (!mAnimationTimer) {
-                    mAnimationTimer = new QTimer(this);
-                    connect(mAnimationTimer, &QTimer::timeout, this, &CanvasWidget::onAnimationTick);
-                }
-                else {
-                    mAnimationTimer->stop();
-                }
-                mAnimationTimer->start(kAnimationTick);
             }
             else {
                 if (mPageText) {
                     delete mPageText;
                     mPageText = nullptr;
                 }
-
-                if (mAnimationTimer) {
-                    mAnimationTimer->stop();
-                    delete mAnimationTimer;
-                    mAnimationTimer = nullptr;
-                }
             }
         }
     }
 
     if (mImage) {
-        if (mImage->isValid()) {
+        if (mImage->isNull()) {
             QPainter painter(this);
             if(mFilteringMode == FilteringMode::eAntialiasing) {
                 painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, true);
             }
-            painter.drawPixmap(mImageRegion, mImage->pixmap());
+            Image::PageInfo page;
+            painter.drawPixmap(mImageRegion, mImage->pixmap(&page));
 
             if (mShowInfo) {
                 mInfoText->show();
                 if (mPageText) {
-                    mPageText->setText("Page " + QString::number(mImage->pageIdx() + 1) + "/" + QString::number(mImage->pagesCount()));
+                    mPageText->setText("Page " + QString::number(page.index + 1) + "/" + QString::number(mImage->pagesCount()));
                     mPageText->show();
                 }
             }
@@ -384,6 +369,11 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
                     mPageText->hide();
                 }
             }
+
+            if ((page.index != mCurrPage) && (mImage->pagesCount() > 1)) {
+                new UniqueTick(mImage->id(), page.duration, this, &CanvasWidget::onAnimationTick, this);
+            }
+            mCurrPage = page.index;
         }
         else {
             const auto dstRegion = fitWidth(512, 512);
@@ -413,7 +403,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
 void CanvasWidget::recalculateZoom()
 {
-    if(mImage && mImage->isValid()) {
+    if(mImage && mImage->isNull()) {
         const int w = mImage->width();
         mZoomController = std::make_unique<ZoomController>(w, mImageRegion.width(), w / kMinZoomRatio, w * kMaxZoomRatio);
         if (mInfoText) {
@@ -426,7 +416,7 @@ void CanvasWidget::resizeEvent(QResizeEvent * event)
 {
     QWidget::resizeEvent(event);
     updateOffsets();
-    if(mZoomMode == ZoomMode::eFitWidth && mImage && mImage->isValid()) {
+    if(mZoomMode == ZoomMode::eFitWidth && mImage && mImage->isNull()) {
         mImageRegion = fitWidth(mImage->width(), mImage->height());
         if (mInfoText) {
             mInfoText->setLine(ImageInfo::linesNumber(), kZoomLine + toPercent(static_cast<float>(mImageRegion.width()) / mImage->width()));
@@ -443,7 +433,7 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
     QWidget::keyPressEvent(event);
     if (QApplication::keyboardModifiers() == Qt::AltModifier) {
         // Alt + Key
-        if(mImage && mImage->isValid()) {
+        if(mImage && mImage->isNull()) {
             if (event->key() == Qt::Key_Up) {
                 mImage->setRotation(Rotation::eDegree0);
                 invalidateImageExtents();
@@ -474,7 +464,7 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         else if (event->key() == Qt::Key_Tab) {
             mShowInfo = !mShowInfo;
         }
-        else if ((event->key() == Qt::Key_Asterisk) && mImage && mImage->isValid()) {
+        else if ((event->key() == Qt::Key_Asterisk) && mImage && mImage->isNull()) {
             switch (mZoomMode) {
             case ZoomMode::eCustom:
             case ZoomMode::e100Percent:
@@ -685,7 +675,7 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
 
 void CanvasWidget::zoomToTarget(QPoint target, int dir)
 {
-    if(mZoomController && mImage && mImage->isValid()) {
+    if(mZoomController && mImage && mImage->isNull()) {
         mZoomMode = ZoomMode::eCustom;
 
         const int w = mImageRegion.width();
@@ -739,21 +729,17 @@ void CanvasWidget::onActAntialiasing(bool checked)
 
 void CanvasWidget::onActRotation(bool checked, Rotation r)
 {
-    if (checked && mImage && mImage->isValid()) {
+    if (checked && mImage && mImage->isNull()) {
         mImage->setRotation(r);
         invalidateImageExtents();
         update();
     }
 }
 
-void CanvasWidget::onAnimationTick()
+void CanvasWidget::onAnimationTick(uint64_t imgId)
 {
-    if (mImage && mImage->isValid()) {
-        uint32_t nextPage = mImage->pageIdx() + 1;
-        if (nextPage >= mImage->pagesCount()) {
-            nextPage = 0;
-        }
-        mImage->setPageIdx(nextPage);
+    if (mImage && mImage->id() == imgId && mImage->isNull()) {
+        mImage->readNextPage();
         update();
     }
 }
