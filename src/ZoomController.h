@@ -19,52 +19,73 @@
 #ifndef ZOOMCONTROLLER_H
 #define ZOOMCONTROLLER_H
 
-#include <deque>
+#include <cstdint>
 
 class ZoomController
 {
 public:
-    ZoomController(int pos100, int posFit, int minValue, int maxValue);
+    ZoomController(int baseValue, int fitValue);
     ~ZoomController();
 
-    int get() const
-    {
-        return *mPosCurrent;
-    }
+    ZoomController(const ZoomController&) = default;
+    ZoomController(ZoomController&&) = default;
+    ZoomController& operator=(const ZoomController&) = default;
+    ZoomController& operator=(ZoomController&&) = default;
 
-    int zoomPlus()
-    {
-        if(mPosCurrent != std::prev(mScales.cend())) {
-            ++mPosCurrent;
-        }
-        return *mPosCurrent;
-    }
+    /**
+     * Get zoom factor
+     */
+    float getFactor() const;
 
-    int zoomMinus()
-    {
-        if(mPosCurrent != mScales.cbegin()) {
-            --mPosCurrent;
-        }
-        return *mPosCurrent;
-    }
+    /**
+     * Get zoomed value = baseVal * zoomFactor
+     */
+    int getValue() const;
 
-    int moveToPos100()
-    {
-        mPosCurrent = mPos100;
-        return *mPosCurrent;
-    }
+    /**
+     * Update fit piont
+     */
+    void setFitValue(int value);
 
-    int moveToPosFit()
-    {
-        mPosCurrent = mPosFit;
-        return *mPosCurrent;
-    }
+    /**
+     * Reset for a new base value preserving current zoom level
+     */
+    void rebase(int baseValue, int fitValue);
+
+    /**
+     * Move zoom position
+     */
+    void zoomPlus();
+
+    /**
+     * Move zoom position
+     */
+    void zoomMinus();
+
+    /**
+     * Reset to initial state (no zoom)
+     */
+    void moveToIdentity();
+
+    /**
+     * Reset to fit value zoom
+     */
+    void moveToFit();
 
 private:
-    std::deque<int> mScales;
-    std::deque<int>::const_iterator mPos100;
-    std::deque<int>::const_iterator mPosFit;
-    std::deque<int>::const_iterator mPosCurrent;
+    int32_t mBaseValue;
+
+    int32_t mScale;
+    int32_t mMinScale;
+    int32_t mMaxScale;
+
+    int32_t mFitValue;
+    int32_t mFitScaleFloor;
+    int32_t mFitScaleCeil;
+
+    bool mAtFitValue;
+
+    float mFitOffset; // offset inside grid
 };
 
 #endif // ZOOMCONTROLLER_H

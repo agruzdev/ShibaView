@@ -36,7 +36,8 @@ namespace
         "*.bmp",
         "*.gif",
         "*.pbm", "*.pgm", "*.ppm", "*.pnm", "*.pfm", "*.pam",
-        "*.hdr"
+        "*.hdr",
+        "*.webp"
     };
 }
 

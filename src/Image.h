@@ -76,7 +76,12 @@ public:
 
     bool isNull() const
     {
-        return (mBitmapInternal != nullptr);
+        return (mBitmapInternal == nullptr);
+    }
+
+    Rotation rotation() const
+    {
+        return mRotation;
     }
 
     void setRotation(Rotation r)

@@ -241,17 +241,17 @@ uint32_t Image::height() const
 
 uint32_t Image::sourceWidth() const
 {
-    return isNull() ? FreeImage_GetWidth(mBitmapInternal) : 0;
+    return !isNull() ? FreeImage_GetWidth(mBitmapInternal) : 0;
 }
 
 uint32_t Image::sourceHeight() const
 {
-    return isNull() ? FreeImage_GetHeight(mBitmapInternal) : 0;
+    return !isNull() ? FreeImage_GetHeight(mBitmapInternal) : 0;
 }
 
 const QPixmap & Image::pixmap(PageInfo* info) const
 {
-    if (isNull()) {
+    if (!isNull()) {
         if (mInvalidPixmap) {
             QString ignoreFormat;
             mInvalidPixmap = !const_cast<Image*>(this)->readCurrentPage(ignoreFormat);

@@ -21,66 +21,100 @@
 #include <algorithm>
 #include <cmath>
 
-ZoomController::ZoomController(int pos100, int posFit, int minValue, int maxValue)
+static constexpr double kZoomKoef = 0.9;
+
+ZoomController::ZoomController(int baseValue, int fitValue)
+    : mBaseValue(baseValue)
+    , mScale(0)
+    , mMinScale(-100)
+    , mMaxScale( 100)
 {
-    const float step = 0.15f;
+    setFitValue(fitValue);
+}
 
-    const int node1 = std::min(pos100, posFit);
-    const int node2 = std::max(pos100, posFit);
+ZoomController::~ZoomController() = default;
 
-    mScales.push_back(node1);
-    int offset1 = 0;
-    float v = static_cast<float>(node1);
-    for(;;) {
-        v = v * (1.0f - step);
-        const int s = std::max(static_cast<int>(std::floor(v)), minValue);
-        if(s != mScales.front()) {
-            mScales.push_front(s);
-            ++offset1;
-        }
-        if (s == minValue) {
-            break;
-        }
+void ZoomController::setFitValue(int valueFit)
+{
+    mFitValue = valueFit;
+
+    const double fittedScale = (std::log(mFitValue) - std::log(mBaseValue)) / std::log(kZoomKoef);
+    const double eps = 1.0 / mBaseValue;
+
+    mFitScaleFloor = static_cast<int32_t>(std::floor(fittedScale - eps));
+    mFitScaleCeil  = static_cast<int32_t>(std::ceil (fittedScale + eps));
+
+    mFitOffset  = fittedScale - mFitScaleFloor;
+
+    mAtFitValue = (mFitScaleFloor <= mScale) && (mScale <= mFitScaleCeil);
+}
+
+void ZoomController::rebase(int baseValue, int fitValue)
+{
+    const float factor = getFactor();
+    const double newScale = (std::log(baseValue * factor) - std::log(baseValue)) / std::log(kZoomKoef);
+    mScale = static_cast<int32_t>(std::round(newScale));
+    mBaseValue = baseValue;
+
+    setFitValue(fitValue);
+}
+
+float ZoomController::getFactor() const
+{
+    if (mAtFitValue) {
+        return static_cast<float>(std::pow(kZoomKoef, mFitScaleFloor + mFitOffset));
     }
+    return static_cast<float>(std::pow(kZoomKoef, mScale));
+}
 
-    v = static_cast<float>(node1);
-    int offset2 = offset1;
-    for(;;) {
-        v = v * (1.0f + step);
-        const int s = std::min(static_cast<int>(std::ceil(v)), node2);
-        if(s != mScales.back()) {
-            mScales.push_back(s);
-            ++offset2;
-        }
-        if (s == node2) {
-            break;
-        }
+int ZoomController::getValue() const
+{
+    if (mAtFitValue) {
+        return mFitValue;
     }
+    return static_cast<int>(std::round(mBaseValue * std::pow(kZoomKoef, mScale)));
+}
 
-    v = static_cast<float>(node2);
-    for(;;) {
-        v = v * (1.0f + step);
-        const int s = std::min(static_cast<int>(std::ceil(v)), maxValue);
-        if(s != mScales.back()) {
-            mScales.push_back(s);
-        }
-        if (s == maxValue) {
-            break;
-        }
-    }
-
-    if(pos100 < posFit) {
-        mPos100 = std::next(mScales.cbegin(), offset1);
-        mPosFit = std::next(mScales.cbegin(), offset2);
+void ZoomController::zoomPlus()
+{
+    if (mAtFitValue) {
+        mScale = mFitScaleFloor;
+        mAtFitValue = false;
     }
     else {
-        mPosFit = std::next(mScales.cbegin(), offset1);
-        mPos100 = std::next(mScales.cbegin(), offset2);
+        if (mScale == mFitScaleCeil) {
+            mAtFitValue = true;
+        }
+        else {
+            mScale = std::max(mScale - 1, mMinScale);
+        }
     }
-    mPosCurrent = mPosFit;
 }
 
-ZoomController::~ZoomController()
+void ZoomController::zoomMinus()
 {
-    
+    if (mAtFitValue) {
+        mScale = mFitScaleCeil;
+        mAtFitValue = false;
+    }
+    else {
+        if(mScale == mFitScaleFloor) {
+            mAtFitValue = true;
+        }
+        else {
+            mScale = std::min(mScale + 1, mMaxScale);
+        }
+    }
 }
+
+void ZoomController::moveToIdentity()
+{
+    mScale = 0;
+    mAtFitValue = false;
+}
+
+void ZoomController::moveToFit()
+{
+    mAtFitValue = true;
+}
+

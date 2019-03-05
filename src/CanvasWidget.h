@@ -19,6 +19,7 @@
 #ifndef CANVAS_WIDGET_H
 #define CANVAS_WIDGET_H
 
+#include <array>
 #include <chrono>
 #include <memory>
 
@@ -27,6 +28,7 @@
 #include <QPixmap>
 #include <QTimer>
 #include <QWidget>
+#include <QWidgetAction>
 
 #include <Image.h>
 
@@ -36,19 +38,26 @@ class QLabel;
 class ZoomController;
 class TextWidget;
 
-enum class ZoomMode
-{
-    eFitWidth,
-    e100Percent,
-    eCustom
-};
-
 enum class FilteringMode
 {
     eNone,
     eAntialiasing
 };
 
+enum class ZoomMode
+{
+    eFree      = 0,
+    eFitWindow = 1,
+    eFixed     = 2,
+
+    length
+};
+
+constexpr
+size_t toIndex(ZoomMode z)
+{
+    return static_cast<size_t>(z);
+}
 
 class CanvasWidget
     : public QWidget
@@ -69,6 +78,7 @@ public slots:
     void onActAntialiasing(bool checked);
 
     void onActRotation(bool checked, Rotation r);
+    void onActZoomMode(bool checked, ZoomMode z);
 
     void onShowContextMenu(const QPoint &pos);
 
@@ -96,8 +106,8 @@ private:
     void mouseDoubleClickEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void wheelEvent(QWheelEvent* event) Q_DECL_OVERRIDE;
 
-    // Reset image region and zoom controller for new image extents
-    void invalidateImageExtents(bool keepTransform = true);
+    // Reset image region for new image extents
+    void invalidateImageExtents();
 
     void updateOffsets();
     QRect fitWidth(int w, int h) const;
@@ -110,6 +120,9 @@ private:
 
     void repositionPageText();
 
+    QWidgetAction* createMenuAction(const QString & text);
+    void initRotationActions();
+    void initZoomActions();
     QMenu* createContextMenu();
 
     QSharedPointer<Image> mPendingImage;
@@ -155,6 +168,16 @@ private:
     QMenu* mContextMenu = nullptr;
 
     uint32_t mCurrPage = Image::kNonePage;
+
+    // actions
+    QActionGroup*  mActGroupRotation = nullptr;
+    QWidgetAction* mActRotate0   = nullptr;
+    QWidgetAction* mActRotate90  = nullptr;
+    QWidgetAction* mActRotate180 = nullptr;
+    QWidgetAction* mActRotate270 = nullptr;
+
+    QActionGroup*  mActGroupZoom = nullptr;
+    std::array<QWidgetAction*, toIndex(ZoomMode::length)> mActZoom = { nullptr };
 };
 
 
