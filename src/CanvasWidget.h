@@ -106,10 +106,13 @@ private:
     void mouseDoubleClickEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void wheelEvent(QWheelEvent* event) Q_DECL_OVERRIDE;
 
-    // Reset image region for new image extents
-    void invalidateImageExtents();
+    void updateZoomLabel();
 
+    QRect calculateImageRegion() const;
+
+    void resetOffsets();
     void updateOffsets();
+
     QRect fitWidth(int w, int h) const;
 
     void recalculateZoom();
@@ -121,6 +124,7 @@ private:
     void repositionPageText();
 
     QWidgetAction* createMenuAction(const QString & text);
+
     void initRotationActions();
     void initZoomActions();
     QMenu* createContextMenu();
@@ -137,8 +141,7 @@ private:
     bool mClick = false;
 
     bool mDragging = false;
-    int mClickX = 0;
-    int mClickY = 0;
+    QPoint mClickPos{ 0, 0 };
 
     bool mStretching = false;
     BorderPosition mHoveredBorder;
@@ -147,9 +150,9 @@ private:
     std::chrono::steady_clock::time_point mStartTime;
     bool mStartup = true;
 
-    QRect mImageRegion;
-
     bool mShowInfo = false;
+
+    QPoint mOffset{ 0, 0 };
 
     std::unique_ptr<ZoomController> mZoomController;
     ZoomMode mZoomMode;

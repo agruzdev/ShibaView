@@ -298,31 +298,34 @@ void CanvasWidget::onImageReady(QSharedPointer<Image> image)
 
 void CanvasWidget::updateOffsets()
 {
-    const int w = mImageRegion.width();
-    const int h = mImageRegion.height();
-    const int zeroX = width()  / 2;
-    const int zeroY = height() / 2;
-    if (w > width()) {
-        if (mImageRegion.left() + w < width()) {
-            mImageRegion.moveLeft(width() - w);
+    if (mImage && !mImage->isNull()) {
+        QRect imageRegion = calculateImageRegion();
+
+        const int w = imageRegion.width();
+        const int h = imageRegion.height();
+
+        if (w > width()) {
+            if (imageRegion.left() + w < width()) {
+                mOffset.rx() += width() - imageRegion.left() - w;
+            }
+            if (imageRegion.left() > 0) {
+                mOffset.rx() -= imageRegion.left();
+            }
         }
-        if (mImageRegion.left() > 0) {
-            mImageRegion.moveLeft(0);
+        else {
+            mOffset.setX(0);
         }
-    }
-    else {
-        mImageRegion.moveLeft(zeroX - w / 2);
-    }
-    if(h > height()) {
-        if (mImageRegion.top() + h < height()) {
-            mImageRegion.moveTop(height() - h);
+        if(h > height()) {
+            if (imageRegion.top() + h < height()) {
+                mOffset.ry() += height() - imageRegion.top() - h;
+            }
+            if (imageRegion.top() > 0) {
+                mOffset.ry() -= imageRegion.top();
+            }
         }
-        if (mImageRegion.top() > 0) {
-            mImageRegion.moveTop(0);
+        else {
+            mOffset.setY(0);
         }
-    }
-    else {
-        mImageRegion.moveTop(zeroY - h / 2);
     }
 }
 
@@ -346,7 +349,7 @@ QRect CanvasWidget::fitWidth(int w, int h) const
     return r;
 }
 
-void CanvasWidget::invalidateImageExtents()
+QRect CanvasWidget::calculateImageRegion() const
 {
     const int w = mImage->width();
     const int h = mImage->height();
@@ -365,8 +368,8 @@ void CanvasWidget::invalidateImageExtents()
         break;
     }
 
-    const int zeroX = width()  / 2;
-    const int zeroY = height() / 2;
+    const int zeroX = width()  / 2 + mOffset.x();
+    const int zeroY = height() / 2 + mOffset.y();
 
     QRect r;
     r.setLeft(zeroX - dw / 2);
@@ -374,17 +377,25 @@ void CanvasWidget::invalidateImageExtents()
     r.setWidth(dw);
     r.setHeight(dh);
 
-    mImageRegion = r;
+    return r;
+}
 
-    auto infoLines = mImage->info().toLines();
-    infoLines.push_back(kZoomLine + toPercent(mZoomController->getFactor()));
-    mInfoText->setText(infoLines);
+void CanvasWidget::updateZoomLabel()
+{
+    if (mZoomController && mInfoText) {
+        mInfoText->setLine(ImageInfo::linesNumber(), kZoomLine + toPercent(mZoomController->getFactor()));
+    }
 }
 
 void CanvasWidget::repositionPageText()
 {
     assert(mPageText != nullptr);
     mPageText->move(kTextPaddingLeft, height() - mPageText->height() * 2);
+}
+
+void CanvasWidget::resetOffsets()
+{
+    mOffset = { 0, 0 };
 }
 
 void CanvasWidget::paintEvent(QPaintEvent * event)
@@ -407,36 +418,30 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
             if(!mZoomController) {
                 mZoomController = std::make_unique<ZoomController>(mImage->sourceWidth(), fitRect.width());
-                switch(mZoomMode) {
-                case ZoomMode::eFree:
+                if (mZoomMode == ZoomMode::eFree && mImage->width() <= static_cast<size_t>(width()) && mImage->height() <= static_cast<size_t>(height())) {
                     mZoomController->moveToIdentity();
-                    break;
-                case ZoomMode::eFitWindow:
-                case ZoomMode::eFixed:
-                default:
-                    mZoomController->moveToFit();
-                    break;
                 }
+                else {
+                    mZoomController->moveToFit();
+                }
+                resetOffsets();
             }
             else {
-                switch(mZoomMode) {
-                case ZoomMode::eFree:
-                    mZoomController = std::make_unique<ZoomController>(mImage->sourceWidth(), fitRect.width());
-                    mZoomController->moveToIdentity();
-                    break;
-                case ZoomMode::eFitWindow:
-                    mZoomController = std::make_unique<ZoomController>(mImage->sourceWidth(), fitRect.width());
-                    mZoomController->moveToFit();
-                    break;
-                case ZoomMode::eFixed:
+                if (mZoomMode == ZoomMode::eFixed) {
                     mZoomController->rebase(mImage->sourceWidth(), fitRect.width());
-                    break;
-                default:
-                    break;
+                }
+                else {
+                    mZoomController = std::make_unique<ZoomController>(mImage->sourceWidth(), fitRect.width());
+                    if (mZoomMode == ZoomMode::eFree && mImage->width() <= static_cast<size_t>(width()) && mImage->height() <= static_cast<size_t>(height())) {
+                        mZoomController->moveToIdentity();
+                    }
+                    else {
+                        mZoomController->moveToFit();
+                    }
+                    resetOffsets();
                 }
             }
-            invalidateImageExtents();
-
+            
             if (mImage->pagesCount() > 1) {
                 if (mPageText == nullptr) {
                     mPageText = new TextWidget(this);
@@ -451,17 +456,24 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
                     mPageText = nullptr;
                 }
             }
+
+            if (mZoomController && mInfoText) {
+                auto infoLines = mImage->info().toLines();
+                infoLines.push_back(kZoomLine + toPercent(mZoomController->getFactor()));
+                mInfoText->setText(infoLines);
+            }
         }
     }
 
     if (mImage) {
         if (!mImage->isNull()) {
             QPainter painter(this);
-            if(mFilteringMode == FilteringMode::eAntialiasing) {
+            if (mFilteringMode == FilteringMode::eAntialiasing) {
                 painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, true);
             }
+
             Image::PageInfo page;
-            painter.drawPixmap(mImageRegion, mImage->pixmap(&page));
+            painter.drawPixmap(calculateImageRegion(), mImage->pixmap(&page));
 
             if (mShowInfo) {
                 mInfoText->show();
@@ -513,20 +525,21 @@ void CanvasWidget::recalculateZoom()
     if(mZoomController && mImage && !mImage->isNull()) {
         const auto fitRect = fitWidth(mImage->sourceWidth(), mImage->sourceHeight());
         mZoomController->setFitValue(fitRect.width());
-        if (mInfoText) {
-            mInfoText->setLine(ImageInfo::linesNumber(), kZoomLine + toPercent(mZoomController->getFactor()));
-        }
+        updateZoomLabel();
     }
 }
 
 void CanvasWidget::resizeEvent(QResizeEvent * event)
 {
     QWidget::resizeEvent(event);
-    updateOffsets();
-    if(mZoomController && (mZoomMode == ZoomMode::eFitWindow) && mImage && !mImage->isNull()) {
-        mImageRegion = fitWidth(mImage->width(), mImage->height());
-        if (mInfoText) {
-            mInfoText->setLine(ImageInfo::linesNumber(), kZoomLine + toPercent(mZoomController->getFactor()));
+    if (mImage && !mImage->isNull()) {
+        updateOffsets();
+        if (mZoomController && (mZoomMode == ZoomMode::eFitWindow)) {
+            //mImageRegion = fitWidth(mImage->width(), mImage->height());
+            const auto r = fitWidth(mImage->width(), mImage->height());
+            mZoomController->setFitValue(r.width());
+            mZoomController->moveToFit();
+            updateZoomLabel();
         }
     }
     if (mPageText) {
@@ -576,34 +589,17 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
             mShowInfo = !mShowInfo;
         }
         else if ((event->key() == Qt::Key_Asterisk) && mImage && !mImage->isNull()) {
-            if(mZoomController) {
-                //if (mZoomController->isFitted()) {
-                //    mZoomController->moveToPos100();
-                //}
-                //else {
-                //    const auto r = fitWidth(mImage->width(), mImage->height());
-                //    switch(mImage->rotation()) {
-                //    case Rotation::eDegree0:
-                //    case Rotation::eDegree180:
-                //        mZoomController->setFitValue(r.width());
-                //        break;
-                //    case Rotation::eDegree90:
-                //    case Rotation::eDegree270:
-                //        mZoomController->setFitValue(r.height());
-                //        break;
-                //    }
-                //    mZoomController->moveToPosFit();
-                //}
-                //invalidateImageExtents();
+            if (mZoomController) {
                 initZoomActions();
                 if(mZoomMode != ZoomMode::eFitWindow) {
                     mActZoom[toIndex(ZoomMode::eFitWindow)]->trigger();
                 }
                 else {
                     mZoomController->moveToIdentity();
-                    invalidateImageExtents();
                     mActZoom[toIndex(ZoomMode::eFree)]->trigger();
                 }
+                updateZoomLabel();
+                resetOffsets();
                 update();
             }
         }
@@ -652,20 +648,17 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event)
         // resise window
         mStretching = true;
         mClickGeometry = geometry();
-        mClickX = event->globalX();
-        mClickY = event->globalY();
+        mClickPos = event->globalPos();
     }
     else if(!mFullScreen && event->buttons() & Qt::LeftButton) {
         // drag window
         mDragging = true;
-        mClickX = event->x();
-        mClickY = event->y();
+        mClickPos = event->pos();
     }
     else if(event->button() & Qt::MiddleButton) {
         // drag image
         mBrowsing = true;
-        mClickX = event->x();
-        mClickY = event->y();
+        mClickPos = event->pos();
     }
     mClick = true;
 }
@@ -711,9 +704,11 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event)
             setFullscreenGeometry();
             mFullScreen = true;
         }
-        updateOffsets();
-        // After full screen
-        recalculateZoom();
+        if (mImage && !mImage->isNull()) {
+            updateOffsets();
+            // After full screen
+            recalculateZoom();
+        }
     }
 }
 
@@ -722,25 +717,24 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
     QWidget::mouseMoveEvent(event);
     
     if (!mFullScreen && mDragging) {
-        move(event->globalX() - mClickX, event->globalY() - mClickY);
+        move(event->globalX() - mClickPos.x(), event->globalY() - mClickPos.y());
     }
     else if (mBrowsing) {
-        mImageRegion.translate(event->x() - mClickX, event->y() - mClickY);
-        mClickX   = event->x();
-        mClickY   = event->y();
+        mOffset += event->pos() - mClickPos;
+        mClickPos = event->pos();
         updateOffsets();
         repaint();
     }
     else if (!mFullScreen && mStretching) {
         QRect r = mClickGeometry;
         if ((mHoveredBorder & BorderPosition::eLeft) != BorderPosition::eNone) {
-            r.setX(std::min(r.x() + event->globalX() - mClickX, r.right() - kMinSize));
+            r.setX(std::min(r.x() + event->globalX() - mClickPos.x(), r.right() - kMinSize));
         }
         if ((mHoveredBorder & BorderPosition::eRight) != BorderPosition::eNone) {
             r.setWidth(std::max(kMinSize, event->x()));
         }
         if ((mHoveredBorder & BorderPosition::eTop) != BorderPosition::eNone) {
-            r.setY(std::min(r.y() + event->globalY() - mClickY, r.bottom() - kMinSize));
+            r.setY(std::min(r.y() + event->globalY() - mClickPos.y(), r.bottom() - kMinSize));
         }
         if ((mHoveredBorder & BorderPosition::eBottom) != BorderPosition::eNone) {
             r.setHeight(std::max(kMinSize, event->y()));
@@ -794,7 +788,8 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
 void CanvasWidget::zoomToTarget(QPoint target, int dir)
 {
     if(mZoomController && mImage && !mImage->isNull()) {
-        const int w = mImageRegion.width();
+
+        const int w = mZoomController->getValue();
 
         if (dir > 0) {
             mZoomController->zoomPlus();
@@ -804,23 +799,20 @@ void CanvasWidget::zoomToTarget(QPoint target, int dir)
         }
 
         const int dw = mZoomController->getValue();
-        const int dh = dw * mImage->height() / mImage->width();
 
-        mImageRegion.setLeft(static_cast<int>(static_cast<int64_t>(mImageRegion.left() - target.x()) * dw / w + target.x()));
-        mImageRegion.setTop (static_cast<int>(static_cast<int64_t>(mImageRegion.top()  - target.y()) * dw / w + target.y()));
+        const auto f = static_cast<double>(dw) / w;
+        const int32_t dx = static_cast<int32_t>(std::floor((target.x() - mOffset.x() - width()  / 2) * f + width()  / 2 + mOffset.x() - target.x()));
+        const int32_t dy = static_cast<int32_t>(std::floor((target.y() - mOffset.y() - height() / 2) * f + height() / 2 + mOffset.y() - target.y()));
 
-        mImageRegion.setWidth(dw);
-        mImageRegion.setHeight(dh);
+        mOffset.rx() -= dx;
+        mOffset.ry() -= dy;
 
-        if (mInfoText) {
-            mInfoText->setLine(ImageInfo::linesNumber(), kZoomLine + toPercent(mZoomController->getFactor()));
-        }
-
-        if(mZoomMode == ZoomMode::eFitWindow) {
+        if (mZoomMode == ZoomMode::eFitWindow) {
             mActZoom[toIndex(ZoomMode::eFree)]->trigger();
         }
 
         updateOffsets();
+        updateZoomLabel();
         update();
     }
 }
@@ -857,20 +849,45 @@ void CanvasWidget::onActAntialiasing(bool checked)
 void CanvasWidget::onActRotation(bool checked, Rotation rot)
 {
     if (checked && mImage && !mImage->isNull()) {
-        mImage->setRotation(rot);
-        const auto r = fitWidth(mImage->width(), mImage->height());
-        switch(rot) {
-            case Rotation::eDegree0:
-            case Rotation::eDegree180:
-                mZoomController->setFitValue(r.width());
-                break;
-            case Rotation::eDegree90:
-            case Rotation::eDegree270:
-                mZoomController->setFitValue(r.height());
-                break;
+        const auto oldRot = mImage->rotation();
+        if(oldRot != rot) {
+
+            mImage->setRotation(rot);
+            const auto r = fitWidth(mImage->width(), mImage->height());
+            switch(rot) {
+                case Rotation::eDegree0:
+                case Rotation::eDegree180:
+                    mZoomController->setFitValue(r.width());
+                    break;
+                case Rotation::eDegree90:
+                case Rotation::eDegree270:
+                    mZoomController->setFitValue(r.height());
+                    break;
+            }
+
+            const auto dr = static_cast<int>(rot) - static_cast<int>(oldRot);
+            if (std::abs(dr) == 180) {
+                mOffset = { -mOffset.x(), -mOffset.y() };
+            }
+            else if(dr == 90 || dr == -270) {
+                mOffset = { -mOffset.y(),  mOffset.x() };
+            }
+            else if(dr == -90 || dr == 270) {
+                mOffset = {  mOffset.y(), -mOffset.x() };
+            }
+            else {
+                assert(false && "Unsupported angle");
+                resetOffsets();
+            }
+
+            if (mZoomMode == ZoomMode::eFitWindow) {
+                mZoomController->moveToFit();
+            }
+
+            updateOffsets();
+            updateZoomLabel();
+            update();
         }
-        invalidateImageExtents();
-        update();
     }
 }
 
@@ -881,7 +898,7 @@ void CanvasWidget::onActZoomMode(bool checked, ZoomMode z)
         switch(mZoomMode) {
         case ZoomMode::eFitWindow: {
             mZoomController->moveToFit();
-            invalidateImageExtents();
+            updateZoomLabel();
             update();
         } break;
 

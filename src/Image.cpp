@@ -37,7 +37,6 @@ namespace
 
     FIBITMAP* cvtToInternalType(FIBITMAP* src, QString & srcFormat, bool & dstNeedUnload)
     {
-        std::cout << "cvtToInternalType" << std::endl;
         assert(src != nullptr);
         FIBITMAP* dst = nullptr;
         const uint32_t bpp = FreeImage_GetBPP(src);
