@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <cmath>
 
-static constexpr double kZoomKoef = 0.9;
+static constexpr double kZoomKoef = 1.1;
 
 ZoomController::ZoomController(int baseValue, int fitValue)
     : mBaseValue(baseValue)
@@ -30,6 +30,9 @@ ZoomController::ZoomController(int baseValue, int fitValue)
     , mMaxScale( 100)
 {
     setFitValue(fitValue);
+
+    // Avoid zero value output
+    mMinScale = std::max(mMinScale, -static_cast<int32_t>(std::floor(std::log(mBaseValue) / std::log(kZoomKoef))));
 }
 
 ZoomController::~ZoomController() = default;
@@ -78,15 +81,15 @@ int ZoomController::getValue() const
 void ZoomController::zoomPlus()
 {
     if (mAtFitValue) {
-        mScale = mFitScaleFloor;
+        mScale = mFitScaleCeil;
         mAtFitValue = false;
     }
     else {
-        if (mScale == mFitScaleCeil) {
+        if (mScale == mFitScaleFloor) {
             mAtFitValue = true;
         }
         else {
-            mScale = std::max(mScale - 1, mMinScale);
+            mScale = std::min(mScale + 1, mMaxScale);
         }
     }
 }
@@ -94,15 +97,15 @@ void ZoomController::zoomPlus()
 void ZoomController::zoomMinus()
 {
     if (mAtFitValue) {
-        mScale = mFitScaleCeil;
+        mScale = mFitScaleFloor;
         mAtFitValue = false;
     }
     else {
-        if(mScale == mFitScaleFloor) {
+        if(mScale == mFitScaleCeil) {
             mAtFitValue = true;
         }
         else {
-            mScale = std::min(mScale + 1, mMaxScale);
+            mScale = std::max(mScale - 1, mMinScale);
         }
     }
 }
