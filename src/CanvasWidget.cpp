@@ -465,6 +465,8 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
                 mInfoText->setText(infoLines);
             }
         }
+
+        setWindowTitle(mImage->info().path + " - " + QApplication::applicationName());
     }
 
     if (mImage) {
