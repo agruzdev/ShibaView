@@ -31,10 +31,18 @@
 enum class Rotation
 {
     eDegree0   = 0,
-    eDegree90  = 90,
-    eDegree180 = 180,
-    eDegree270 = 270
+    eDegree90  = 1,
+    eDegree180 = 2,
+    eDegree270 = 3,
+
+    length_ = 4
 };
+
+constexpr
+int toDegree(Rotation r)
+{
+    return 90 * static_cast<int>(r);
+}
 
 class ImageSource;
 

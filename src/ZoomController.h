@@ -85,7 +85,7 @@ private:
 
     bool mAtFitValue;
 
-    float mFitOffset; // offset inside grid
+    float mFitFactor;
 };
 
 #endif // ZOOMCONTROLLER_H

@@ -274,7 +274,7 @@ QPixmap Image::recalculatePixmap() const
     std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> rotated(nullptr, &::FreeImage_Unload);
     FIBITMAP* target = mBitmapInternal;
     if (mRotation != Rotation::eDegree0) {
-        rotated.reset(FreeImage_Rotate(target, static_cast<double>(mRotation)));
+        rotated.reset(FreeImage_Rotate(target, static_cast<double>(toDegree(mRotation))));
         target = rotated.get();
     }
 

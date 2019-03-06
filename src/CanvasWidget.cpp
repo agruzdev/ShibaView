@@ -190,10 +190,10 @@ QMenu* CanvasWidget::createContextMenu()
     {
         initRotationActions();
 
-        menu->addAction(mActRotate0);
-        menu->addAction(mActRotate90);
-        menu->addAction(mActRotate180);
-        menu->addAction(mActRotate270);
+        menu->addAction(mActRotate[toIndex(Rotation::eDegree0)]);
+        menu->addAction(mActRotate[toIndex(Rotation::eDegree90)]);
+        menu->addAction(mActRotate[toIndex(Rotation::eDegree180)]);
+        menu->addAction(mActRotate[toIndex(Rotation::eDegree270)]);
         menu->addSeparator();
     }
 
@@ -219,27 +219,27 @@ void CanvasWidget::initRotationActions()
     if (!mActGroupRotation) {
         mActGroupRotation = new QActionGroup(this);
 
-        mActRotate0 = createMenuAction(QString::fromUtf8("Rotation 0" UTF8_DEGREE));
-        mActRotate0->setCheckable(true);
-        mActRotate0->setActionGroup(mActGroupRotation);
-        mActRotate0->setChecked(true);
+        mActRotate[toIndex(Rotation::eDegree0)] = createMenuAction(QString::fromUtf8("Rotation 0" UTF8_DEGREE));
+        mActRotate[toIndex(Rotation::eDegree0)]->setCheckable(true);
+        mActRotate[toIndex(Rotation::eDegree0)]->setActionGroup(mActGroupRotation);
+        mActRotate[toIndex(Rotation::eDegree0)]->setChecked(true);
 
-        mActRotate90 = createMenuAction(QString::fromUtf8("Rotation 90" UTF8_DEGREE));
-        mActRotate90->setCheckable(true);
-        mActRotate90->setActionGroup(mActGroupRotation);
+        mActRotate[toIndex(Rotation::eDegree90)] = createMenuAction(QString::fromUtf8("Rotation 90" UTF8_DEGREE));
+        mActRotate[toIndex(Rotation::eDegree90)]->setCheckable(true);
+        mActRotate[toIndex(Rotation::eDegree90)]->setActionGroup(mActGroupRotation);
 
-        mActRotate180 = createMenuAction(QString::fromUtf8("Rotation 180" UTF8_DEGREE));
-        mActRotate180->setCheckable(true);
-        mActRotate180->setActionGroup(mActGroupRotation);
+        mActRotate[toIndex(Rotation::eDegree180)] = createMenuAction(QString::fromUtf8("Rotation 180" UTF8_DEGREE));
+        mActRotate[toIndex(Rotation::eDegree180)]->setCheckable(true);
+        mActRotate[toIndex(Rotation::eDegree180)]->setActionGroup(mActGroupRotation);
 
-        mActRotate270 = createMenuAction(QString::fromUtf8("Rotation -90" UTF8_DEGREE));
-        mActRotate270->setCheckable(true);
-        mActRotate270->setActionGroup(mActGroupRotation);
+        mActRotate[toIndex(Rotation::eDegree270)] = createMenuAction(QString::fromUtf8("Rotation -90" UTF8_DEGREE));
+        mActRotate[toIndex(Rotation::eDegree270)]->setCheckable(true);
+        mActRotate[toIndex(Rotation::eDegree270)]->setActionGroup(mActGroupRotation);
 
-        connect(mActRotate0,   &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree0));
-        connect(mActRotate90,  &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree90));
-        connect(mActRotate180, &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree180));
-        connect(mActRotate270, &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree270));
+        connect(mActRotate[toIndex(Rotation::eDegree0)],   &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree0));
+        connect(mActRotate[toIndex(Rotation::eDegree90)],  &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree90));
+        connect(mActRotate[toIndex(Rotation::eDegree180)], &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree180));
+        connect(mActRotate[toIndex(Rotation::eDegree270)], &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree270));
     }
 }
 
@@ -365,6 +365,8 @@ QRect CanvasWidget::calculateImageRegion() const
     case Rotation::eDegree270:
         dh = mZoomController->getValue();
         dw = dh * w / h;
+        break;
+    default:
         break;
     }
 
@@ -556,27 +558,19 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         if(mImage && !mImage->isNull()) {
             if (event->key() == Qt::Key_Up) {
                 initRotationActions();
-                if (mActRotate0) {
-                    mActRotate0->trigger();
-                }
+                mActRotate[toIndex(Rotation::eDegree0)]->trigger();
             }
             else if (event->key() == Qt::Key_Left) {
                 initRotationActions();
-                if (mActRotate270) {
-                    mActRotate270->trigger();
-                }
+                mActRotate[toIndex(Rotation::eDegree270)]->trigger();
             }
             else if (event->key() == Qt::Key_Right) {
                 initRotationActions();
-                if (mActRotate90) {
-                    mActRotate90->trigger();
-                }
+                mActRotate[toIndex(Rotation::eDegree90)]->trigger();
             }
             else if (event->key() == Qt::Key_Down) {
                 initRotationActions();
-                if (mActRotate180) {
-                    mActRotate180->trigger();
-                }
+                mActRotate[toIndex(Rotation::eDegree180)]->trigger();
             }
         }
     }
@@ -863,9 +857,11 @@ void CanvasWidget::onActRotation(bool checked, Rotation rot)
                 case Rotation::eDegree270:
                     mZoomController->setFitValue(r.height());
                     break;
+                default:
+                break;
             }
 
-            const auto dr = static_cast<int>(rot) - static_cast<int>(oldRot);
+            const auto dr = toDegree(rot) - toDegree(oldRot);
             if (std::abs(dr) == 180) {
                 mOffset = { -mOffset.x(), -mOffset.y() };
             }

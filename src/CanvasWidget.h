@@ -46,15 +46,17 @@ enum class FilteringMode
 
 enum class ZoomMode
 {
-    eFree      = 0,
-    eFitWindow = 1,
-    eFixed     = 2,
+    eFree,
+    eFitWindow,
+    eFixed,
 
-    length
+    length_
 };
 
+template <typename EnumTy_>
 constexpr
-size_t toIndex(ZoomMode z)
+auto toIndex(EnumTy_ z)
+    -> std::enable_if_t<std::is_enum<EnumTy_>::value && (static_cast<size_t>(EnumTy_::length_) > 0), size_t>
 {
     return static_cast<size_t>(z);
 }
@@ -173,14 +175,11 @@ private:
     uint32_t mCurrPage = Image::kNonePage;
 
     // actions
-    QActionGroup*  mActGroupRotation = nullptr;
-    QWidgetAction* mActRotate0   = nullptr;
-    QWidgetAction* mActRotate90  = nullptr;
-    QWidgetAction* mActRotate180 = nullptr;
-    QWidgetAction* mActRotate270 = nullptr;
+    QActionGroup* mActGroupRotation = nullptr;
+    std::array<QWidgetAction*, toIndex(Rotation::length_)> mActRotate = { nullptr };
 
-    QActionGroup*  mActGroupZoom = nullptr;
-    std::array<QWidgetAction*, toIndex(ZoomMode::length)> mActZoom = { nullptr };
+    QActionGroup* mActGroupZoom = nullptr;
+    std::array<QWidgetAction*, toIndex(ZoomMode::length_)> mActZoom = { nullptr };
 };
 
 

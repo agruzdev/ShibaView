@@ -47,25 +47,24 @@ void ZoomController::setFitValue(int valueFit)
     mFitScaleFloor = static_cast<int32_t>(std::floor(fittedScale - eps));
     mFitScaleCeil  = static_cast<int32_t>(std::ceil (fittedScale + eps));
 
-    mFitOffset  = fittedScale - mFitScaleFloor;
+    mFitFactor  = static_cast<float>(fittedScale);
 
     mAtFitValue = (mFitScaleFloor <= mScale) && (mScale <= mFitScaleCeil);
 }
 
 void ZoomController::rebase(int baseValue, int fitValue)
 {
-    const float factor = getFactor();
-    const double newScale = (std::log(baseValue * factor) - std::log(baseValue)) / std::log(kZoomKoef);
-    mScale = static_cast<int32_t>(std::round(newScale));
+    if (mAtFitValue) {
+        mScale = static_cast<int32_t>(std::round(mFitFactor));
+    }
     mBaseValue = baseValue;
-
     setFitValue(fitValue);
 }
 
 float ZoomController::getFactor() const
 {
     if (mAtFitValue) {
-        return static_cast<float>(std::pow(kZoomKoef, mFitScaleFloor + mFitOffset));
+        return static_cast<float>(std::pow(kZoomKoef, mFitFactor));
     }
     return static_cast<float>(std::pow(kZoomKoef, mScale));
 }
