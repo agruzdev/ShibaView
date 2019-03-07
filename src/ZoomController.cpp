@@ -31,8 +31,9 @@ ZoomController::ZoomController(int baseValue, int fitValue)
 {
     setFitValue(fitValue);
 
-    // Avoid zero value output
+    // Avoid value overflow
     mMinScale = std::max(mMinScale, -static_cast<int32_t>(std::floor(std::log(mBaseValue) / std::log(kZoomKoef))));
+    mMaxScale = std::min(mMaxScale,  static_cast<int32_t>(std::floor((std::log(std::numeric_limits<int32_t>::max()) - std::log(mBaseValue))/ std::log(kZoomKoef))));
 }
 
 ZoomController::~ZoomController() = default;

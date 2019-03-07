@@ -359,12 +359,12 @@ QRect CanvasWidget::calculateImageRegion() const
     case Rotation::eDegree0:
     case Rotation::eDegree180:
         dw = mZoomController->getValue();
-        dh = dw * h / w;
+        dh = static_cast<int>(static_cast<int64_t>(dw) * h / w);
         break;
     case Rotation::eDegree90:
     case Rotation::eDegree270:
         dh = mZoomController->getValue();
-        dw = dh * w / h;
+        dw = static_cast<int>(static_cast<int64_t>(dh) * w / h);
         break;
     default:
         break;
