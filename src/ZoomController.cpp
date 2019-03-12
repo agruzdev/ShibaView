@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <cmath>
 
-static constexpr double kZoomKoef = 1.1;
+static const double kZoomKoef = std::pow(2.0, 1.0 / 7.0);
 
 ZoomController::ZoomController(int baseValue, int fitValue)
     : mBaseValue(baseValue)
