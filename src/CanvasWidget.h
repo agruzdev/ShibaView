@@ -31,6 +31,8 @@
 #include <QWidgetAction>
 
 #include <Image.h>
+#include <Lazy.h>
+#include <EnumArray.h>
 
 enum class BorderPosition;
 
@@ -41,7 +43,9 @@ class TextWidget;
 enum class FilteringMode
 {
     eNone,
-    eAntialiasing
+    eAntialiasing,
+
+    length_
 };
 
 enum class ZoomMode
@@ -53,18 +57,13 @@ enum class ZoomMode
     length_
 };
 
-template <typename EnumTy_>
-constexpr
-auto toIndex(EnumTy_ z)
-    -> std::enable_if_t<std::is_enum<EnumTy_>::value && (static_cast<size_t>(EnumTy_::length_) > 0), size_t>
-{
-    return static_cast<size_t>(z);
-}
-
 class CanvasWidget
     : public QWidget
 {
     Q_OBJECT
+
+    template <typename Enum_>
+    using ActionsArray = EnumArray<QWidgetAction*, Enum_>;
 
 public:
     CanvasWidget(std::chrono::steady_clock::time_point t);
@@ -127,8 +126,9 @@ private:
 
     QWidgetAction* createMenuAction(const QString & text);
 
-    void initRotationActions();
-    void initZoomActions();
+    ActionsArray<Rotation> initRotationActions();
+    ActionsArray<ZoomMode> initZoomActions();
+
     QMenu* createContextMenu();
 
     QSharedPointer<Image> mPendingImage;
@@ -175,11 +175,8 @@ private:
     uint32_t mCurrPage = Image::kNonePage;
 
     // actions
-    QActionGroup* mActGroupRotation = nullptr;
-    std::array<QWidgetAction*, toIndex(Rotation::length_)> mActRotate = { nullptr };
-
-    QActionGroup* mActGroupZoom = nullptr;
-    std::array<QWidgetAction*, toIndex(ZoomMode::length_)> mActZoom = { nullptr };
+    Lazy<ActionsArray<Rotation>> mActRotate;
+    Lazy<ActionsArray<ZoomMode>> mActZoom;
 };
 
 

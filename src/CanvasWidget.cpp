@@ -117,13 +117,15 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
 
     setMouseTracking(true);
 
-
     if (mFullScreen) {
         setFullscreenGeometry();
     }
     else {
         setGeometry(mClickGeometry);
     }
+
+    mActRotate.setBuilder([this]{ return initRotationActions(); });
+    mActZoom.setBuilder(  [this]{ return initZoomActions();     });
 
     setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, &QWidget::customContextMenuRequested, this, &CanvasWidget::onShowContextMenu);
@@ -159,51 +161,43 @@ QMenu* CanvasWidget::createContextMenu()
 
     // Filtering
     {
-        auto filteringGroup = new QActionGroup(this);
+        const auto filteringGroup = new QActionGroup(this);
+        ActionsArray<FilteringMode> filter = {};
 
-        auto actNoFilter = createMenuAction("No filter");
-        actNoFilter->setCheckable(true);
-        actNoFilter->setActionGroup(filteringGroup);
+        filter[FilteringMode::eNone] = createMenuAction("No filter");
+        filter[FilteringMode::eNone]->setCheckable(true);
+        filter[FilteringMode::eNone]->setActionGroup(filteringGroup);
 
-        auto actAntialiasing = createMenuAction("Antialiasing");
-        actAntialiasing->setCheckable(true);
-        actAntialiasing->setActionGroup(filteringGroup);
+        filter[FilteringMode::eAntialiasing] = createMenuAction("Antialiasing");
+        filter[FilteringMode::eAntialiasing]->setCheckable(true);
+        filter[FilteringMode::eAntialiasing]->setActionGroup(filteringGroup);
 
-        switch(mFilteringMode) {
-        case FilteringMode::eNone:
-            actNoFilter->setChecked(true);
-            break;
-        case FilteringMode::eAntialiasing:
-            actAntialiasing->setChecked(true);
-            break;
-        }
+        filter[mFilteringMode]->setChecked(true);
 
-        connect(actNoFilter,     &QAction::triggered, this, &CanvasWidget::onActNoFilter);
-        connect(actAntialiasing, &QAction::triggered, this, &CanvasWidget::onActAntialiasing);
+        connect(filter[FilteringMode::eNone],         &QAction::triggered, this, &CanvasWidget::onActNoFilter);
+        connect(filter[FilteringMode::eAntialiasing], &QAction::triggered, this, &CanvasWidget::onActAntialiasing);
 
-        menu->addAction(actNoFilter);
-        menu->addAction(actAntialiasing);
+        menu->addAction(filter[FilteringMode::eNone]);
+        menu->addAction(filter[FilteringMode::eAntialiasing]);
         menu->addSeparator();
     }
 
     // Rotation
     {
-        initRotationActions();
-
-        menu->addAction(mActRotate[toIndex(Rotation::eDegree0)]);
-        menu->addAction(mActRotate[toIndex(Rotation::eDegree90)]);
-        menu->addAction(mActRotate[toIndex(Rotation::eDegree180)]);
-        menu->addAction(mActRotate[toIndex(Rotation::eDegree270)]);
+        const auto & rotate = mActRotate.get(); 
+        menu->addAction(rotate[Rotation::eDegree0]);
+        menu->addAction(rotate[Rotation::eDegree90]);
+        menu->addAction(rotate[Rotation::eDegree180]);
+        menu->addAction(rotate[Rotation::eDegree270]);
         menu->addSeparator();
     }
 
     // Zoom
     {
-        initZoomActions();
-
-        menu->addAction(mActZoom[toIndex(ZoomMode::eFree)]);
-        menu->addAction(mActZoom[toIndex(ZoomMode::eFitWindow)]);
-        menu->addAction(mActZoom[toIndex(ZoomMode::eFixed)]);
+        const auto & zoom = mActZoom.get(); 
+        menu->addAction(zoom[ZoomMode::eFree]);
+        menu->addAction(zoom[ZoomMode::eFitWindow]);
+        menu->addAction(zoom[ZoomMode::eFixed]);
         menu->addSeparator();
     }
 
@@ -214,58 +208,60 @@ QMenu* CanvasWidget::createContextMenu()
     return menu;
 }
 
-void CanvasWidget::initRotationActions()
+CanvasWidget::ActionsArray<Rotation> CanvasWidget::initRotationActions()
 {
-    if (!mActGroupRotation) {
-        mActGroupRotation = new QActionGroup(this);
+    const auto groupRotation = new QActionGroup(this);
+    ActionsArray<Rotation> actions = {};
 
-        mActRotate[toIndex(Rotation::eDegree0)] = createMenuAction(QString::fromUtf8("Rotation 0" UTF8_DEGREE));
-        mActRotate[toIndex(Rotation::eDegree0)]->setCheckable(true);
-        mActRotate[toIndex(Rotation::eDegree0)]->setActionGroup(mActGroupRotation);
-        mActRotate[toIndex(Rotation::eDegree0)]->setChecked(true);
+    actions[Rotation::eDegree0] = createMenuAction(QString::fromUtf8("Rotation 0" UTF8_DEGREE));
+    actions[Rotation::eDegree0]->setCheckable(true);
+    actions[Rotation::eDegree0]->setActionGroup(groupRotation);
+    actions[Rotation::eDegree0]->setChecked(true);
 
-        mActRotate[toIndex(Rotation::eDegree90)] = createMenuAction(QString::fromUtf8("Rotation 90" UTF8_DEGREE));
-        mActRotate[toIndex(Rotation::eDegree90)]->setCheckable(true);
-        mActRotate[toIndex(Rotation::eDegree90)]->setActionGroup(mActGroupRotation);
+    actions[Rotation::eDegree90] = createMenuAction(QString::fromUtf8("Rotation 90" UTF8_DEGREE));
+    actions[Rotation::eDegree90]->setCheckable(true);
+    actions[Rotation::eDegree90]->setActionGroup(groupRotation);
 
-        mActRotate[toIndex(Rotation::eDegree180)] = createMenuAction(QString::fromUtf8("Rotation 180" UTF8_DEGREE));
-        mActRotate[toIndex(Rotation::eDegree180)]->setCheckable(true);
-        mActRotate[toIndex(Rotation::eDegree180)]->setActionGroup(mActGroupRotation);
+    actions[Rotation::eDegree180] = createMenuAction(QString::fromUtf8("Rotation 180" UTF8_DEGREE));
+    actions[Rotation::eDegree180]->setCheckable(true);
+    actions[Rotation::eDegree180]->setActionGroup(groupRotation);
 
-        mActRotate[toIndex(Rotation::eDegree270)] = createMenuAction(QString::fromUtf8("Rotation -90" UTF8_DEGREE));
-        mActRotate[toIndex(Rotation::eDegree270)]->setCheckable(true);
-        mActRotate[toIndex(Rotation::eDegree270)]->setActionGroup(mActGroupRotation);
+    actions[Rotation::eDegree270] = createMenuAction(QString::fromUtf8("Rotation -90" UTF8_DEGREE));
+    actions[Rotation::eDegree270]->setCheckable(true);
+    actions[Rotation::eDegree270]->setActionGroup(groupRotation);
 
-        connect(mActRotate[toIndex(Rotation::eDegree0)],   &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree0));
-        connect(mActRotate[toIndex(Rotation::eDegree90)],  &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree90));
-        connect(mActRotate[toIndex(Rotation::eDegree180)], &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree180));
-        connect(mActRotate[toIndex(Rotation::eDegree270)], &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree270));
-    }
+    connect(actions[Rotation::eDegree0],   &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree0));
+    connect(actions[Rotation::eDegree90],  &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree90));
+    connect(actions[Rotation::eDegree180], &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree180));
+    connect(actions[Rotation::eDegree270], &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree270));
+
+    return actions;
 }
 
-void CanvasWidget::initZoomActions()
+CanvasWidget::ActionsArray<ZoomMode> CanvasWidget::initZoomActions()
 {
-    if (!mActGroupZoom) {
-        mActGroupZoom = new QActionGroup(this);
+    const auto groupZoom = new QActionGroup(this);
+    ActionsArray<ZoomMode> actions = {};
 
-        mActZoom[toIndex(ZoomMode::eFree)] = createMenuAction(QString::fromUtf8("Free zoom"));
-        mActZoom[toIndex(ZoomMode::eFree)]->setCheckable(true);
-        mActZoom[toIndex(ZoomMode::eFree)]->setActionGroup(mActGroupZoom);
+    actions[ZoomMode::eFree] = createMenuAction(QString::fromUtf8("Free zoom"));
+    actions[ZoomMode::eFree]->setCheckable(true);
+    actions[ZoomMode::eFree]->setActionGroup(groupZoom);
 
-        mActZoom[toIndex(ZoomMode::eFitWindow)] = createMenuAction(QString::fromUtf8("Fit window"));
-        mActZoom[toIndex(ZoomMode::eFitWindow)]->setCheckable(true);
-        mActZoom[toIndex(ZoomMode::eFitWindow)]->setActionGroup(mActGroupZoom);
+    actions[ZoomMode::eFitWindow] = createMenuAction(QString::fromUtf8("Fit window"));
+    actions[ZoomMode::eFitWindow]->setCheckable(true);
+    actions[ZoomMode::eFitWindow]->setActionGroup(groupZoom);
 
-        mActZoom[toIndex(ZoomMode::eFixed)] = createMenuAction(QString::fromUtf8("Fix zoom"));
-        mActZoom[toIndex(ZoomMode::eFixed)]->setCheckable(true);
-        mActZoom[toIndex(ZoomMode::eFixed)]->setActionGroup(mActGroupZoom);
+    actions[ZoomMode::eFixed] = createMenuAction(QString::fromUtf8("Fix zoom"));
+    actions[ZoomMode::eFixed]->setCheckable(true);
+    actions[ZoomMode::eFixed]->setActionGroup(groupZoom);
 
-        mActZoom[toIndex(mZoomMode)]->setChecked(true);
+    actions[mZoomMode]->setChecked(true);
 
-        connect(mActZoom[toIndex(ZoomMode::eFree)],      &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eFree));
-        connect(mActZoom[toIndex(ZoomMode::eFitWindow)], &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eFitWindow));
-        connect(mActZoom[toIndex(ZoomMode::eFixed)],     &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eFixed));
-    }
+    connect(actions[ZoomMode::eFree],      &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eFree));
+    connect(actions[ZoomMode::eFitWindow], &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eFitWindow));
+    connect(actions[ZoomMode::eFixed],     &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eFixed));
+
+    return actions;
 }
 
 void CanvasWidget::onShowContextMenu(const QPoint & p)
@@ -559,20 +555,16 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         // Alt + Key
         if(mImage && !mImage->isNull()) {
             if (event->key() == Qt::Key_Up) {
-                initRotationActions();
-                mActRotate[toIndex(Rotation::eDegree0)]->trigger();
+                mActRotate.get()[Rotation::eDegree0]->trigger();
             }
             else if (event->key() == Qt::Key_Left) {
-                initRotationActions();
-                mActRotate[toIndex(Rotation::eDegree270)]->trigger();
+                mActRotate.get()[Rotation::eDegree270]->trigger();
             }
             else if (event->key() == Qt::Key_Right) {
-                initRotationActions();
-                mActRotate[toIndex(Rotation::eDegree90)]->trigger();
+                mActRotate.get()[Rotation::eDegree90]->trigger();
             }
             else if (event->key() == Qt::Key_Down) {
-                initRotationActions();
-                mActRotate[toIndex(Rotation::eDegree180)]->trigger();
+                mActRotate.get()[Rotation::eDegree180]->trigger();
             }
         }
     }
@@ -586,13 +578,12 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         }
         else if ((event->key() == Qt::Key_Asterisk) && mImage && !mImage->isNull()) {
             if (mZoomController) {
-                initZoomActions();
                 if(mZoomMode != ZoomMode::eFitWindow) {
-                    mActZoom[toIndex(ZoomMode::eFitWindow)]->trigger();
+                    mActZoom.get()[ZoomMode::eFitWindow]->trigger();
                 }
                 else {
                     mZoomController->moveToIdentity();
-                    mActZoom[toIndex(ZoomMode::eFree)]->trigger();
+                    mActZoom.get()[ZoomMode::eFree]->trigger();
                 }
                 updateZoomLabel();
                 resetOffsets();
@@ -804,8 +795,7 @@ void CanvasWidget::zoomToTarget(QPoint target, int dir)
         mOffset.ry() -= dy;
 
         if (mZoomMode == ZoomMode::eFitWindow) {
-            initZoomActions();
-            mActZoom[toIndex(ZoomMode::eFree)]->trigger();
+            mActZoom.get()[ZoomMode::eFree]->trigger();
         }
 
         updateOffsets();

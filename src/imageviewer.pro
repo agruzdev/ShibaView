@@ -15,7 +15,9 @@ HEADERS       = \
     ImageSource.h \
     BitmapSource.h \
     MultiBitmapsource.h \
-    UniqueTick.h
+    UniqueTick.h \
+    Lazy.h \
+    EnumArray.h
 
 SOURCES       = \
     main.cpp \
