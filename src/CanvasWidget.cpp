@@ -127,7 +127,6 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     mActRotate.setBuilder([this]{ return initRotationActions(); });
     mActZoom.setBuilder(  [this]{ return initZoomActions();     });
 
-    setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, &QWidget::customContextMenuRequested, this, &CanvasWidget::onShowContextMenu);
 }
 
@@ -642,10 +641,11 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event)
         mDragging = true;
         mClickPos = event->pos();
     }
-    else if(event->button() & Qt::MiddleButton) {
+    else if(event->button() & Qt::RightButton) {
         // drag image
         mBrowsing = true;
         mClickPos = event->pos();
+        mMenuPos  = event->pos();
     }
     mClick = true;
 }
@@ -663,6 +663,9 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event)
             recalculateZoom();
         }
         mClickGeometry = geometry();
+    }
+    if (mBrowsing && mMenuPos == event->pos()) {
+        emit customContextMenuRequested(mMenuPos);
     }
     mBrowsing = false;
     mClick = false;

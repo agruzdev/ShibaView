@@ -143,6 +143,7 @@ private:
     bool mClick = false;
 
     bool mDragging = false;
+    QPoint mMenuPos { 0, 0 };
     QPoint mClickPos{ 0, 0 };
 
     bool mStretching = false;
