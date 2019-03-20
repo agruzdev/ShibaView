@@ -804,6 +804,7 @@ void CanvasWidget::zoomToTarget(QPoint target, int dir)
         mOffset.ry() -= dy;
 
         if (mZoomMode == ZoomMode::eFitWindow) {
+            initZoomActions();
             mActZoom[toIndex(ZoomMode::eFree)]->trigger();
         }
 
