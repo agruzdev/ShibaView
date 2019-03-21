@@ -519,11 +519,22 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
     }
 }
 
-void CanvasWidget::recalculateZoom()
+void CanvasWidget::recalculateFittingScale()
 {
     if(mZoomController && mImage && !mImage->isNull()) {
-        const auto fitRect = fitWidth(mImage->sourceWidth(), mImage->sourceHeight());
-        mZoomController->setFitValue(fitRect.width());
+        const auto r = fitWidth(mImage->width(), mImage->height());
+        switch(mImage->rotation()) {
+            case Rotation::eDegree0:
+            case Rotation::eDegree180:
+                mZoomController->setFitValue(r.width());
+                break;
+            case Rotation::eDegree90:
+            case Rotation::eDegree270:
+                mZoomController->setFitValue(r.height());
+                break;
+            default:
+            break;
+        }
         updateZoomLabel();
     }
 }
@@ -533,12 +544,9 @@ void CanvasWidget::resizeEvent(QResizeEvent * event)
     QWidget::resizeEvent(event);
     if (mImage && !mImage->isNull()) {
         updateOffsets();
+        recalculateFittingScale();
         if (mZoomController && (mZoomMode == ZoomMode::eFitWindow)) {
-            //mImageRegion = fitWidth(mImage->width(), mImage->height());
-            const auto r = fitWidth(mImage->width(), mImage->height());
-            mZoomController->setFitValue(r.width());
             mZoomController->moveToFit();
-            updateZoomLabel();
         }
     }
     if (mPageText) {
@@ -658,9 +666,6 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event)
         if (mStretching) {
             mStretching = false;
             mFullScreen = false;
-
-            // After stretching
-            recalculateZoom();
         }
         mClickGeometry = geometry();
     }
@@ -694,11 +699,7 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event)
             setFullscreenGeometry();
             mFullScreen = true;
         }
-        if (mImage && !mImage->isNull()) {
-            updateOffsets();
-            // After full screen
-            recalculateZoom();
-        }
+        update();
     }
 }
 
@@ -841,21 +842,9 @@ void CanvasWidget::onActRotation(bool checked, Rotation rot)
     if (checked && mImage && !mImage->isNull()) {
         const auto oldRot = mImage->rotation();
         if(oldRot != rot) {
-
             mImage->setRotation(rot);
-            const auto r = fitWidth(mImage->width(), mImage->height());
-            switch(rot) {
-                case Rotation::eDegree0:
-                case Rotation::eDegree180:
-                    mZoomController->setFitValue(r.width());
-                    break;
-                case Rotation::eDegree90:
-                case Rotation::eDegree270:
-                    mZoomController->setFitValue(r.height());
-                    break;
-                default:
-                break;
-            }
+
+            recalculateFittingScale();
 
             const auto dr = toDegree(rot) - toDegree(oldRot);
             if (std::abs(dr) == 180) {

@@ -116,7 +116,7 @@ private:
 
     QRect fitWidth(int w, int h) const;
 
-    void recalculateZoom();
+    void recalculateFittingScale();
 
     void setFullscreenGeometry();
 
