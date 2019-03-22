@@ -124,8 +124,8 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
         setGeometry(mClickGeometry);
     }
 
-    mActRotate.setBuilder([this]{ return initRotationActions(); });
-    mActZoom.setBuilder(  [this]{ return initZoomActions();     });
+    mActRotate = std::async(std::launch::deferred, [this]{ return initRotationActions(); });
+    mActZoom   = std::async(std::launch::deferred, [this]{ return initZoomActions();     });
 
     connect(this, &QWidget::customContextMenuRequested, this, &CanvasWidget::onShowContextMenu);
 }
