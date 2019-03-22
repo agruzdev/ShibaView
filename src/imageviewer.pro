@@ -1,9 +1,5 @@
 QT += widgets
 
-unix {
-    QMAKE_CXX = x86_64-w64-mingw32-g++-posix
-}
-
 TARGET = ShibaView
 
 HEADERS       = \
