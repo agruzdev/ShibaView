@@ -22,6 +22,7 @@
 #include <array>
 #include <chrono>
 #include <memory>
+#include <future>
 
 #include <QFuture>
 #include <QMenu>
@@ -31,7 +32,6 @@
 #include <QWidgetAction>
 
 #include <Image.h>
-#include <Lazy.h>
 #include <EnumArray.h>
 
 enum class BorderPosition;
@@ -176,8 +176,8 @@ private:
     uint32_t mCurrPage = Image::kNonePage;
 
     // actions
-    Lazy<ActionsArray<Rotation>> mActRotate;
-    Lazy<ActionsArray<ZoomMode>> mActZoom;
+    std::shared_future<ActionsArray<Rotation>> mActRotate;
+    std::shared_future<ActionsArray<ZoomMode>> mActZoom;
 };
 
 

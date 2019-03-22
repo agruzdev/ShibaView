@@ -16,7 +16,6 @@ HEADERS       = \
     BitmapSource.h \
     MultiBitmapsource.h \
     UniqueTick.h \
-    Lazy.h \
     EnumArray.h
 
 SOURCES       = \
