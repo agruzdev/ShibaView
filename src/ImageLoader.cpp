@@ -24,12 +24,18 @@
 
 #include "Image.h"
 
-ImageLoader::ImageLoader(const QString & name)
-    : QObject(nullptr)
-    , mName(name)
+ImageLoader::QtMetaRegisterInvoker::QtMetaRegisterInvoker()
 {
     qRegisterMetaType<ImagePtr>("ImagePtr");
 }
+
+ImageLoader::QtMetaRegisterInvoker ImageLoader::msQtRegisterInvoker{};
+
+
+ImageLoader::ImageLoader(const QString & name)
+    : QObject(nullptr)
+    , mName(name)
+{ }
 
 ImageLoader::~ImageLoader() = default;
 
@@ -38,7 +44,7 @@ void ImageLoader::onRun(const QString & path)
     bool success = false;
     try {
         auto pimage = QSharedPointer<Image>::create(mName, path);
-        emit eventResult(pimage);
+        emit eventResult(std::move(pimage));
         success = true;
     }
     catch(std::exception & e) {
@@ -49,8 +55,8 @@ void ImageLoader::onRun(const QString & path)
     }
 
     if(!success) {
-        ImageInfo info;
-        info.path = path;
+        //ImageInfo info;
+        //info.path = path;
         emit eventResult(nullptr);
     }
     deleteLater();

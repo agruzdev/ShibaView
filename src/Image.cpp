@@ -29,105 +29,123 @@
 
 namespace
 {
+    float clamp(float x, float lo = 0.0f, float hi = 1.0f)
+    {
+        return std::max(lo, std::min(x, hi));
+    }
+
     uint64_t generateId()
     {
         static std::atomic<uint64_t> nextId{ 0 };
         return nextId.fetch_add(1, std::memory_order::memory_order_relaxed);
     }
 
-    FIBITMAP* cvtToInternalType(FIBITMAP* src, QString & srcFormat, bool & dstNeedUnload)
+    template <typename PixelCvt_>
+    void ñvtBitmap(FIBITMAP* dst, FIBITMAP* src, PixelCvt_ && pixelConverter)
     {
-        assert(src != nullptr);
-        FIBITMAP* dst = nullptr;
-        const uint32_t bpp = FreeImage_GetBPP(src);
-        switch (FreeImage_GetImageType(src)) {
-        case FIT_RGBAF:
-            srcFormat = "RGB HDR (tonemapped)";
-            goto ToneMapping;
-        case FIT_RGBF:
-            srcFormat = "RGB HDR (tonemapped)";
-        ToneMapping:
-            dst = FreeImage_ToneMapping(src, FITMO_DRAGO03);
-            dstNeedUnload = true;
-            break;
-
-        case FIT_RGBA16:
-            assert(bpp == 64);
-            srcFormat = "RGBA16";
-            dst = FreeImage_ConvertTo32Bits(src);
-            dstNeedUnload = true;
-            break;
-
-        case FIT_RGB16:
-            assert(bpp == 48);
-            srcFormat = "RGB16";
-            dst = FreeImage_ConvertTo24Bits(src);
-            dstNeedUnload = true;
-            break;
-
-        case FIT_UINT16:
-            srcFormat = "Greyscale 16bit";
-            goto ConvertToStandardType;
-        case FIT_INT16:
-            srcFormat = "Greyscale 16bit (signed)";
-            goto ConvertToStandardType;
-        case FIT_UINT32:
-            srcFormat = "Greyscale 32bit";
-            goto ConvertToStandardType;
-        case FIT_INT32:
-            srcFormat = "Greyscale 32bit (signed)";
-            goto ConvertToStandardType;
-        case FIT_FLOAT:
-            srcFormat = "Greyscale float";
-            goto ConvertToStandardType;
-        case FIT_DOUBLE:
-            srcFormat = "Greyscale double";
-
-        ConvertToStandardType:
-            dst = FreeImage_ConvertToStandardType(src);
-            dstNeedUnload = true;
-            break;
-
-        case FIT_BITMAP:
-            if (32 == bpp) {
-                srcFormat = "RGBA8888";
-                dst = src;
-                dstNeedUnload = false;
+        const unsigned h = FreeImage_GetHeight(src);
+        const unsigned w = FreeImage_GetWidth(src);
+        assert(h == FreeImage_GetHeight(dst));
+        assert(w == FreeImage_GetWidth(dst));
+        const auto srcPixelStride = FreeImage_GetBPP(src) / 8;
+        const auto dstPixelStride = FreeImage_GetBPP(dst) / 8;
+        for (unsigned j = 0; j < h; ++j) {
+            auto dstIt = FreeImage_GetScanLine(dst, j);
+            auto srcIt = FreeImage_GetScanLine(src, j);
+            for(unsigned i = 0; i < w; ++i, dstIt += dstPixelStride, srcIt += srcPixelStride) {
+                pixelConverter(dstIt, srcIt);
             }
-            else if (24 == bpp) {
-                srcFormat = "RGB888";
-                dst = src;
-                dstNeedUnload = false;
-            }
-            else if (8 == bpp) {
-                if (FIC_PALETTE == FreeImage_GetColorType(src)) {
-                    srcFormat = "RGB Indexed 8bit";
-                    dst = FreeImage_ConvertTo32Bits(src);
-                    dstNeedUnload = true;
-                }
-                else {
-                    srcFormat = "Greyscale 8bit";
-                    dst = src;
-                    dstNeedUnload = false;
-                }
-            }
-            else if(4 == bpp) {
-                srcFormat = "RGB Indexed 4bit";
-                dst = FreeImage_ConvertTo32Bits(src);
-                dstNeedUnload = true;
-            }
-            else if(1 == bpp) {
-                srcFormat = "Mono 1bit";
-                dst = src;
-                dstNeedUnload = false;
-            }
-            break;
-
-        default:
-            break;
         }
-        if (dst) {
-            FreeImage_FlipVertical(dst);
+    }
+
+    FIBITMAP* FreeImageEx_ToneMapping(FIBITMAP* src, ToneMapping mode)
+    {
+        if (!src) {
+            return nullptr;
+        }
+        FIBITMAP* dst = nullptr;
+        switch(mode) {
+            case ToneMapping::FITMO_GLOBAL: {
+                    const unsigned h = FreeImage_GetHeight(src);
+                    const unsigned w = FreeImage_GetWidth(src);
+                    float minVal = std::numeric_limits<float>::max();
+                    float maxVal = std::numeric_limits<float>::min();
+                    const uint32_t lineLength = w * FreeImage_GetBPP(src) / 4;
+                    for (unsigned j = 0; j < h; ++j) {
+                        const auto srcLine = static_cast<const float*>(static_cast<const void*>(FreeImage_GetScanLine(src, j)));
+                        for (unsigned i = 0; i < lineLength; ++i) {
+                            minVal = std::min(minVal, srcLine[i]);
+                            maxVal = std::max(maxVal, srcLine[i]);
+                        }
+                    }
+                    if(minVal >= 0.0f && maxVal <= 1.0f) {
+                        goto ToneMappingNone;
+                    }
+                    switch (FreeImage_GetImageType(src)) {
+                        case FIT_RGBAF: {
+                            dst = FreeImage_Allocate(w, h, 32);
+                            ñvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
+                                const auto dstPixel = static_cast<tagRGBQUAD*>(dstPtr);
+                                const auto srcPixel = static_cast<const tagFIRGBAF*>(srcPtr);
+                                dstPixel->rgbRed      = static_cast<BYTE>(((srcPixel->red   - minVal) / (maxVal - minVal)) * 255.0f);
+                                dstPixel->rgbGreen    = static_cast<BYTE>(((srcPixel->green - minVal) / (maxVal - minVal)) * 255.0f);
+                                dstPixel->rgbBlue     = static_cast<BYTE>(((srcPixel->blue  - minVal) / (maxVal - minVal)) * 255.0f);
+                                dstPixel->rgbReserved = static_cast<BYTE>(((srcPixel->alpha - minVal) / (maxVal - minVal)) * 255.0f);
+                            });
+                            break;
+                        }
+                        case FIT_RGBF : {
+                            dst = FreeImage_Allocate(w, h, 24);
+                            ñvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
+                                const auto dstPixel = static_cast<tagRGBTRIPLE*>(dstPtr);
+                                const auto srcPixel = static_cast<const tagFIRGBF*>(srcPtr);
+                                dstPixel->rgbtRed   = static_cast<BYTE>(((srcPixel->red   - minVal) / (maxVal - minVal)) * 255.0f);
+                                dstPixel->rgbtGreen = static_cast<BYTE>(((srcPixel->green - minVal) / (maxVal - minVal)) * 255.0f);
+                                dstPixel->rgbtBlue  = static_cast<BYTE>(((srcPixel->blue  - minVal) / (maxVal - minVal)) * 255.0f);
+                            });
+                            break;
+                        }
+                        default:
+                            break;
+                    }
+                }
+                break;
+            case ToneMapping::FITMO_NONE:
+            ToneMappingNone: {
+                    const unsigned h = FreeImage_GetHeight(src);
+                    const unsigned w = FreeImage_GetWidth(src);
+                    switch (FreeImage_GetImageType(src)) {
+                        case FIT_RGBAF: {
+                            dst = FreeImage_Allocate(w, h, 32);
+                            ñvtBitmap(dst, src, [](void* dstPtr, const void* srcPtr) {
+                                const auto dstPixel = static_cast<tagRGBQUAD*>(dstPtr);
+                                const auto srcPixel = static_cast<const tagFIRGBAF*>(srcPtr);
+                                dstPixel->rgbRed      = static_cast<BYTE>(clamp(srcPixel->red)   * 255.0f);
+                                dstPixel->rgbGreen    = static_cast<BYTE>(clamp(srcPixel->green) * 255.0f);
+                                dstPixel->rgbBlue     = static_cast<BYTE>(clamp(srcPixel->blue)  * 255.0f);
+                                dstPixel->rgbReserved = static_cast<BYTE>(clamp(srcPixel->alpha) * 255.0f);
+                            });
+                            break;
+                        }
+                        case FIT_RGBF: {
+                            dst = FreeImage_Allocate(w, h, 24);
+                            ñvtBitmap(dst, src, [](void* dstPtr, const void* srcPtr) {
+                                const auto dstPixel = static_cast<tagRGBTRIPLE*>(dstPtr);
+                                const auto srcPixel = static_cast<const tagFIRGBF*>(srcPtr);
+                                dstPixel->rgbtRed   = static_cast<BYTE>(clamp(srcPixel->red)   * 255.0f);
+                                dstPixel->rgbtGreen = static_cast<BYTE>(clamp(srcPixel->green) * 255.0f);
+                                dstPixel->rgbtBlue  = static_cast<BYTE>(clamp(srcPixel->blue)  * 255.0f);
+                            });
+                            break;
+                        }
+                    default:
+                        break;
+                    }
+                }
+                break;
+            default:
+                dst = FreeImage_ToneMapping(src, static_cast<FREE_IMAGE_TMO>(mode));
+                break;
         }
         return dst;
     }
@@ -154,6 +172,109 @@ namespace
         }
         return imageView;
     }
+}
+
+
+FIBITMAP* Image::cvtToInternalType(FIBITMAP* src, QString & srcFormat, bool & dstNeedUnload)
+{
+    assert(src != nullptr);
+    FIBITMAP* dst = nullptr;
+    const uint32_t bpp = FreeImage_GetBPP(src);
+    mIsHDR = false;
+    switch (FreeImage_GetImageType(src)) {
+    case FIT_RGBAF:
+        srcFormat = "RGB float";
+        goto ToneMapping;
+    case FIT_RGBF:
+        srcFormat = "RGB float";
+    ToneMapping:
+        mIsHDR = true;
+        dst = FreeImageEx_ToneMapping(src, mToneMappingMode);
+        if (mToneMappingMode != ToneMapping::FITMO_NONE) {
+            srcFormat += " (tonemapped)";
+        }
+        dstNeedUnload = true;
+        break;
+
+    case FIT_RGBA16:
+        assert(bpp == 64);
+        srcFormat = "RGBA16";
+        dst = FreeImage_ConvertTo32Bits(src);
+        dstNeedUnload = true;
+        break;
+
+    case FIT_RGB16:
+        assert(bpp == 48);
+        srcFormat = "RGB16";
+        dst = FreeImage_ConvertTo24Bits(src);
+        dstNeedUnload = true;
+        break;
+
+    case FIT_UINT16:
+        srcFormat = "Greyscale 16bit";
+        goto ConvertToStandardType;
+    case FIT_INT16:
+        srcFormat = "Greyscale 16bit (signed)";
+        goto ConvertToStandardType;
+    case FIT_UINT32:
+        srcFormat = "Greyscale 32bit";
+        goto ConvertToStandardType;
+    case FIT_INT32:
+        srcFormat = "Greyscale 32bit (signed)";
+        goto ConvertToStandardType;
+    case FIT_FLOAT:
+        srcFormat = "Greyscale float";
+        goto ConvertToStandardType;
+    case FIT_DOUBLE:
+        srcFormat = "Greyscale double";
+
+    ConvertToStandardType:
+        dst = FreeImage_ConvertToStandardType(src);
+        dstNeedUnload = true;
+        break;
+
+    case FIT_BITMAP:
+        if (32 == bpp) {
+            srcFormat = "RGBA8888";
+            dst = src;
+            dstNeedUnload = false;
+        }
+        else if (24 == bpp) {
+            srcFormat = "RGB888";
+            dst = src;
+            dstNeedUnload = false;
+        }
+        else if (8 == bpp) {
+            if (FIC_PALETTE == FreeImage_GetColorType(src)) {
+                srcFormat = "RGB Indexed 8bit";
+                dst = FreeImage_ConvertTo32Bits(src);
+                dstNeedUnload = true;
+            }
+            else {
+                srcFormat = "Greyscale 8bit";
+                dst = src;
+                dstNeedUnload = false;
+            }
+        }
+        else if(4 == bpp) {
+            srcFormat = "RGB Indexed 4bit";
+            dst = FreeImage_ConvertTo32Bits(src);
+            dstNeedUnload = true;
+        }
+        else if(1 == bpp) {
+            srcFormat = "Mono 1bit";
+            dst = src;
+            dstNeedUnload = false;
+        }
+        break;
+
+    default:
+        break;
+    }
+    if (dst) {
+        FreeImage_FlipVertical(dst);
+    }
+    return dst;
 }
 
 Image::Image(QString name, QString filename) noexcept
@@ -371,5 +492,15 @@ void Image::readNextPage() Q_DECL_NOEXCEPT
             mPageIdx = 0;
         }
         mInvalidPixmap = true;
+    }
+}
+
+void Image::setToneMapping(ToneMapping mode)
+{
+    if (mIsHDR) {
+        if(mode != mToneMappingMode) {
+            mToneMappingMode = mode;
+            mInvalidPixmap = true;
+        }
     }
 }

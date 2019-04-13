@@ -38,6 +38,15 @@ enum class Rotation
     length_ = 4
 };
 
+enum class ToneMapping
+{
+    FITMO_DRAGO03    = ::FITMO_DRAGO03,
+    FITMO_REINHARD05 = ::FITMO_REINHARD05,
+    FITMO_FATTAL02   = ::FITMO_FATTAL02,
+    FITMO_NONE,
+    FITMO_GLOBAL,
+};
+
 constexpr
 int toDegree(Rotation r)
 {
@@ -109,8 +118,16 @@ public:
         return mId;
     }
 
+    bool isHDR() const
+    {
+        return mIsHDR;
+    }
+
+    void setToneMapping(ToneMapping mode);
+
 private:
 
+    FIBITMAP* cvtToInternalType(FIBITMAP* src, QString & srcFormat, bool & dstNeedUnload);
     bool readCurrentPage(QString & format) Q_DECL_NOEXCEPT;
     QPixmap recalculatePixmap() const;
 
@@ -132,6 +149,9 @@ private:
     Rotation mRotation = Rotation::eDegree0;
 
     mutable PageInfo mPageInfo;
+
+    bool mIsHDR = false;
+    ToneMapping mToneMappingMode = ToneMapping::FITMO_NONE;
 };
 
 using ImagePtr = QSharedPointer<Image>;

@@ -42,6 +42,15 @@ public slots:
 
 private:
     QString mName;
+
+    /**
+     * Helper class for class registration
+     */
+    struct QtMetaRegisterInvoker
+    {
+        QtMetaRegisterInvoker();
+    };
+    static QtMetaRegisterInvoker msQtRegisterInvoker;
 };
 
 #endif // IMAGELOADER_H
