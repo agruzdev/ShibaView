@@ -150,28 +150,6 @@ namespace
         return dst;
     }
 
-    QImage makeQImageView(FIBITMAP* bmp)
-    {
-        assert(bmp != nullptr);
-        QImage imageView;
-        switch (FreeImage_GetBPP(bmp)) {
-        case 1:
-            imageView = QImage(FreeImage_GetBits(bmp), FreeImage_GetWidth(bmp), FreeImage_GetHeight(bmp), FreeImage_GetPitch(bmp), QImage::Format_Mono);
-            break;
-        case 8:
-            imageView = QImage(FreeImage_GetBits(bmp), FreeImage_GetWidth(bmp), FreeImage_GetHeight(bmp), FreeImage_GetPitch(bmp), QImage::Format_Grayscale8);
-            break;
-        case 24:
-            imageView = QImage(FreeImage_GetBits(bmp), FreeImage_GetWidth(bmp), FreeImage_GetHeight(bmp), FreeImage_GetPitch(bmp), QImage::Format_RGB888);
-            break;
-        case 32:
-            imageView = QImage(FreeImage_GetBits(bmp), FreeImage_GetWidth(bmp), FreeImage_GetHeight(bmp), FreeImage_GetPitch(bmp), QImage::Format_RGBA8888);
-            break;
-        default:
-            throw std::logic_error("Internal image is 1, 8, 24 or 32 bit");
-        }
-        return imageView;
-    }
 }
 
 
@@ -326,7 +304,6 @@ Image::Image(QString name, QString filename) noexcept
     mInfo.dims     = QSize(width, height);
 
     mInvalidPixmap    = false;
-    mInvalidTransform = true;
 }
 
 Image::~Image()
@@ -341,67 +318,28 @@ Image::~Image()
 
 uint32_t Image::width() const
 {
-    if (mRotation == Rotation::eDegree90 || mRotation == Rotation::eDegree270) {
-        return sourceHeight();
-    }
-    else {
-        return sourceWidth();
-    }
+    return !isNull() ? FreeImage_GetWidth(mBitmapInternal) : 0;
 }
 
 uint32_t Image::height() const
 {
-    if (mRotation == Rotation::eDegree90 || mRotation == Rotation::eDegree270) {
-        return sourceWidth();
-    }
-    else {
-        return sourceHeight();
-    }
-}
-
-uint32_t Image::sourceWidth() const
-{
-    return !isNull() ? FreeImage_GetWidth(mBitmapInternal) : 0;
-}
-
-uint32_t Image::sourceHeight() const
-{
     return !isNull() ? FreeImage_GetHeight(mBitmapInternal) : 0;
 }
 
-const QPixmap & Image::pixmap(PageInfo* info) const
+FIBITMAP* Image::get(PageInfo* info) const
 {
     if (!isNull()) {
         if (mInvalidPixmap) {
             QString ignoreFormat;
             mInvalidPixmap = !const_cast<Image*>(this)->readCurrentPage(ignoreFormat);
-            mInvalidTransform = true;
+            //mInvalidTransform = true;
         }
-        if (!mInvalidPixmap && mInvalidTransform) {
-            mPixmap = recalculatePixmap();
-            mInvalidTransform = false;
+        if (info) {
+            *info = mPageInfo;
         }
+        return mBitmapInternal;
     }
-    if (info) {
-        *info = mPageInfo;
-    }
-    return mPixmap;
-}
-
-QPixmap Image::recalculatePixmap() const
-{
-    assert(mBitmapInternal != nullptr);
-
-    std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> rotated(nullptr, &::FreeImage_Unload);
-    FIBITMAP* target = mBitmapInternal;
-    if (mRotation != Rotation::eDegree0) {
-        rotated.reset(FreeImage_Rotate(target, static_cast<double>(toDegree(mRotation))));
-        target = rotated.get();
-    }
-
-    assert(target != nullptr);
-
-    return QPixmap::fromImage(makeQImageView(target));
+    return nullptr;
 }
 
 uint32_t Image::pagesCount() const Q_DECL_NOEXCEPT
@@ -492,15 +430,23 @@ void Image::readNextPage() Q_DECL_NOEXCEPT
             mPageIdx = 0;
         }
         mInvalidPixmap = true;
-    }
-}
 
-void Image::setToneMapping(ToneMapping mode)
-{
-    if (mIsHDR) {
-        if(mode != mToneMappingMode) {
-            mToneMappingMode = mode;
-            mInvalidPixmap = true;
+        for (auto & listener : mListeners) {
+            listener->onInvalidated(this);
         }
     }
 }
+
+void Image::addListener(ImageListener* listener)
+{
+    mListeners.push_back(listener);
+}
+
+void Image::removeListener(ImageListener* listener)
+{
+    const auto it = std::find(mListeners.cbegin(), mListeners.cend(), listener);
+    if (it != mListeners.cend()) {
+        mListeners.erase(it);
+    }
+}
+

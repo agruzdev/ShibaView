@@ -39,6 +39,7 @@ enum class BorderPosition;
 class QLabel;
 class ZoomController;
 class TextWidget;
+class ImageProcessor;
 
 enum class FilteringMode
 {
@@ -133,6 +134,7 @@ private:
 
     QSharedPointer<Image> mPendingImage;
     QSharedPointer<Image> mImage;
+    std::unique_ptr<ImageProcessor> mImageProcessor;
 
     bool mVisible = false;
 

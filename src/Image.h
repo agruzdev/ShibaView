@@ -55,6 +55,25 @@ int toDegree(Rotation r)
 
 class ImageSource;
 
+static Q_CONSTEXPR uint32_t kNoneIndex = std::numeric_limits<uint32_t>::max();
+
+struct Frame
+{
+    QPixmap pixmap;
+    uint32_t pageIndex = kNoneIndex;
+    uint32_t duration  = 0;
+};
+
+class Image;
+
+class ImageListener
+{
+public:
+    virtual ~ImageListener() = default;
+
+    virtual void onInvalidated(Image*) { };
+};
+
 class Image
 {
     using BitmapPtr = std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)>;
@@ -68,7 +87,6 @@ public:
         uint32_t duration = 0;
     };
 
-
     Image(QString name, QString filename) noexcept;
     ~Image();
 
@@ -78,7 +96,7 @@ public:
     Image& operator=(const Image&) = delete;
     Image& operator=(Image&&) = delete;
 
-    const QPixmap & pixmap(PageInfo* info) const;
+    FIBITMAP* get(PageInfo* info) const;
 
     const ImageInfo & info() const
     {
@@ -88,25 +106,9 @@ public:
     uint32_t width() const;
     uint32_t height() const;
 
-    uint32_t sourceWidth() const;
-    uint32_t sourceHeight() const;
-
     bool isNull() const
     {
         return (mBitmapInternal == nullptr);
-    }
-
-    Rotation rotation() const
-    {
-        return mRotation;
-    }
-
-    void setRotation(Rotation r)
-    {
-        if (mRotation != r) {
-            mRotation = r;
-            mInvalidTransform = true;
-        }
     }
 
     uint32_t pagesCount() const Q_DECL_NOEXCEPT;
@@ -123,13 +125,13 @@ public:
         return mIsHDR;
     }
 
-    void setToneMapping(ToneMapping mode);
+    void addListener(ImageListener* listener);
+    void removeListener(ImageListener* listener);
 
 private:
 
     FIBITMAP* cvtToInternalType(FIBITMAP* src, QString & srcFormat, bool & dstNeedUnload);
     bool readCurrentPage(QString & format) Q_DECL_NOEXCEPT;
-    QPixmap recalculatePixmap() const;
 
     uint64_t mId;
 
@@ -142,16 +144,14 @@ private:
     FIBITMAP* mBitmapInternal = nullptr;
     bool mNeedUnloadBitmap = false;
 
-    mutable QPixmap mPixmap;
     mutable bool mInvalidPixmap = false;
-
-    mutable bool mInvalidTransform = false;
-    Rotation mRotation = Rotation::eDegree0;
 
     mutable PageInfo mPageInfo;
 
     bool mIsHDR = false;
     ToneMapping mToneMappingMode = ToneMapping::FITMO_NONE;
+
+    std::vector<ImageListener*> mListeners;
 };
 
 using ImagePtr = QSharedPointer<Image>;

@@ -16,7 +16,8 @@ HEADERS       = \
     BitmapSource.h \
     MultiBitmapsource.h \
     UniqueTick.h \
-    EnumArray.h
+    EnumArray.h \
+    ImageProcessor.h
 
 SOURCES       = \
     main.cpp \
@@ -31,7 +32,8 @@ SOURCES       = \
     BitmapSource.cpp \
     MultiBitmapsource.cpp \
     ImageSource.cpp \
-    UniqueTick.cpp
+    UniqueTick.cpp \
+    ImageProcessor.cpp
 
 RC_FILE = resources.rc
 
