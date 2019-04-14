@@ -59,8 +59,11 @@ private:
     void autoResize();
 
     QRawFont mRawFont;
-    QPen mPen;
+
+    QPen   mPen;
+    QPen   mPenDisabled;
     QBrush mBrush;
+    QBrush mBrushDisabled;
 
     QVector<QString> mLines;
 

@@ -28,31 +28,6 @@
 
 #include "FreeImage.h"
 
-enum class Rotation
-{
-    eDegree0   = 0,
-    eDegree90  = 1,
-    eDegree180 = 2,
-    eDegree270 = 3,
-
-    length_ = 4
-};
-
-enum class ToneMapping
-{
-    FITMO_DRAGO03    = ::FITMO_DRAGO03,
-    FITMO_REINHARD05 = ::FITMO_REINHARD05,
-    FITMO_FATTAL02   = ::FITMO_FATTAL02,
-    FITMO_NONE,
-    FITMO_GLOBAL,
-};
-
-constexpr
-int toDegree(Rotation r)
-{
-    return 90 * static_cast<int>(r);
-}
-
 class ImageSource;
 
 static Q_CONSTEXPR uint32_t kNoneIndex = std::numeric_limits<uint32_t>::max();
@@ -149,7 +124,6 @@ private:
     mutable PageInfo mPageInfo;
 
     bool mIsHDR = false;
-    ToneMapping mToneMappingMode = ToneMapping::FITMO_NONE;
 
     std::vector<ImageListener*> mListeners;
 };

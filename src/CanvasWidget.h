@@ -31,15 +31,15 @@
 #include <QWidget>
 #include <QWidgetAction>
 
-#include <Image.h>
-#include <EnumArray.h>
+#include "FreeImageExt.h"
+#include "ImageProcessor.h"
+#include "EnumArray.h"
 
 enum class BorderPosition;
 
 class QLabel;
 class ZoomController;
 class TextWidget;
-class ImageProcessor;
 
 enum class FilteringMode
 {
@@ -63,8 +63,10 @@ class CanvasWidget
 {
     Q_OBJECT
 
-    template <typename Enum_>
-    using ActionsArray = EnumArray<QWidgetAction*, Enum_>;
+    template <typename Enum_, size_t Length_ = static_cast<size_t>(Enum_::length_)>
+    using ActionsArray = EnumArray<QWidgetAction*, Enum_, Length_>;
+
+    using TMActionsArray = ActionsArray<FIE_ToneMapping, 5>;
 
 public:
     CanvasWidget(std::chrono::steady_clock::time_point t);
@@ -81,6 +83,7 @@ public slots:
 
     void onActRotation(bool checked, Rotation r);
     void onActZoomMode(bool checked, ZoomMode z);
+    void onActToneMapping(bool checked, FIE_ToneMapping m);
 
     void onShowContextMenu(const QPoint &pos);
 
@@ -129,6 +132,7 @@ private:
 
     ActionsArray<Rotation> initRotationActions();
     ActionsArray<ZoomMode> initZoomActions();
+    TMActionsArray initToneMappingActions();
 
     QMenu* createContextMenu();
 
@@ -180,6 +184,7 @@ private:
     // actions
     std::shared_future<ActionsArray<Rotation>> mActRotate;
     std::shared_future<ActionsArray<ZoomMode>> mActZoom;
+    std::shared_future<TMActionsArray> mActToneMapping;
 };
 
 

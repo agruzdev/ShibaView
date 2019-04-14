@@ -22,8 +22,25 @@
 #include <QSharedPointer>
 #include <QPixmap>
 
-#include "FreeImage.h"
+#include "FreeImageExt.h"
 #include "Image.h"
+
+enum class Rotation
+{
+    eDegree0   = 0,
+    eDegree90  = 1,
+    eDegree180 = 2,
+    eDegree270 = 3,
+
+    length_ = 4
+};
+
+constexpr
+int toDegree(Rotation r)
+{
+    return 90 * static_cast<int>(r);
+}
+
 
 class ImageProcessor
     : public ImageListener
@@ -61,6 +78,19 @@ public:
         }
     }
 
+    FIE_ToneMapping toneMappingMode() const
+    {
+        return mToneMapping;
+    }
+
+    void setToneMappingMode(FIE_ToneMapping mode)
+    {
+        if(mToneMapping != mode) {
+            mToneMapping = mode;
+            mIsValid = false;
+        }
+    }
+
     /**
      * Image width after processing
      */
@@ -83,6 +113,7 @@ private:
     bool mIsValid = false;
 
     Rotation mRotation = Rotation::eDegree0;
+    FIE_ToneMapping mToneMapping = FIE_ToneMapping::FIETMO_NONE;
 };
 
 #endif // IMAGEPROCESSOR_H

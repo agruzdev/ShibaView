@@ -26,14 +26,14 @@
  * Array using enum as index.
  * Enum_ must have a value length_.
  */
-template <typename Ty_, typename Enum_>
+template <typename Ty_, typename Enum_, size_t Length_ = static_cast<size_t>(Enum_::length_)>
 class EnumArray
 {
 public:
     using ValueType = Ty_;
     using IndexType = Enum_;
     using SizeType  = size_t;
-    static constexpr size_t Length = static_cast<SizeType>(Enum_::length_);
+    static constexpr size_t Length = Length_;
 
     std::array<ValueType, Length> data;
 
@@ -53,6 +53,36 @@ public:
     {
         assert(static_cast<SizeType>(idx) < Length);
         return data[static_cast<SizeType>(idx)];
+    }
+
+    auto begin()
+    {
+        return data.begin();
+    }
+
+    auto begin() const
+    {
+        return data.begin();
+    }
+
+    auto cbegin() const
+    {
+        return data.cbegin();
+    }
+
+    auto end()
+    {
+        return data.end();
+    }
+
+    auto end() const
+    {
+        return data.end();
+    }
+
+    auto cend() const
+    {
+        return data.cend();
     }
 };
 

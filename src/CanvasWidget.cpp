@@ -63,11 +63,12 @@ namespace
     Q_CONSTEXPR int kMinZoomRatio = 30;
     Q_CONSTEXPR int kMaxZoomRatio = 30;
 
-    const QString kSettingsGeometry   = "canvas/geometry";
-    const QString kSettingsFullscreen = "canvas/fullscreen";
-    const QString kSettingsShowInfo   = "canvas/info";
-    const QString kSettingsZoomMode   = "canvas/zoom";
-    const QString kSettingsFilterMode = "canvas/filtering";
+    const QString kSettingsGeometry    = "canvas/geometry";
+    const QString kSettingsFullscreen  = "canvas/fullscreen";
+    const QString kSettingsShowInfo    = "canvas/info";
+    const QString kSettingsZoomMode    = "canvas/zoom";
+    const QString kSettingsFilterMode  = "canvas/filtering";
+    const QString kSettingsToneMapping = "canvas/tonemapping";
 
     const QString kZoomLine = "Zoom: ";
 
@@ -91,6 +92,25 @@ namespace
     {
         return QString::number(100.0f * z, 'f', 0) + QString("%");
     }
+
+    inline
+    QString toString(FIE_ToneMapping tm)
+    {
+        switch(tm) {
+            case FIETMO_NONE:
+                return QString::fromUtf8("None");
+            case FIETMO_LINEAR:
+                return QString::fromUtf8("Linear");
+            case FIETMO_DRAGO03:
+                return QString::fromUtf8("F.Drago, 2003");
+            case FIETMO_REINHARD05:
+                return QString::fromUtf8("E. Reinhard, 2005");
+            case FIETMO_FATTAL02:
+                return QString::fromUtf8("R. Fattal, 2002");
+            default:
+                throw std::logic_error("Invalid enum");
+        }
+    }
 }
 
 
@@ -109,8 +129,8 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     mClickGeometry = settings.value(kSettingsGeometry, QRect(200, 200, 1280, 720)).toRect();
     mFullScreen    = settings.value(kSettingsFullscreen, false).toBool();
     mShowInfo      = settings.value(kSettingsShowInfo, false).toBool();
-    mFilteringMode = static_cast<FilteringMode>(settings.value(kSettingsFilterMode, static_cast<int>(FilteringMode::eNone)).toInt());
-    mZoomMode      = static_cast<ZoomMode>(settings.value(kSettingsZoomMode, static_cast<int>(ZoomMode::eFree)).toInt());
+    mFilteringMode = static_cast<FilteringMode>(settings.value(kSettingsFilterMode, static_cast<int32_t>(FilteringMode::eNone)).toInt());
+    mZoomMode      = static_cast<ZoomMode>(settings.value(kSettingsZoomMode, static_cast<int32_t>(ZoomMode::eFree)).toInt());
 
     QPalette palette;
     palette.setColor(QPalette::ColorRole::Window, QColor(0x2B, 0x2B, 0x2B));
@@ -125,23 +145,27 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
         setGeometry(mClickGeometry);
     }
 
-    mActRotate = std::async(std::launch::deferred, [this]{ return initRotationActions(); });
-    mActZoom   = std::async(std::launch::deferred, [this]{ return initZoomActions();     });
+    mActRotate      = std::async(std::launch::deferred, [this]{ return initRotationActions();    });
+    mActZoom        = std::async(std::launch::deferred, [this]{ return initZoomActions();        });
+    mActToneMapping = std::async(std::launch::deferred, [this]{ return initToneMappingActions(); });
 
     connect(this, &QWidget::customContextMenuRequested, this, &CanvasWidget::onShowContextMenu);
 
     mImageProcessor = std::make_unique<ImageProcessor>();
+    mImageProcessor->setToneMappingMode(static_cast<FIE_ToneMapping>(settings.value(kSettingsToneMapping, static_cast<int32_t>(FIE_ToneMapping::FIETMO_NONE)).toInt()));
 }
 
 CanvasWidget::~CanvasWidget()
 {
+    assert(mImageProcessor); // never null
     try {
         QSettings settings;
         settings.setValue(kSettingsGeometry,   mClickGeometry);
         settings.setValue(kSettingsFullscreen, mFullScreen);
         settings.setValue(kSettingsShowInfo,   mShowInfo);
-        settings.setValue(kSettingsFilterMode, static_cast<int>(mFilteringMode));
-        settings.setValue(kSettingsZoomMode,   static_cast<int>(mZoomMode));
+        settings.setValue(kSettingsFilterMode, static_cast<int32_t>(mFilteringMode));
+        settings.setValue(kSettingsZoomMode,   static_cast<int32_t>(mZoomMode));
+        settings.setValue(kSettingsToneMapping, static_cast<int32_t>(mImageProcessor->toneMappingMode()));
     }
     catch(...) {
         
@@ -200,6 +224,28 @@ QMenu* CanvasWidget::createContextMenu()
         menu->addAction(zoom[ZoomMode::eFree]);
         menu->addAction(zoom[ZoomMode::eFitWindow]);
         menu->addAction(zoom[ZoomMode::eFixed]);
+        menu->addSeparator();
+    }
+
+    // ToneMapping
+    {
+        // ToDo (.gruzdev): Temporal arrow fix
+        const auto tmAction = createMenuAction(QString::fromUtf8("Tone mapping " "\xE2\x80\xA3"));
+        QMenu* tmMenu = new QMenu(menu);
+        if (mImage->isHDR()) {
+            const auto & tmActions = mActToneMapping.get();
+            tmMenu->addAction(tmActions[FIETMO_NONE]);
+            tmMenu->addAction(tmActions[FIETMO_LINEAR]);
+            tmMenu->addAction(tmActions[FIETMO_DRAGO03]);
+            tmMenu->addAction(tmActions[FIETMO_REINHARD05]);
+            tmMenu->addAction(tmActions[FIETMO_FATTAL02]);
+            tmAction->setEnabled(true);
+        }
+        else {
+            tmAction->setEnabled(false);
+        }
+        tmAction->setMenu(tmMenu);
+        menu->addAction(tmAction);
         menu->addSeparator();
     }
 
@@ -266,6 +312,42 @@ CanvasWidget::ActionsArray<ZoomMode> CanvasWidget::initZoomActions()
     return actions;
 }
 
+CanvasWidget::TMActionsArray CanvasWidget::initToneMappingActions()
+{
+    const auto groupTM = new QActionGroup(this);
+    TMActionsArray actions = {};
+
+    actions[FIETMO_NONE] = createMenuAction(toString(FIETMO_NONE));
+    actions[FIETMO_NONE]->setCheckable(true);
+    actions[FIETMO_NONE]->setActionGroup(groupTM);
+
+    actions[FIETMO_LINEAR] = createMenuAction(toString(FIETMO_LINEAR));
+    actions[FIETMO_LINEAR]->setCheckable(true);
+    actions[FIETMO_LINEAR]->setActionGroup(groupTM);
+
+    actions[FIETMO_DRAGO03] = createMenuAction(toString(FIETMO_DRAGO03));
+    actions[FIETMO_DRAGO03]->setCheckable(true);
+    actions[FIETMO_DRAGO03]->setActionGroup(groupTM);
+
+    actions[FIETMO_REINHARD05] = createMenuAction(toString(FIETMO_REINHARD05));
+    actions[FIETMO_REINHARD05]->setCheckable(true);
+    actions[FIETMO_REINHARD05]->setActionGroup(groupTM);
+
+    actions[FIETMO_FATTAL02] = createMenuAction(toString(FIETMO_FATTAL02));
+    actions[FIETMO_FATTAL02]->setCheckable(true);
+    actions[FIETMO_FATTAL02]->setActionGroup(groupTM);
+
+    actions[mImageProcessor->toneMappingMode()]->setChecked(true);
+
+    connect(actions[FIETMO_NONE],       &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_NONE      ));
+    connect(actions[FIETMO_LINEAR],     &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_LINEAR    ));
+    connect(actions[FIETMO_DRAGO03],    &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_DRAGO03   ));
+    connect(actions[FIETMO_REINHARD05], &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_REINHARD05));
+    connect(actions[FIETMO_FATTAL02],   &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_FATTAL02  ));
+
+    return actions;
+}
+
 void CanvasWidget::onShowContextMenu(const QPoint & p)
 {
     try {
@@ -274,7 +356,7 @@ void CanvasWidget::onShowContextMenu(const QPoint & p)
             mContextMenu = createContextMenu();
         }
         if (mContextMenu) {
-            mContextMenu->exec(mapToGlobal(p));
+            mContextMenu->popup(mapToGlobal(p));
         }
     }
     catch(std::exception & err) {
@@ -410,6 +492,10 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
     if (mPendingImage) {
         mImageProcessor->detachSource();
+        if(mContextMenu) {
+            delete mContextMenu;
+            mContextMenu = nullptr;
+        }
 
         mImage = std::move(mPendingImage);
         mPendingImage = nullptr;
@@ -480,6 +566,19 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
             const Frame frame = mImageProcessor->getResult();
             painter.drawPixmap(calculateImageRegion(), frame.pixmap);
+
+            // ToDo (a.gruzdev): Temporal solution
+            if (mImage->isHDR()) {
+                auto infoLines = mImage->info().toLines();
+                if(infoLines.size() > 2) {
+                    if(mImageProcessor->toneMappingMode() != FIE_ToneMapping::FIETMO_NONE) {
+                        mInfoText->setLine(2, infoLines.at(2) + " (TM: " + toString(mImageProcessor->toneMappingMode()) + ")");
+                    }
+                    else {
+                        mInfoText->setLine(2, infoLines.at(2));
+                    }
+                }
+            }
 
             if (mShowInfo) {
                 mInfoText->show();
@@ -583,7 +682,7 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         }
     }
     else {
-         // No Modifiers
+        // No Modifiers
         if (event->key() == Qt::Key_Escape) {
             close();
         }
@@ -906,3 +1005,12 @@ void CanvasWidget::onAnimationTick(uint64_t imgId)
         update();
     }
 }
+
+void CanvasWidget::onActToneMapping(bool checked, FIE_ToneMapping m)
+{
+    if (checked && mImage && !mImage->isNull() && mImage->isHDR()) {
+        mImageProcessor->setToneMappingMode(m);
+        update();
+    }
+}
+

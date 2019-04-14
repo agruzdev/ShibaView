@@ -42,16 +42,15 @@ TextWidget::TextWidget(QWidget* parent, Qt::GlobalColor color, int fsize)
     if(!mRawFont.isValid()) {
         mRawFont = QRawFont::fromFont(QFont());
     }
-    mPen     = QPen(color);
-    mBrush   = QBrush(color, Qt::BrushStyle::SolidPattern);
+    mPen           = QPen(color);
+    mPenDisabled   = QPen(Qt::gray);
+    mBrush         = QBrush(color,    Qt::BrushStyle::SolidPattern);
+    mBrushDisabled = QBrush(Qt::gray, Qt::BrushStyle::SolidPattern);
 
     mLineHeight = mRawFont.capHeight() + 2 * FONT_VPADDING;
 }
 
-TextWidget::~TextWidget()
-{
-    
-}
+TextWidget::~TextWidget() = default;
 
 void TextWidget::setText(const QString & line)
 {
@@ -67,10 +66,10 @@ void TextWidget::setText(const QVector<QString> & lines)
 
 void TextWidget::setLine(uint32_t idx, const QString & line)
 {
-    if(static_cast<int>(idx) < mLines.size()) {
+    if (static_cast<int>(idx) < mLines.size()) {
         mLines[idx] = line;
+        autoResize();
     }
-    autoResize();
 }
 
 void TextWidget::autoResize()
@@ -92,8 +91,14 @@ void TextWidget::paintEvent(QPaintEvent *event)
 {
     QWidget::paintEvent(event);
     QPainter painter(this);
-    painter.setPen(mPen);
-    painter.setBrush(mBrush);
+    if(isEnabled()) {
+        painter.setPen(mPen);
+        painter.setBrush(mBrush);
+    }
+    else {
+        painter.setPen(mPenDisabled);
+        painter.setBrush(mBrushDisabled);
+    }
     painter.setRenderHint(QPainter::RenderHint::Antialiasing);
 
     QGlyphRun glyphRun;
