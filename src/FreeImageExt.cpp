@@ -29,7 +29,7 @@ namespace
     }
 
     template <typename PixelCvt_>
-    void ñvtBitmap(FIBITMAP* dst, FIBITMAP* src, PixelCvt_ && pixelConverter)
+    void cvtBitmap(FIBITMAP* dst, FIBITMAP* src, PixelCvt_ && pixelConverter)
     {
         const unsigned h = FreeImage_GetHeight(src);
         const unsigned w = FreeImage_GetWidth(src);
@@ -54,7 +54,7 @@ namespace
         switch (FreeImage_GetImageType(src)) {
             case FIT_RGBAF: {
                 dst = FreeImage_Allocate(w, h, 32);
-                ñvtBitmap(dst, src, [](void* dstPtr, const void* srcPtr) {
+                cvtBitmap(dst, src, [](void* dstPtr, const void* srcPtr) {
                     const auto dstPixel = static_cast<tagRGBQUAD*>(dstPtr);
                     const auto srcPixel = static_cast<const tagFIRGBAF*>(srcPtr);
                     dstPixel->rgbRed      = static_cast<BYTE>(clamp(srcPixel->red)   * 255.0f);
@@ -66,7 +66,7 @@ namespace
             }
             case FIT_RGBF: {
                 dst = FreeImage_Allocate(w, h, 24);
-                ñvtBitmap(dst, src, [](void* dstPtr, const void* srcPtr) {
+                cvtBitmap(dst, src, [](void* dstPtr, const void* srcPtr) {
                     const auto dstPixel = static_cast<tagRGBTRIPLE*>(dstPtr);
                     const auto srcPixel = static_cast<const tagFIRGBF*>(srcPtr);
                     dstPixel->rgbtRed   = static_cast<BYTE>(clamp(srcPixel->red)   * 255.0f);
@@ -103,7 +103,7 @@ namespace
             switch (FreeImage_GetImageType(src)) {
                 case FIT_RGBAF: {
                     dst = FreeImage_Allocate(w, h, 32);
-                    ñvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
+                    cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
                         const auto dstPixel = static_cast<tagRGBQUAD*>(dstPtr);
                         const auto srcPixel = static_cast<const tagFIRGBAF*>(srcPtr);
                         dstPixel->rgbRed      = static_cast<BYTE>(((srcPixel->red   - minVal) / (maxVal - minVal)) * 255.0f);
@@ -115,7 +115,7 @@ namespace
                 }
                 case FIT_RGBF : {
                     dst = FreeImage_Allocate(w, h, 24);
-                    ñvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
+                    cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
                         const auto dstPixel = static_cast<tagRGBTRIPLE*>(dstPtr);
                         const auto srcPixel = static_cast<const tagFIRGBF*>(srcPtr);
                         dstPixel->rgbtRed   = static_cast<BYTE>(((srcPixel->red   - minVal) / (maxVal - minVal)) * 255.0f);
