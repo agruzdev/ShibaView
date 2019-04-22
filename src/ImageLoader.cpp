@@ -27,38 +27,46 @@
 ImageLoader::QtMetaRegisterInvoker::QtMetaRegisterInvoker()
 {
     qRegisterMetaType<ImagePtr>("ImagePtr");
+    qRegisterMetaType<size_t>("size_t");
 }
 
 ImageLoader::QtMetaRegisterInvoker ImageLoader::msQtRegisterInvoker{};
 
 
-ImageLoader::ImageLoader(const QString & name)
+ImageLoader::ImageLoader(const QString & name, size_t imgIdx, size_t imgCount)
     : QObject(nullptr)
-    , mName(name)
+    , mName(name), mImgIdx(imgIdx), mImgCount(imgCount)
 { }
+
+ImageLoader::ImageLoader(const QString & name)
+     : ImageLoader(name, 0, 0)
+ { }
 
 ImageLoader::~ImageLoader() = default;
 
 void ImageLoader::onRun(const QString & path)
 {
     bool success = false;
+    QString error;
+
     try {
         auto pimage = QSharedPointer<Image>::create(mName, path);
-        emit eventResult(std::move(pimage));
+        emit eventResult(std::move(pimage), mImgIdx, mImgCount);
         success = true;
     }
     catch(std::exception & e) {
-        qWarning() << QString(e.what());
+        error = QString::fromUtf8(e.what());
+        qWarning() << error;
     }
     catch(...) {
-        qWarning() << QString("Unknown error!");
+        error = QString("Unknown error!");
+        qWarning() << error;
     }
 
     if(!success) {
-        //ImageInfo info;
-        //info.path = path;
-        emit eventResult(nullptr);
+        emit eventError(error);
     }
+
     deleteLater();
 }
 

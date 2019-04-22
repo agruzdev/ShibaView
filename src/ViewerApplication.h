@@ -25,6 +25,7 @@
 #include <QDir>
 #include <QThread>
 #include <QStringList>
+#include <QFileSystemWatcher>
 
 #include <CanvasWidget.h>
 
@@ -37,19 +38,19 @@ public:
     ViewerApplication(std::chrono::steady_clock::time_point t);
     ~ViewerApplication();
 
-    void loadImageAsync(const QString & path);
-
-    void open(const QString & path);
-
     ViewerApplication(const ViewerApplication&) = delete;
     ViewerApplication(ViewerApplication&&) = delete;
 
     ViewerApplication& operator=(const ViewerApplication&) = delete;
     ViewerApplication& operator=(ViewerApplication&&) = delete;
 
+    void open(const QString & path);
+
 signals:
     void eventLoadImage(const QString & path);
     void eventCancelTransition();
+
+     void eventImageDirScanned(size_t imgIdx, size_t totalCount);
 
 public slots:
     void onNextImage();
@@ -59,13 +60,22 @@ public slots:
 
     void onError(const QString & what);
 
+    void onDirectoryChanged(const QString &path);
+
 private:
+    void loadImageAsync(const QString & path, size_t imgIdx, size_t totalCount);
+    void scanDirectory();
+
     std::unique_ptr<CanvasWidget> mCanvasWidget = nullptr;
     std::unique_ptr<QThread> mBackgroundThread = nullptr;
 
+    QString mOpenedName;
     QDir mDirectory;
+    QFileSystemWatcher mDirWatcher;
+
     QStringList mFilesInDirectory;
     QStringList::const_iterator mCurrentFile;
+    size_t mCurrentIdx = 0;
 };
 
 #endif // VIEWERAPPLICATION_H

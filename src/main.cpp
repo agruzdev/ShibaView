@@ -37,7 +37,6 @@ int main(int argc, char *argv[])
         ViewerApplication viewer(t);
         const QString input = QApplication::arguments().at(1);
         viewer.open(input);
-        viewer.loadImageAsync(input);
 
 #ifdef _MSC_VER
         std::cout << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t).count() / 1e3 << std::endl;

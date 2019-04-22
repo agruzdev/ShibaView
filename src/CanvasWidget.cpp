@@ -70,8 +70,6 @@ namespace
     const QString kSettingsFilterMode  = "canvas/filtering";
     const QString kSettingsToneMapping = "canvas/tonemapping";
 
-    const QString kZoomLine = "Zoom: ";
-
     Q_CONSTEXPR int kTextPaddingLeft = 15;
     Q_CONSTEXPR int kTextPaddingTop  = 30;
 
@@ -87,30 +85,6 @@ namespace
         return static_cast<BorderPosition>(static_cast<std::underlying_type_t<BorderPosition>>(lh) & static_cast<std::underlying_type_t<BorderPosition>>(rh));
     }
 
-    inline
-    QString toPercent(float z)
-    {
-        return QString::number(100.0f * z, 'f', 0) + QString("%");
-    }
-
-    inline
-    QString toString(FIE_ToneMapping tm)
-    {
-        switch(tm) {
-            case FIETMO_NONE:
-                return QString::fromUtf8("None");
-            case FIETMO_LINEAR:
-                return QString::fromUtf8("Linear");
-            case FIETMO_DRAGO03:
-                return QString::fromUtf8("F.Drago, 2003");
-            case FIETMO_REINHARD05:
-                return QString::fromUtf8("E. Reinhard, 2005");
-            case FIETMO_FATTAL02:
-                return QString::fromUtf8("R. Fattal, 2002");
-            default:
-                throw std::logic_error("Invalid enum");
-        }
-    }
 }
 
 
@@ -317,23 +291,23 @@ CanvasWidget::TMActionsArray CanvasWidget::initToneMappingActions()
     const auto groupTM = new QActionGroup(this);
     TMActionsArray actions = {};
 
-    actions[FIETMO_NONE] = createMenuAction(toString(FIETMO_NONE));
+    actions[FIETMO_NONE] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FIETMO_NONE)));
     actions[FIETMO_NONE]->setCheckable(true);
     actions[FIETMO_NONE]->setActionGroup(groupTM);
 
-    actions[FIETMO_LINEAR] = createMenuAction(toString(FIETMO_LINEAR));
+    actions[FIETMO_LINEAR] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FIETMO_LINEAR)));
     actions[FIETMO_LINEAR]->setCheckable(true);
     actions[FIETMO_LINEAR]->setActionGroup(groupTM);
 
-    actions[FIETMO_DRAGO03] = createMenuAction(toString(FIETMO_DRAGO03));
+    actions[FIETMO_DRAGO03] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FIETMO_DRAGO03)));
     actions[FIETMO_DRAGO03]->setCheckable(true);
     actions[FIETMO_DRAGO03]->setActionGroup(groupTM);
 
-    actions[FIETMO_REINHARD05] = createMenuAction(toString(FIETMO_REINHARD05));
+    actions[FIETMO_REINHARD05] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FIETMO_REINHARD05)));
     actions[FIETMO_REINHARD05]->setCheckable(true);
     actions[FIETMO_REINHARD05]->setActionGroup(groupTM);
 
-    actions[FIETMO_FATTAL02] = createMenuAction(toString(FIETMO_FATTAL02));
+    actions[FIETMO_FATTAL02] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FIETMO_FATTAL02)));
     actions[FIETMO_FATTAL02]->setCheckable(true);
     actions[FIETMO_FATTAL02]->setActionGroup(groupTM);
 
@@ -364,15 +338,105 @@ void CanvasWidget::onShowContextMenu(const QPoint & p)
     }
 }
 
-void CanvasWidget::onImageReady(QSharedPointer<Image> image)
+void CanvasWidget::invalidateImageDescription()
 {
-    mPendingImage = std::move(image);
-    if(!mVisible) {
+    mInfoIsValid = false;
+    update();
+}
+
+void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
+{
+    mImageProcessor->detachSource();
+    if(mContextMenu) {
+        delete mContextMenu;
+        mContextMenu = nullptr;
+    }
+    mCurrPage = Image::kNonePage;
+
+    mImage = std::move(image);
+    if(mImage) {
+        if(!mImageDescription) {
+            mImageDescription = std::make_unique<ImageDescription>();
+        }
+        mImageDescription->setImageInfo(mImage->info());
+        if (mImage && !mImage->isNull()) {
+            const auto fitRect = fitWidth(mImage->width(), mImage->height());
+            if(!mZoomController) {
+                mZoomController = std::make_unique<ZoomController>(mImage->width(), fitRect.width());
+                if (mZoomMode == ZoomMode::eFree && mImage->width() <= static_cast<size_t>(width()) && mImage->height() <= static_cast<size_t>(height())) {
+                    mZoomController->moveToIdentity();
+                }
+                else {
+                    mZoomController->moveToFit();
+                }
+                resetOffsets();
+            }
+            else {
+                if (mZoomMode == ZoomMode::eFixed) {
+                    mZoomController->rebase(mImage->width(), fitRect.width());
+                }
+                else {
+                    mZoomController = std::make_unique<ZoomController>(mImage->width(), fitRect.width());
+                    if (mZoomMode == ZoomMode::eFree && mImage->width() <= static_cast<size_t>(width()) && mImage->height() <= static_cast<size_t>(height())) {
+                        mZoomController->moveToIdentity();
+                    }
+                    else {
+                        mZoomController->moveToFit();
+                    }
+                    resetOffsets();
+                }
+            }
+
+            if (mImage->pagesCount() > 1) {
+                if (mPageText == nullptr) {
+                    mPageText = new TextWidget(this);
+                    mPageText->enableShadow();
+                }
+                mPageText->setText("Page 1/" + QString::number(mImage->pagesCount()));
+                repositionPageText();
+            }
+            else {
+                if (mPageText) {
+                    delete mPageText;
+                    mPageText = nullptr;
+                }
+            }
+
+            mImageDescription->setZoom(mZoomController->getFactor());
+            if (imgIdx < imgCount) {
+                mImageDescription->setImageIndex(imgIdx, imgCount);
+            }
+
+            mImageProcessor->attachSource(mImage);
+        }
+
+        setWindowTitle(mImage->info().path + " - " + QApplication::applicationName());
+    }
+
+    invalidateImageDescription();
+
+    if(!isVisible()) {
         show();
-        mVisible = false;
     }
     mTransitionRequested = false;
     mErrorText->hide();
+    update();
+}
+
+void CanvasWidget::onImageDirScanned(size_t imgIdx, size_t totalCount)
+{
+    if(!mImageDescription) {
+        mImageDescription = std::make_unique<ImageDescription>();
+    }
+    if (imgIdx < totalCount) {
+        mImageDescription->setImageIndex(imgIdx, totalCount);
+    }
+    else {
+        mImageDescription->setImageIndex(0, 0);
+    }
+    if(mInfoText) {
+        mInfoText->setText(mImageDescription->toLines());
+    }
     update();
 }
 
@@ -464,8 +528,9 @@ QRect CanvasWidget::calculateImageRegion() const
 
 void CanvasWidget::updateZoomLabel()
 {
-    if (mZoomController && mInfoText) {
-        mInfoText->setLine(ImageInfo::linesNumber(), kZoomLine + toPercent(mZoomController->getFactor()));
+    if (mZoomController && mImageDescription) {
+        mImageDescription->setZoom(mZoomController->getFactor());
+        invalidateImageDescription();
     }
 }
 
@@ -490,131 +555,55 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
     QWidget::paintEvent(event);
 
-    if (mPendingImage) {
-        mImageProcessor->detachSource();
-        if(mContextMenu) {
-            delete mContextMenu;
-            mContextMenu = nullptr;
+    if (mImage && !mImage->isNull()) {
+        QPainter painter(this);
+        if (mFilteringMode == FilteringMode::eAntialiasing) {
+            painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, true);
         }
 
-        mImage = std::move(mPendingImage);
-        mPendingImage = nullptr;
-        mCurrPage = Image::kNonePage;
+        const Frame frame = mImageProcessor->getResult();
+        painter.drawPixmap(calculateImageRegion(), frame.pixmap);
 
-        if (!mImage->isNull()) {
-            const auto fitRect = fitWidth(mImage->width(), mImage->height());
-
-            if(!mZoomController) {
-                mZoomController = std::make_unique<ZoomController>(mImage->width(), fitRect.width());
-                if (mZoomMode == ZoomMode::eFree && mImage->width() <= static_cast<size_t>(width()) && mImage->height() <= static_cast<size_t>(height())) {
-                    mZoomController->moveToIdentity();
+        if (mShowInfo) {
+            if (!mInfoIsValid) {
+                if (mInfoText && mImageDescription) {
+                    mInfoText->setText(mImageDescription->toLines());
                 }
-                else {
-                    mZoomController->moveToFit();
-                }
-                resetOffsets();
+                mInfoIsValid = true;
             }
-            else {
-                if (mZoomMode == ZoomMode::eFixed) {
-                    mZoomController->rebase(mImage->width(), fitRect.width());
-                }
-                else {
-                    mZoomController = std::make_unique<ZoomController>(mImage->width(), fitRect.width());
-                    if (mZoomMode == ZoomMode::eFree && mImage->width() <= static_cast<size_t>(width()) && mImage->height() <= static_cast<size_t>(height())) {
-                        mZoomController->moveToIdentity();
-                    }
-                    else {
-                        mZoomController->moveToFit();
-                    }
-                    resetOffsets();
-                }
+            mInfoText->show();
+            if (mPageText) {
+                mPageText->setText("Page " + QString::number(frame.pageIndex + 1) + "/" + QString::number(mImage->pagesCount()));
+                mPageText->show();
             }
-            
-            if (mImage->pagesCount() > 1) {
-                if (mPageText == nullptr) {
-                    mPageText = new TextWidget(this);
-                    mPageText->enableShadow();
-                }
-                mPageText->setText("Page 1/" + QString::number(mImage->pagesCount()));
-                repositionPageText();
-            }
-            else {
-                if (mPageText) {
-                    delete mPageText;
-                    mPageText = nullptr;
-                }
-            }
-
-            if (mZoomController && mInfoText) {
-                auto infoLines = mImage->info().toLines();
-                infoLines.push_back(kZoomLine + toPercent(mZoomController->getFactor()));
-                mInfoText->setText(infoLines);
-            }
-
-            mImageProcessor->attachSource(mImage);
-        }
-
-        setWindowTitle(mImage->info().path + " - " + QApplication::applicationName());
-    }
-
-    if (mImage) {
-        if (!mImage->isNull()) {
-            QPainter painter(this);
-            if (mFilteringMode == FilteringMode::eAntialiasing) {
-                painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, true);
-            }
-
-            const Frame frame = mImageProcessor->getResult();
-            painter.drawPixmap(calculateImageRegion(), frame.pixmap);
-
-            // ToDo (a.gruzdev): Temporal solution
-            if (mImage->isHDR()) {
-                auto infoLines = mImage->info().toLines();
-                if(infoLines.size() > 2) {
-                    if(mImageProcessor->toneMappingMode() != FIE_ToneMapping::FIETMO_NONE) {
-                        mInfoText->setLine(2, infoLines.at(2) + " (TM: " + toString(mImageProcessor->toneMappingMode()) + ")");
-                    }
-                    else {
-                        mInfoText->setLine(2, infoLines.at(2));
-                    }
-                }
-            }
-
-            if (mShowInfo) {
-                mInfoText->show();
-                if (mPageText) {
-                    mPageText->setText("Page " + QString::number(frame.pageIndex + 1) + "/" + QString::number(mImage->pagesCount()));
-                    mPageText->show();
-                }
-            }
-            else {
-                mInfoText->hide();
-                if (mPageText) {
-                    mPageText->hide();
-                }
-            }
-
-            if ((frame.pageIndex != mCurrPage) && (mImage->pagesCount() > 1)) {
-                new UniqueTick(mImage->id(), frame.duration, this, &CanvasWidget::onAnimationTick, this);
-            }
-            mCurrPage = frame.pageIndex;
         }
         else {
-            const auto dstRegion = fitWidth(512, 512);
-            QPainter painter(this);
-            painter.setBrush(Qt::black);
-            painter.drawRect(dstRegion);
-            painter.setPen(Qt::red);
-            painter.setBrush(Qt::red);
-            painter.drawLine(dstRegion.topLeft(), dstRegion.bottomRight());
-            painter.drawLine(dstRegion.topRight(), dstRegion.bottomLeft());
-
-            QVector<QString> error;
-            error.push_back(mImage->info().path);
-            mErrorText->setText(error);
-            mErrorText->move(width() / 2 - mErrorText->width() / 2, height() / 2- mErrorText->height() / 2);
-            mErrorText->show();
+            mInfoText->hide();
+            if (mPageText) {
+                mPageText->hide();
+            }
         }
+
+        if ((frame.pageIndex != mCurrPage) && (mImage->pagesCount() > 1)) {
+            new UniqueTick(mImage->id(), frame.duration, this, &CanvasWidget::onAnimationTick, this);
+        }
+        mCurrPage = frame.pageIndex;
+    }
+    else {
+        const auto dstRegion = fitWidth(512, 512);
+        QPainter painter(this);
+        painter.setBrush(Qt::black);
+        painter.drawRect(dstRegion);
+        painter.setPen(Qt::red);
+        painter.setBrush(Qt::red);
+        painter.drawLine(dstRegion.topLeft(), dstRegion.bottomRight());
+        painter.drawLine(dstRegion.topRight(), dstRegion.bottomLeft());
+
+        QVector<QString> error;
+        error.push_back(mImage ? mImage->info().path : "");
+        mErrorText->setText(error);
+        mErrorText->move(width() / 2 - mErrorText->width() / 2, height() / 2 - mErrorText->height() / 2);
+        mErrorText->show();
     }
 
     if(mStartup){
@@ -1010,6 +999,10 @@ void CanvasWidget::onActToneMapping(bool checked, FIE_ToneMapping m)
 {
     if (checked && mImage && !mImage->isNull() && mImage->isHDR()) {
         mImageProcessor->setToneMappingMode(m);
+        if (mImageDescription) {
+            mImageDescription->setToneMapping(m);
+        }
+        invalidateImageDescription();
         update();
     }
 }

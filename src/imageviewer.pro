@@ -18,7 +18,9 @@ HEADERS       = \
     UniqueTick.h \
     EnumArray.h \
     ImageProcessor.h \
-    FreeImageExt.h
+    FreeImageExt.h \
+    ImageInfo.h \
+    ImageDescription.h
 
 SOURCES       = \
     main.cpp \
@@ -35,7 +37,8 @@ SOURCES       = \
     ImageSource.cpp \
     UniqueTick.cpp \
     ImageProcessor.cpp \
-    FreeImageExt.cpp
+    FreeImageExt.cpp \
+    ImageDescription.cpp
 
 RC_FILE = resources.rc
 

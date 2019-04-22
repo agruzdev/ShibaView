@@ -32,5 +32,10 @@ enum FIE_ToneMapping
 
 FIBITMAP* FreeImageExt_ToneMapping(FIBITMAP* src, FIE_ToneMapping mode);
 
+/**
+ * Text name for tonemapping mode
+ */
+const char* FreeImageExt_TMtoString(FIE_ToneMapping mode);
+
 #endif // FREEIMAGEEXT_H
 

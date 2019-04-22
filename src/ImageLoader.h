@@ -29,11 +29,14 @@ class ImageLoader
     Q_OBJECT
 
 public:
+    explicit
     ImageLoader(const QString & name);
+    ImageLoader(const QString & name, size_t imgIdx, size_t imgCount);
+
     ~ImageLoader();
 
 signals:
-    void eventResult(ImagePtr image);
+    void eventResult(ImagePtr image, size_t imgIdx, size_t imgCount);
 
     void eventError(QString what);
 
@@ -42,6 +45,8 @@ public slots:
 
 private:
     QString mName;
+    size_t mImgIdx; 
+    size_t mImgCount;
 
     /**
      * Helper class for class registration

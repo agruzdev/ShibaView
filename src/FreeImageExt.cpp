@@ -23,6 +23,7 @@
 
 namespace
 {
+
     float clamp(float x, float lo = 0.0f, float hi = 1.0f)
     {
         return std::max(lo, std::min(x, hi));
@@ -75,6 +76,15 @@ namespace
                 });
                 break;
             }
+            case FIT_FLOAT: {
+                dst = FreeImage_Allocate(w, h, 8);
+                cvtBitmap(dst, src, [](void* dstPtr, const void* srcPtr) {
+                    const auto dstPixel = static_cast<BYTE*>(dstPtr);
+                    const auto srcPixel = static_cast<const float*>(srcPtr);
+                    *dstPixel = static_cast<BYTE>(clamp(*srcPixel) * 255.0f);
+                });
+                break;
+            }
             default:
                 break;
         }
@@ -124,6 +134,15 @@ namespace
                     });
                     break;
                 }
+                case FIT_FLOAT: {
+                    dst = FreeImage_Allocate(w, h, 8);
+                    cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
+                        const auto dstPixel = static_cast<BYTE*>(dstPtr);
+                        const auto srcPixel = static_cast<const float*>(srcPtr);
+                        *dstPixel = static_cast<BYTE>(((*srcPixel - minVal) / (maxVal - minVal)) * 255.0f);
+                    });
+                    break;
+                }
                 default:
                     break;
             }
@@ -149,4 +168,23 @@ FIBITMAP* FreeImageExt_ToneMapping(FIBITMAP* src, FIE_ToneMapping mode)
         }
     }
     return dst;
+}
+
+
+const char* FreeImageExt_TMtoString(FIE_ToneMapping mode)
+{
+    switch(mode) {
+        case FIETMO_NONE:
+            return "None";
+        case FIETMO_LINEAR:
+            return "Linear";
+        case FIETMO_DRAGO03:
+            return "F.Drago, 2003";
+        case FIETMO_REINHARD05:
+            return "E. Reinhard, 2005";
+        case FIETMO_FATTAL02:
+            return "R. Fattal, 2002";
+        default:
+            return nullptr;
+    }
 }

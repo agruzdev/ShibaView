@@ -34,6 +34,7 @@
 #include "FreeImageExt.h"
 #include "ImageProcessor.h"
 #include "EnumArray.h"
+#include "ImageDescription.h"
 
 enum class BorderPosition;
 
@@ -73,7 +74,8 @@ public:
     ~CanvasWidget();
 
 public slots:
-    void onImageReady(ImagePtr image);
+    void onImageReady(ImagePtr image, size_t imgIdx, size_t totalCount);
+    void onImageDirScanned(size_t imgIdx, size_t totalCount);
 
     void onTransitionCanceled();
 
@@ -111,6 +113,7 @@ private:
     void mouseDoubleClickEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void wheelEvent(QWheelEvent* event) Q_DECL_OVERRIDE;
 
+    void invalidateImageDescription();
     void updateZoomLabel();
 
     QRect calculateImageRegion() const;
@@ -136,11 +139,14 @@ private:
 
     QMenu* createContextMenu();
 
-    QSharedPointer<Image> mPendingImage;
-    QSharedPointer<Image> mImage;
+private:
+    //QSharedPointer<Image> mPendingImage;
+
+    ImagePtr mImage;
+    std::unique_ptr<ImageDescription> mImageDescription;
+
     std::unique_ptr<ImageProcessor> mImageProcessor;
 
-    bool mVisible = false;
 
     bool mTransitionRequested = true;
 
@@ -171,6 +177,8 @@ private:
     QPoint mCursorPosition;
 
     TextWidget* mInfoText  = nullptr;
+    bool mInfoIsValid = false;
+
     TextWidget* mErrorText = nullptr;
 
     TextWidget* mPageText = nullptr;
