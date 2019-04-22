@@ -95,9 +95,20 @@ public:
         return mId;
     }
 
+    /**
+     * True is pixel is floating point
+     */
     bool isHDR() const
     {
         return mIsHDR;
+    }
+
+    /**
+     * True for color images
+     */
+    bool isRGB() const
+    {
+        return mIsRGB;
     }
 
     void addListener(ImageListener* listener);
@@ -124,6 +135,7 @@ private:
     mutable PageInfo mPageInfo;
 
     bool mIsHDR = false;
+    bool mIsRGB = false;
 
     std::vector<ImageListener*> mListeners;
 };

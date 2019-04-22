@@ -208,11 +208,17 @@ QMenu* CanvasWidget::createContextMenu()
         QMenu* tmMenu = new QMenu(menu);
         if (mImage->isHDR()) {
             const auto & tmActions = mActToneMapping.get();
+
             tmMenu->addAction(tmActions[FIETMO_NONE]);
             tmMenu->addAction(tmActions[FIETMO_LINEAR]);
             tmMenu->addAction(tmActions[FIETMO_DRAGO03]);
             tmMenu->addAction(tmActions[FIETMO_REINHARD05]);
             tmMenu->addAction(tmActions[FIETMO_FATTAL02]);
+
+            //tmActions[FIETMO_DRAGO03]->setEnabled(mImage->isRGB());
+            //tmActions[FIETMO_REINHARD05]->setEnabled(mImage->isRGB());
+            //tmActions[FIETMO_FATTAL02]->setEnabled(mImage->isRGB());
+
             tmAction->setEnabled(true);
         }
         else {

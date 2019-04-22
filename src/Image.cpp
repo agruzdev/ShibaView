@@ -43,12 +43,14 @@ FIBITMAP* Image::cvtToInternalType(FIBITMAP* src, QString & srcFormat, bool & ds
     FIBITMAP* dst = nullptr;
     const uint32_t bpp = FreeImage_GetBPP(src);
     mIsHDR = false;
+    mIsRGB = false;
     switch (FreeImage_GetImageType(src)) {
     case FIT_RGBAF:
         srcFormat = "RGBA float";
         dst = src;
         dstNeedUnload = false;
         mIsHDR = true;
+        mIsRGB = true;
         break;
 
     case FIT_RGBF:
@@ -56,6 +58,7 @@ FIBITMAP* Image::cvtToInternalType(FIBITMAP* src, QString & srcFormat, bool & ds
         dst = src;
         dstNeedUnload = false;
         mIsHDR = true;
+        mIsRGB = true;
         break;
 
     case FIT_RGBA16:
@@ -63,6 +66,7 @@ FIBITMAP* Image::cvtToInternalType(FIBITMAP* src, QString & srcFormat, bool & ds
         srcFormat = "RGBA16";
         dst = FreeImage_ConvertTo32Bits(src);
         dstNeedUnload = true;
+        mIsRGB = true;
         break;
 
     case FIT_RGB16:
@@ -70,6 +74,7 @@ FIBITMAP* Image::cvtToInternalType(FIBITMAP* src, QString & srcFormat, bool & ds
         srcFormat = "RGB16";
         dst = FreeImage_ConvertTo24Bits(src);
         dstNeedUnload = true;
+        mIsRGB = true;
         break;
 
     case FIT_UINT16:
@@ -84,15 +89,25 @@ FIBITMAP* Image::cvtToInternalType(FIBITMAP* src, QString & srcFormat, bool & ds
     case FIT_INT32:
         srcFormat = "Greyscale 32bit (signed)";
         goto ConvertToStandardType;
-    case FIT_FLOAT:
-        srcFormat = "Greyscale float";
-        goto ConvertToStandardType;
-    case FIT_DOUBLE:
-        srcFormat = "Greyscale double";
 
     ConvertToStandardType:
         dst = FreeImage_ConvertToStandardType(src);
         dstNeedUnload = true;
+        break;
+
+
+    case FIT_FLOAT:
+        srcFormat = "Greyscale float";
+        mIsHDR = true;
+        dstNeedUnload = false;
+        dst = src;
+        break;
+
+    case FIT_DOUBLE:
+        srcFormat = "Greyscale double";
+        mIsHDR = true;
+        dstNeedUnload = false;
+        dst = src;
         break;
 
     case FIT_BITMAP:
@@ -100,17 +115,20 @@ FIBITMAP* Image::cvtToInternalType(FIBITMAP* src, QString & srcFormat, bool & ds
             srcFormat = "RGBA8888";
             dst = src;
             dstNeedUnload = false;
+            mIsRGB = true;
         }
         else if (24 == bpp) {
             srcFormat = "RGB888";
             dst = src;
             dstNeedUnload = false;
+            mIsRGB = true;
         }
         else if (8 == bpp) {
             if (FIC_PALETTE == FreeImage_GetColorType(src)) {
                 srcFormat = "RGB Indexed 8bit";
                 dst = FreeImage_ConvertTo32Bits(src);
                 dstNeedUnload = true;
+                mIsRGB = true;
             }
             else {
                 srcFormat = "Greyscale 8bit";
@@ -122,11 +140,20 @@ FIBITMAP* Image::cvtToInternalType(FIBITMAP* src, QString & srcFormat, bool & ds
             srcFormat = "RGB Indexed 4bit";
             dst = FreeImage_ConvertTo32Bits(src);
             dstNeedUnload = true;
+            mIsRGB = true;
         }
         else if(1 == bpp) {
-            srcFormat = "Mono 1bit";
-            dst = src;
-            dstNeedUnload = false;
+            if (FIC_PALETTE == FreeImage_GetColorType(src)) {
+                srcFormat = "RGB Indexed 1bit";
+                dst = FreeImage_ConvertTo32Bits(src);
+                dstNeedUnload = true;
+                mIsRGB = true;
+            }
+            else {
+                srcFormat = "Binary image";
+                dst = src;
+                dstNeedUnload = false;
+            }
         }
         break;
 

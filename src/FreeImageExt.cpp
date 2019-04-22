@@ -20,11 +20,12 @@
 
 #include <algorithm>
 #include <cassert>
+#include <tuple>
 
 namespace
 {
-
-    float clamp(float x, float lo = 0.0f, float hi = 1.0f)
+    template <typename Ty_>
+    const Ty_ & clamp(const Ty_ & x, const Ty_ & lo = static_cast<Ty_>(0), const Ty_ & hi = static_cast<Ty_>(1))
     {
         return std::max(lo, std::min(x, hi));
     }
@@ -49,6 +50,7 @@ namespace
 
     FIBITMAP* applyToneMappingNone(FIBITMAP* src)
     {
+        assert(src);
         FIBITMAP* dst = nullptr;
         const unsigned h = FreeImage_GetHeight(src);
         const unsigned w = FreeImage_GetWidth(src);
@@ -76,6 +78,15 @@ namespace
                 });
                 break;
             }
+            case FIT_DOUBLE: {
+                dst = FreeImage_Allocate(w, h, 8);
+                cvtBitmap(dst, src, [](void* dstPtr, const void* srcPtr) {
+                    const auto dstPixel = static_cast<BYTE*>(dstPtr);
+                    const auto srcPixel = static_cast<const double*>(srcPtr);
+                    *dstPixel = static_cast<BYTE>(clamp(*srcPixel) * 255.0);
+                });
+                break;
+            }
             case FIT_FLOAT: {
                 dst = FreeImage_Allocate(w, h, 8);
                 cvtBitmap(dst, src, [](void* dstPtr, const void* srcPtr) {
@@ -91,61 +102,83 @@ namespace
         return dst;
     }
 
-    FIBITMAP* applyToneMappingGlobal(FIBITMAP* src)
+    template <typename Ty_>
+    std::tuple<Ty_, Ty_> findMinMax(FIBITMAP* src)
     {
-        FIBITMAP* dst = nullptr;
+        assert(src);
         const unsigned h = FreeImage_GetHeight(src);
         const unsigned w = FreeImage_GetWidth(src);
-        float minVal = std::numeric_limits<float>::max();
-        float maxVal = std::numeric_limits<float>::min();
-        const uint32_t lineLength = w * (FreeImage_GetBPP(src) / 8 / sizeof(float));
+        Ty_ minVal = std::numeric_limits<Ty_>::max();
+        Ty_ maxVal = std::numeric_limits<Ty_>::min();
+        const uint32_t lineLength = w * (FreeImage_GetBPP(src) / 8 / sizeof(Ty_));
         for (unsigned j = 0; j < h; ++j) {
-            const auto srcLine = static_cast<const float*>(static_cast<const void*>(FreeImage_GetScanLine(src, j)));
+            const auto srcLine = static_cast<const Ty_*>(static_cast<const void*>(FreeImage_GetScanLine(src, j)));
             for (unsigned i = 0; i < lineLength; ++i) {
                 minVal = std::min(minVal, srcLine[i]);
                 maxVal = std::max(maxVal, srcLine[i]);
             }
         }
-        if(minVal >= 0.0f && maxVal <= 1.0f) {
-            dst = applyToneMappingNone(src);
-        }
-        else {
-            switch (FreeImage_GetImageType(src)) {
-                case FIT_RGBAF: {
-                    dst = FreeImage_Allocate(w, h, 32);
-                    cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
-                        const auto dstPixel = static_cast<tagRGBQUAD*>(dstPtr);
-                        const auto srcPixel = static_cast<const tagFIRGBAF*>(srcPtr);
-                        dstPixel->rgbRed      = static_cast<BYTE>(((srcPixel->red   - minVal) / (maxVal - minVal)) * 255.0f);
-                        dstPixel->rgbGreen    = static_cast<BYTE>(((srcPixel->green - minVal) / (maxVal - minVal)) * 255.0f);
-                        dstPixel->rgbBlue     = static_cast<BYTE>(((srcPixel->blue  - minVal) / (maxVal - minVal)) * 255.0f);
-                        dstPixel->rgbReserved = static_cast<BYTE>(((srcPixel->alpha - minVal) / (maxVal - minVal)) * 255.0f);
-                    });
-                    break;
-                }
-                case FIT_RGBF : {
-                    dst = FreeImage_Allocate(w, h, 24);
-                    cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
-                        const auto dstPixel = static_cast<tagRGBTRIPLE*>(dstPtr);
-                        const auto srcPixel = static_cast<const tagFIRGBF*>(srcPtr);
-                        dstPixel->rgbtRed   = static_cast<BYTE>(((srcPixel->red   - minVal) / (maxVal - minVal)) * 255.0f);
-                        dstPixel->rgbtGreen = static_cast<BYTE>(((srcPixel->green - minVal) / (maxVal - minVal)) * 255.0f);
-                        dstPixel->rgbtBlue  = static_cast<BYTE>(((srcPixel->blue  - minVal) / (maxVal - minVal)) * 255.0f);
-                    });
-                    break;
-                }
-                case FIT_FLOAT: {
-                    dst = FreeImage_Allocate(w, h, 8);
-                    cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
-                        const auto dstPixel = static_cast<BYTE*>(dstPtr);
-                        const auto srcPixel = static_cast<const float*>(srcPtr);
-                        *dstPixel = static_cast<BYTE>(((*srcPixel - minVal) / (maxVal - minVal)) * 255.0f);
-                    });
-                    break;
-                }
-                default:
-                    break;
+        return std::make_tuple(minVal, maxVal);
+    }
+
+    FIBITMAP* applyToneMappingGlobal(FIBITMAP* src)
+    {
+        assert(src);
+        FIBITMAP* dst = nullptr;
+        const unsigned h = FreeImage_GetHeight(src);
+        const unsigned w = FreeImage_GetWidth(src);
+        switch (FreeImage_GetImageType(src)) {
+            case FIT_RGBAF: {
+                float minVal = 0.0f, maxVal = 1.0f;
+                std::tie(minVal, maxVal) = findMinMax<float>(src);
+                dst = FreeImage_Allocate(w, h, 32);
+                cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
+                    const auto dstPixel = static_cast<tagRGBQUAD*>(dstPtr);
+                    const auto srcPixel = static_cast<const tagFIRGBAF*>(srcPtr);
+                    dstPixel->rgbRed      = static_cast<BYTE>(((srcPixel->red   - minVal) / (maxVal - minVal)) * 255.0f);
+                    dstPixel->rgbGreen    = static_cast<BYTE>(((srcPixel->green - minVal) / (maxVal - minVal)) * 255.0f);
+                    dstPixel->rgbBlue     = static_cast<BYTE>(((srcPixel->blue  - minVal) / (maxVal - minVal)) * 255.0f);
+                    dstPixel->rgbReserved = static_cast<BYTE>(((srcPixel->alpha - minVal) / (maxVal - minVal)) * 255.0f);
+                });
+                break;
             }
+            case FIT_RGBF : {
+                float minVal = 0.0f, maxVal = 1.0f;
+                std::tie(minVal, maxVal) = findMinMax<float>(src);
+                dst = FreeImage_Allocate(w, h, 24);
+                cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
+                    const auto dstPixel = static_cast<tagRGBTRIPLE*>(dstPtr);
+                    const auto srcPixel = static_cast<const tagFIRGBF*>(srcPtr);
+                    dstPixel->rgbtRed   = static_cast<BYTE>(((srcPixel->red   - minVal) / (maxVal - minVal)) * 255.0f);
+                    dstPixel->rgbtGreen = static_cast<BYTE>(((srcPixel->green - minVal) / (maxVal - minVal)) * 255.0f);
+                    dstPixel->rgbtBlue  = static_cast<BYTE>(((srcPixel->blue  - minVal) / (maxVal - minVal)) * 255.0f);
+                });
+                break;
+            }
+            case FIT_DOUBLE: {
+                double minVal = 0.0f, maxVal = 1.0f;
+                std::tie(minVal, maxVal) = findMinMax<double>(src);
+                dst = FreeImage_Allocate(w, h, 8);
+                cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
+                    const auto dstPixel = static_cast<BYTE*>(dstPtr);
+                    const auto srcPixel = static_cast<const double*>(srcPtr);
+                    *dstPixel = static_cast<BYTE>(((*srcPixel - minVal) / (maxVal - minVal)) * 255.0f);
+                });
+                break;
+            }
+            case FIT_FLOAT: {
+                float minVal = 0.0f, maxVal = 1.0f;
+                std::tie(minVal, maxVal) = findMinMax<float>(src);
+                dst = FreeImage_Allocate(w, h, 8);
+                cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
+                    const auto dstPixel = static_cast<BYTE*>(dstPtr);
+                    const auto srcPixel = static_cast<const float*>(srcPtr);
+                    *dstPixel = static_cast<BYTE>(((*srcPixel - minVal) / (maxVal - minVal)) * 255.0f);
+                });
+                break;
+            }
+            default:
+                break;
         }
         return dst;
     }
@@ -154,7 +187,7 @@ namespace
 FIBITMAP* FreeImageExt_ToneMapping(FIBITMAP* src, FIE_ToneMapping mode)
 {
     FIBITMAP* dst = nullptr;
-    if(src) {
+    if (src) {
         switch(mode) {
             case FIETMO_NONE:
                 dst = applyToneMappingNone(src);
@@ -162,9 +195,13 @@ FIBITMAP* FreeImageExt_ToneMapping(FIBITMAP* src, FIE_ToneMapping mode)
             case FIETMO_LINEAR:
                 dst = applyToneMappingGlobal(src);
                 break;
-            default:
-                dst = FreeImage_ToneMapping(src, static_cast<FREE_IMAGE_TMO>(mode));
+            default: {
+                //const auto fit = FreeImage_GetImageType(src);
+                //if (fit == FIT_RGBF || fit == FIT_RGBAF) {
+                    dst = FreeImage_ToneMapping(src, static_cast<FREE_IMAGE_TMO>(mode));
+                //}
                 break;
+            }
         }
     }
     return dst;

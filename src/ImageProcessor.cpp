@@ -61,14 +61,18 @@ Frame ImageProcessor::getResult()
             std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> rotated(nullptr, &::FreeImage_Unload);
             if (mRotation != Rotation::eDegree0) {
                 rotated.reset(FreeImage_Rotate(bmp, static_cast<double>(toDegree(mRotation))));
-                target = rotated.get();
+                if (rotated) {
+                    target = rotated.get();
+                }
             }
 
             std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> tonemapped(nullptr, &::FreeImage_Unload);
             const auto imgType = FreeImage_GetImageType(target);
-            if (imgType == FIT_RGBF || imgType == FIT_RGBAF) {
+            if (imgType == FIT_RGBF || imgType == FIT_RGBAF || imgType == FIT_FLOAT || imgType == FIT_DOUBLE) {
                 tonemapped.reset(FreeImageExt_ToneMapping(target, mToneMapping));
-                target = tonemapped.get();
+                if (tonemapped) {
+                    target = tonemapped.get();
+                }
             }
 
             mDstPixmap = QPixmap::fromImage(makeQImageView(target));
