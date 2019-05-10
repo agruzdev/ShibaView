@@ -37,10 +37,10 @@ enum class DisposalType
 
 struct AnimationInfo
 {
-    uint16_t offsetX;
-    uint16_t offsetY;
-    uint32_t duration;
-    DisposalType disposal;
+    uint16_t offsetX  = 0;
+    uint16_t offsetY  = 0;
+    uint32_t duration = 0;
+    DisposalType disposal = DisposalType::eUnspecified;
 };
 
 class ImageSource

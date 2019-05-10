@@ -20,7 +20,8 @@ HEADERS       = \
     ImageProcessor.h \
     FreeImageExt.h \
     ImageInfo.h \
-    ImageDescription.h
+    ImageDescription.h \
+    Player.h
 
 SOURCES       = \
     main.cpp \
@@ -38,7 +39,8 @@ SOURCES       = \
     UniqueTick.cpp \
     ImageProcessor.cpp \
     FreeImageExt.cpp \
-    ImageDescription.cpp
+    ImageDescription.cpp \
+    Player.cpp
 
 RC_FILE = resources.rc
 

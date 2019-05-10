@@ -29,6 +29,7 @@
 #include <QPainter>
 #include <QSettings>
 #include <QScreen>
+#include <QTransform>
 #include <QGraphicsDropShadowEffect>
 #include <QRawFont>
 #include <QWidgetAction>
@@ -206,7 +207,7 @@ QMenu* CanvasWidget::createContextMenu()
         // ToDo (.gruzdev): Temporal arrow fix
         const auto tmAction = createMenuAction(QString::fromUtf8("Tone mapping " "\xE2\x80\xA3"));
         QMenu* tmMenu = new QMenu(menu);
-        if (mImage->isHDR()) {
+        if (mImage && testFlag(mImage->getFrame().flags, FrameFlags::eHRD)) {
             const auto & tmActions = mActToneMapping.get();
 
             tmMenu->addAction(tmActions[FIETMO_NONE]);
@@ -357,7 +358,7 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
         delete mContextMenu;
         mContextMenu = nullptr;
     }
-    mCurrPage = Image::kNonePage;
+    mAnimIndex = kNoneIndex;
 
     mImage = std::move(image);
     if(mImage) {
@@ -415,6 +416,8 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
 
             mImageProcessor->attachSource(mImage);
         }
+
+        mImageDescription->setFormat(mImage->getFrame().srcFormat);
 
         setWindowTitle(mImage->info().path + " - " + QApplication::applicationName());
     }
@@ -567,8 +570,18 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, true);
         }
 
-        const Frame frame = mImageProcessor->getResult();
-        painter.drawPixmap(calculateImageRegion(), frame.pixmap);
+        const ImageFrame & frame = mImage->getFrame();
+
+        const auto dstRect   = calculateImageRegion();
+        const auto dstCenter = dstRect.center();
+
+        // Make vertical flip
+        const auto trans1 = QTransform::fromTranslate(-dstCenter.x(), -dstCenter.y());
+        const auto scale  = QTransform::fromScale(1.0, -1.0);
+        const auto trans2 = QTransform::fromTranslate(dstCenter.x(), dstCenter.y());
+        painter.setTransform(trans1 * scale * trans2);
+
+        painter.drawPixmap(dstRect, mImageProcessor->getResult());
 
         if (mShowInfo) {
             if (!mInfoIsValid) {
@@ -579,7 +592,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             }
             mInfoText->show();
             if (mPageText) {
-                mPageText->setText("Page " + QString::number(frame.pageIndex + 1) + "/" + QString::number(mImage->pagesCount()));
+                mPageText->setText("Page " + QString::number(frame.index + 1) + "/" + QString::number(mImage->pagesCount()));
                 mPageText->show();
             }
         }
@@ -590,10 +603,12 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             }
         }
 
-        if ((frame.pageIndex != mCurrPage) && (mImage->pagesCount() > 1)) {
-            new UniqueTick(mImage->id(), frame.duration, this, &CanvasWidget::onAnimationTick, this);
+        if(mImage->pagesCount() > 1) {
+            if (frame.index != mAnimIndex) {
+                new UniqueTick(mImage->id(), frame.duration, this, &CanvasWidget::onAnimationTick, this);
+            }
+            mAnimIndex = frame.index;
         }
-        mCurrPage = frame.pageIndex;
     }
     else {
         const auto dstRegion = fitWidth(512, 512);
@@ -996,14 +1011,14 @@ void CanvasWidget::onActZoomMode(bool checked, ZoomMode z)
 void CanvasWidget::onAnimationTick(uint64_t imgId)
 {
     if (mImage && mImage->id() == imgId && !mImage->isNull()) {
-        mImage->readNextPage();
+        mImage->next();
         update();
     }
 }
 
 void CanvasWidget::onActToneMapping(bool checked, FIE_ToneMapping m)
 {
-    if (checked && mImage && !mImage->isNull() && mImage->isHDR()) {
+    if (checked && mImage && !mImage->isNull() && testFlag(mImage->getFrame().flags, FrameFlags::eHRD)) {
         mImageProcessor->setToneMappingMode(m);
         if (mImageDescription) {
             mImageDescription->setToneMapping(m);

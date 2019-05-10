@@ -48,19 +48,17 @@ ImageProcessor::ImageProcessor() = default;
 
 ImageProcessor::~ImageProcessor() = default;
 
-Frame ImageProcessor::getResult()
+const QPixmap & ImageProcessor::getResult()
 {
-    Frame res{};
     const auto pImg = mSrcImage.lock();
     if (pImg) {
-        Image::PageInfo info;
-        const auto bmp = pImg->get(&info);
+        const ImageFrame & frame = pImg->getFrame();
         if (!mDstPixmap || !mIsValid) {
-            FIBITMAP* target = bmp;
+            FIBITMAP* target = frame.bmp;
 
             std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> rotated(nullptr, &::FreeImage_Unload);
             if (mRotation != Rotation::eDegree0) {
-                rotated.reset(FreeImage_Rotate(bmp, static_cast<double>(toDegree(mRotation))));
+                rotated.reset(FreeImage_Rotate(frame.bmp, static_cast<double>(toDegree(mRotation))));
                 if (rotated) {
                     target = rotated.get();
                 }
@@ -78,11 +76,8 @@ Frame ImageProcessor::getResult()
             mDstPixmap = QPixmap::fromImage(makeQImageView(target));
             mIsValid = true;
         }
-        res.pixmap    = mDstPixmap;
-        res.pageIndex = info.index;
-        res.duration  = info.duration;
     }
-    return res;
+    return mDstPixmap;
 }
 
 void ImageProcessor::attachSource(QWeakPointer<Image> image)

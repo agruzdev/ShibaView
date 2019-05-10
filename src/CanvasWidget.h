@@ -140,9 +140,9 @@ private:
     QMenu* createContextMenu();
 
 private:
-    //QSharedPointer<Image> mPendingImage;
 
     ImagePtr mImage;
+
     std::unique_ptr<ImageDescription> mImageDescription;
 
     std::unique_ptr<ImageProcessor> mImageProcessor;
@@ -187,7 +187,7 @@ private:
 
     QMenu* mContextMenu = nullptr;
 
-    uint32_t mCurrPage = Image::kNonePage;
+    uint32_t mAnimIndex = 0;
 
     // actions
     std::shared_future<ActionsArray<Rotation>> mActRotate;

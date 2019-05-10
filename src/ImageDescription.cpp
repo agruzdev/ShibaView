@@ -43,12 +43,12 @@ QVector<QString> ImageDescription::toLines() const
         res.back().append(" [?]");
     }
     res.push_back("File size: " + QString::number(mFileInfo.bytes / 1024.0f, 'f', 1) + "KB");
-    res.push_back("Format: " + mFileInfo.format);
+    res.push_back("Format: " + mFormat);
     if(mToneMapping != FIE_ToneMapping::FIETMO_NONE) {
         res.back().append(" (TM: " + QString::fromUtf8(FreeImageExt_TMtoString(mToneMapping)) + ")");
     }
     res.push_back("Last modified: " + mFileInfo.modified.toString("yyyy/MM/dd hh:mm:ss"));
-    res.push_back("Resolution: " + QString::number(mFileInfo.dims.width()) + "x" + QString::number(mFileInfo.dims.height()));
+    res.push_back("Resolution: " + QString::number(mFileInfo.dims.width) + "x" + QString::number(mFileInfo.dims.height));
     res.push_back("");
     res.push_back("Zoom: " + toPercent(mZoomFactor));
     return res;

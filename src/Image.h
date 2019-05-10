@@ -25,19 +25,8 @@
 #include <QPixmap>
 
 #include "ImageInfo.h"
-
+#include "Player.h"
 #include "FreeImage.h"
-
-class ImageSource;
-
-static Q_CONSTEXPR uint32_t kNoneIndex = std::numeric_limits<uint32_t>::max();
-
-struct Frame
-{
-    QPixmap pixmap;
-    uint32_t pageIndex = kNoneIndex;
-    uint32_t duration  = 0;
-};
 
 class Image;
 
@@ -54,14 +43,6 @@ class Image
     using BitmapPtr = std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)>;
 
 public:
-    static Q_CONSTEXPR uint32_t kNonePage = std::numeric_limits<uint32_t>::max();
-
-    struct PageInfo
-    {
-        uint32_t index    = kNonePage;
-        uint32_t duration = 0;
-    };
-
     Image(QString name, QString filename) noexcept;
     ~Image();
 
@@ -71,71 +52,52 @@ public:
     Image& operator=(const Image&) = delete;
     Image& operator=(Image&&) = delete;
 
-    FIBITMAP* get(PageInfo* info) const;
+    const ImageFrame & getFrame() const
+    {
+        return mImagePlayer->getCurrentFrame();
+    }
 
     const ImageInfo & info() const
     {
         return mInfo;
     }
 
-    uint32_t width() const;
-    uint32_t height() const;
+    uint32_t width() const
+    {
+        return mInfo.dims.width;
+    }
+
+    uint32_t height() const
+    {
+        return mInfo.dims.height;
+    }
 
     bool isNull() const
     {
-        return (mBitmapInternal == nullptr);
+        return (mImagePlayer == nullptr);
     }
 
-    uint32_t pagesCount() const Q_DECL_NOEXCEPT;
+    uint32_t pagesCount() const
+    {
+        return mImagePlayer->framesNumber();
+    }
 
-    void readNextPage() Q_DECL_NOEXCEPT;
+    void next();
 
     uint64_t id() const
     {
         return mId;
     }
 
-    /**
-     * True is pixel is floating point
-     */
-    bool isHDR() const
-    {
-        return mIsHDR;
-    }
-
-    /**
-     * True for color images
-     */
-    bool isRGB() const
-    {
-        return mIsRGB;
-    }
-
     void addListener(ImageListener* listener);
     void removeListener(ImageListener* listener);
 
 private:
-
-    FIBITMAP* cvtToInternalType(FIBITMAP* src, QString & srcFormat, bool & dstNeedUnload);
-    bool readCurrentPage(QString & format) Q_DECL_NOEXCEPT;
-
     uint64_t mId;
 
-    std::unique_ptr<ImageSource> mImageSource;
+    std::unique_ptr<Player> mImagePlayer;
+
     ImageInfo mInfo;
-
-    uint32_t mPageIdx = kNonePage;
-    FIBITMAP* mPage = nullptr;
-
-    FIBITMAP* mBitmapInternal = nullptr;
-    bool mNeedUnloadBitmap = false;
-
-    mutable bool mInvalidPixmap = false;
-
-    mutable PageInfo mPageInfo;
-
-    bool mIsHDR = false;
-    bool mIsRGB = false;
 
     std::vector<ImageListener*> mListeners;
 };

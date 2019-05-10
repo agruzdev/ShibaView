@@ -101,7 +101,10 @@ public:
      */
     uint32_t height() const;
 
-    Frame getResult();
+    /**
+     * Processed frame, ready to draw
+     */
+    const QPixmap & getResult();
 
 private:
     void onInvalidated(Image* emitter) override;

@@ -35,6 +35,11 @@ public:
         mFileInfo = std::move(info);
     }
 
+    void setFormat(QString fmt)
+    {
+        mFormat = std::move(fmt);
+    }
+
     void setToneMapping(FIE_ToneMapping mode)
     {
         mToneMapping = mode;
@@ -60,6 +65,7 @@ public:
 
 private:
     ImageInfo mFileInfo;
+    QString mFormat;
     float mZoomFactor = 1.0f;
     FIE_ToneMapping mToneMapping = FIE_ToneMapping::FIETMO_NONE;
     bool mChangedFlag = false;

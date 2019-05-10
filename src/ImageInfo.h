@@ -23,14 +23,20 @@
 #include <QSize>
 #include <QString>
 
+struct ImageSize
+{
+    uint32_t width  = 0;
+    uint32_t height = 0;
+};
+
 struct ImageInfo
 {
     QString path;
     QString name;
     size_t bytes = 0;
-    QString format;
+    //QString format;
     QDateTime modified;
-    QSize dims;
+    ImageSize dims;
 };
 
 #endif // IMAGEINFO_H
