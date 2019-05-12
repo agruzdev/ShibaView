@@ -20,7 +20,6 @@
 #define IMAGEINFO_H
 
 #include <QDateTime>
-#include <QSize>
 #include <QString>
 
 struct ImageSize
@@ -34,7 +33,6 @@ struct ImageInfo
     QString path;
     QString name;
     size_t bytes = 0;
-    //QString format;
     QDateTime modified;
     ImageSize dims;
 };

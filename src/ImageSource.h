@@ -19,6 +19,7 @@
 #ifndef IMAGESOURCE_H
 #define IMAGESOURCE_H
 
+#include <cassert>
 #include <cstdint>
 #include <memory>
 
@@ -43,36 +44,66 @@ struct AnimationInfo
     DisposalType disposal = DisposalType::eUnspecified;
 };
 
+
 class ImageSource
 {
 public:
+    ImageSource() = default;
     virtual ~ImageSource() = default;
 
-    /**
-     * Pages count
-     */
-    virtual uint32_t pagesCount() const Q_DECL_NOEXCEPT = 0;
+    ImageSource(const ImageSource&) = delete;
+    ImageSource(ImageSource&&) = delete;
 
-    /**
-     * Get page data, read-only mode
-     * @param anim - optional output animation info. Image is animated if pagesCount() > 1
-     */
-    virtual FIBITMAP* decodePage(uint32_t pageIdx, AnimationInfo* anim) Q_DECL_NOEXCEPT = 0;
+    ImageSource& operator=(const ImageSource&) = delete;
+    ImageSource& operator=(ImageSource&&) = delete;
 
-    /**
-     * Release page data
-     */
-    virtual void releasePage(FIBITMAP* page) Q_DECL_NOEXCEPT = 0;
 
-    /**
-     * Return if pages store only residual map
-     */
-    virtual bool storesResidual() const = 0;
+    uint32_t pagesCount() const
+    {
+        return doPagesCount();
+    }
+
+    bool storesDiffernece() const
+    {
+        return doStoresDifference();
+    }
+
+    std::shared_ptr<FIBITMAP> lockPage(uint32_t pageIdx, AnimationInfo* anim)
+    {
+        return std::shared_ptr<FIBITMAP>(doDecodePage(pageIdx, anim), [this](FIBITMAP* page) {
+            if (page) {
+                doReleasePage(page);
+            }
+        });
+    }
 
     //---------------------------------------------------------
 
     static
     std::unique_ptr<ImageSource> Load(const QString & filename) Q_DECL_NOEXCEPT;
+
+protected:
+
+    /**
+     * Pages count
+     */
+    virtual uint32_t doPagesCount() const Q_DECL_NOEXCEPT = 0;
+
+    /**
+     * Get page data, read-only mode
+     * @param anim - optional output animation info. Image is animated if pagesCount() > 1
+     */
+    virtual FIBITMAP* doDecodePage(uint32_t pageIdx, AnimationInfo* anim) Q_DECL_NOEXCEPT = 0;
+
+    /**
+     * Release page data
+     */
+    virtual void doReleasePage(FIBITMAP* page) Q_DECL_NOEXCEPT = 0;
+
+    /**
+     * Return if pages stores difference
+     */
+    virtual bool doStoresDifference() const Q_DECL_NOEXCEPT = 0;
 };
 
 

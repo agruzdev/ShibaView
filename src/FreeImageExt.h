@@ -37,5 +37,22 @@ FIBITMAP* FreeImageExt_ToneMapping(FIBITMAP* src, FIE_ToneMapping mode);
  */
 const char* FreeImageExt_TMtoString(FIE_ToneMapping mode);
 
+
+enum FIE_AlphaFunction
+{
+    FIEAF_SrcAlpha ///< Use only src alpha, ignore dst alpha
+};
+
+/**
+ * Draw 'src' bitmap onto 'dst' bitmap.
+ * @param dst Destination bitmap (only 32bpp is supported for now).
+ * @param src Source bitmap (only 32bpp is supported for now).
+ * @param alpha Alpha function used for blending dst and src pixels.
+ * @param left X coordinate of the 'src' image top left corner in 'dst' coordinates.
+ * @param top Y coordinate of the 'src' image top left corner in 'dst' coordinates.
+ * @return True on success
+ */
+BOOL FreeImageExt_Draw(FIBITMAP* dst, FIBITMAP* src, FIE_AlphaFunction alpha, int left FI_DEFAULT(0), int top FI_DEFAULT(0));
+
 #endif // FREEIMAGEEXT_H
 

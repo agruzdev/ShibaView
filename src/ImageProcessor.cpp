@@ -106,6 +106,7 @@ void ImageProcessor::detachSource()
 void ImageProcessor::onInvalidated(Image* emitter)
 {
     assert(emitter == mSrcImage.lock().get());
+    (void)emitter;
     mIsValid = false;
 }
 

@@ -82,12 +82,12 @@ MultibitmapSource::~MultibitmapSource()
     }
 }
 
-uint32_t MultibitmapSource::pagesCount() const Q_DECL_NOEXCEPT
+uint32_t MultibitmapSource::doPagesCount() const Q_DECL_NOEXCEPT
 {
     return static_cast<uint32_t>(FreeImage_GetPageCount(mMultibitmap));
 }
 
-FIBITMAP* MultibitmapSource::decodePage(uint32_t pageIdx, AnimationInfo* anim) Q_DECL_NOEXCEPT
+FIBITMAP* MultibitmapSource::doDecodePage(uint32_t pageIdx, AnimationInfo* anim) Q_DECL_NOEXCEPT
 {
     const auto bmp = FreeImage_LockPage(mMultibitmap, static_cast<int>(pageIdx));
     if (bmp && anim) {
@@ -99,12 +99,12 @@ FIBITMAP* MultibitmapSource::decodePage(uint32_t pageIdx, AnimationInfo* anim) Q
     return bmp;
 }
 
-void MultibitmapSource::releasePage(FIBITMAP* page) Q_DECL_NOEXCEPT
+void MultibitmapSource::doReleasePage(FIBITMAP* page) Q_DECL_NOEXCEPT
 {
     FreeImage_UnlockPage(mMultibitmap, page, false);
 }
 
-bool MultibitmapSource::storesResidual() const Q_DECL_NOEXCEPT
+bool MultibitmapSource::doStoresDifference() const Q_DECL_NOEXCEPT
 {
     return mFormat == FIF_GIF;
 }

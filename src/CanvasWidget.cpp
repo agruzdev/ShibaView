@@ -1011,7 +1011,12 @@ void CanvasWidget::onActZoomMode(bool checked, ZoomMode z)
 void CanvasWidget::onAnimationTick(uint64_t imgId)
 {
     if (mImage && mImage->id() == imgId && !mImage->isNull()) {
-        mImage->next();
+        try {
+            mImage->next();
+        }
+        catch(...) {
+            // ToDo (a.gruzdev): Report error here
+        }
         update();
     }
 }

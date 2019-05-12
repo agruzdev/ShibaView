@@ -20,43 +20,46 @@
 
 #include <cassert>
 #include "ImageSource.h"
+#include "FreeImageExt.h"
+
 
 Player::Player(std::unique_ptr<ImageSource> && src)
-    : mSource(std::move(src))
+    //: mSource(std::move(src))
 {
-    if (!mSource) {
+    if (!src) {
         throw std::runtime_error("Player[Player]: Image source is null.");
     }
 
-    const auto framesNum = framesNumber();
+    const auto framesNum = src->pagesCount();
     if (framesNum > 0) {
-        mCurrentPage = mSource->decodePage(0, &mCurrentAnimation);
-        if(!mCurrentPage) {
+        AnimationInfo anim{};
+        mCurrentPage = src->lockPage(0, &anim);
+        if (!mCurrentPage) {
             throw std::runtime_error("Player[Player]: Failed to read image source.");
         }
         try {
-            mCurrentFrame = cvtToInternalType(mCurrentPage, mFrameNeedsUnload);
+            mCurrentFrame = cvtToInternalType(mCurrentPage.get(), mFrameNeedsUnload);
             if (!mCurrentFrame.bmp) {
                 throw std::runtime_error("Player[Player]: Failed to convert a frame.");
             }
 
             mCurrentFrame.index = 0;
             if (framesNum > 1) {
-                mCurrentFrame.duration = mCurrentAnimation.duration;
+                mCurrentFrame.duration = anim.duration;
             }
 
             // Release page early if bitmap owns data
             if (mFrameNeedsUnload) {
-                mSource->releasePage(mCurrentPage);
-                mCurrentPage = nullptr;
+                mCurrentPage.reset();
             }
         }
         catch(...) {
-            mSource->releasePage(mCurrentPage);
+            mCurrentPage = nullptr;
             throw;
         }
     }
 
+    mSource = std::move(src);
 }
 
 Player::~Player()
@@ -64,9 +67,7 @@ Player::~Player()
     if (mFrameNeedsUnload) {
         FreeImage_Unload(mCurrentFrame.bmp);
     }
-    if (mSource && mCurrentPage) {
-        mSource->releasePage(mCurrentPage);
-    }
+    mCurrentPage = nullptr;
 }
 
 const ImageFrame & Player::getCurrentFrame() const
@@ -81,71 +82,53 @@ void Player::next()
         const uint32_t prevIdx = mCurrentFrame.index;
         const uint32_t nextIdx = (prevIdx + 1) % mSource->pagesCount();
 
-        FIBITMAP* prevBmp = nullptr;
-        if (mCurrentFrame.bmp && mSource->storesResidual()) {
-            prevBmp = FreeImage_ConvertTo24Bits(mCurrentFrame.bmp);
-        }
-
-        // Free old internal bitmap, if it owns data
-        if (mFrameNeedsUnload) {
-            FreeImage_Unload(mCurrentFrame.bmp);
-            mFrameNeedsUnload = false;
-        }
-        mCurrentFrame.bmp = nullptr;
-        // Release old page if it is held
-        if (mCurrentPage) {
-            mSource->releasePage(mCurrentPage);
-            mCurrentPage = nullptr;
-        }
-        // decode current page
-        mCurrentPage = mSource->decodePage(nextIdx, &mCurrentAnimation);
-        if (!mCurrentPage) {
+        AnimationInfo nextAnim{};
+        auto nextPage = mSource->lockPage(nextIdx, &nextAnim);
+        if (!nextPage) {
             throw std::runtime_error("Player[next]: Failed to decode the next page.");
         }
 
-        // Convert to internal bitmap
-        mCurrentFrame = cvtToInternalType(mCurrentPage, mFrameNeedsUnload);
-        if (!mCurrentFrame.bmp) {
-            throw std::runtime_error("Player[Player]: Failed to convert a frame.");
+        bool nextNeedsUnload = false;
+        ImageFrame nextFrame = cvtToInternalType(nextPage.get(), nextNeedsUnload);
+        if (!nextFrame.bmp) {
+            throw std::runtime_error("Player[next]: Failed to convert the next frame.");
         }
 
-        if (prevBmp) {
-            const int32_t dw = FreeImage_GetWidth(prevBmp)  - FreeImage_GetWidth(mCurrentFrame.bmp);
-            const int32_t dh = FreeImage_GetHeight(prevBmp) - FreeImage_GetHeight(mCurrentFrame.bmp);
-            if (dw != 0 || dh != 0) {
-                // Apply foreground offset
-                RGBQUAD transparent {};
-                transparent.rgbReserved = 0x00;
-                // Internal image is vertically flipped -> offsetY is applied from below
-                //FIBITMAP* foreground = FreeImage_EnlargeCanvas(mCurrentFrame.bmp, mCurrentAnimation.offsetX, dh - mCurrentAnimation.offsetY, dw - mCurrentAnimation.offsetX, mCurrentAnimation.offsetY, &transparent, FI_COLOR_IS_RGBA_COLOR);
-                FIBITMAP* foreground = FreeImage_EnlargeCanvas(mCurrentFrame.bmp, mCurrentAnimation.offsetX, mCurrentAnimation.offsetY, dw - mCurrentAnimation.offsetX, dh - mCurrentAnimation.offsetY, &transparent, FI_COLOR_IS_RGBA_COLOR);
-                if (foreground) {
-                    if (mFrameNeedsUnload) {
-                        FreeImage_Unload(mCurrentFrame.bmp);
-                    }
-                    mCurrentFrame.bmp = foreground;
-                    mFrameNeedsUnload = true;
-                }
-            }
-            FIBITMAP* composed = FreeImage_Composite(mCurrentFrame.bmp, FALSE, nullptr, prevBmp);
-            FreeImage_Unload(prevBmp);
-            if (composed) {
-                if (mFrameNeedsUnload) {
-                    FreeImage_Unload(mCurrentFrame.bmp);
-                }
-                mCurrentFrame.bmp = composed;
+        if (nextNeedsUnload) {
+            nextPage = nullptr;
+        }
+
+        if (mSource->storesDiffernece()) {
+            if (!mFrameNeedsUnload) {
+                mCurrentFrame.bmp = FreeImage_Clone(mCurrentFrame.bmp);
                 mFrameNeedsUnload = true;
             }
+
+            const auto drawSuccess = FreeImageExt_Draw(mCurrentFrame.bmp, nextFrame.bmp, FIEAF_SrcAlpha, nextAnim.offsetX, nextAnim.offsetY);
+
+            if (nextNeedsUnload) {
+                FreeImage_Unload(nextFrame.bmp);
+            }
+
+            if(!drawSuccess) {
+                throw std::runtime_error("Player[Player]: Failed to combine frames.");
+            }
+
+            nextFrame.bmp = mCurrentFrame.bmp;
+            nextNeedsUnload = true;
+            mFrameNeedsUnload = false;
         }
 
-        // Release page early if bitmap owns data
         if (mFrameNeedsUnload) {
-            mSource->releasePage(mCurrentPage);
-            mCurrentPage = nullptr;
+            FreeImage_Unload(mCurrentFrame.bmp);
         }
+
+        mCurrentPage      = nextPage;
+        mCurrentFrame     = nextFrame;
+        mFrameNeedsUnload = nextNeedsUnload;
 
         mCurrentFrame.index    = nextIdx;
-        mCurrentFrame.duration = mCurrentAnimation.duration;
+        mCurrentFrame.duration = nextAnim.duration;
     }
 }
 

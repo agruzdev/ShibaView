@@ -225,3 +225,56 @@ const char* FreeImageExt_TMtoString(FIE_ToneMapping mode)
             return nullptr;
     }
 }
+
+
+BOOL FreeImageExt_Draw(FIBITMAP* dst, FIBITMAP* src, FIE_AlphaFunction alpha, int left, int top)
+{
+    if (!dst || !src || FreeImage_GetImageType(dst) != FIT_BITMAP || FreeImage_GetBPP(dst) != 32 ||
+            FreeImage_GetImageType(src) != FIT_BITMAP || FreeImage_GetBPP(src) != 32) {
+        return FALSE;
+    }
+
+    const int32_t dstW = static_cast<int32_t>(FreeImage_GetWidth(dst));
+    const int32_t dstH = static_cast<int32_t>(FreeImage_GetHeight(dst));
+    const int32_t srcW = static_cast<int32_t>(FreeImage_GetWidth(src));
+    const int32_t srcH = static_cast<int32_t>(FreeImage_GetHeight(src));
+
+    if (left + srcW <= 0 || top + srcH <= 0) {
+        return TRUE;
+    }
+
+    const int32_t roiLeft   = std::max(0, left);
+    const int32_t roiTop    = std::max(0, top);
+    const int32_t roiRight  = std::min(left + srcW, dstW);
+    const int32_t roiBottom = std::min(top  + srcH, dstH);
+
+    const int32_t offsetX = roiLeft - left;
+    const int32_t offsetY = roiTop  - top;
+
+    if (alpha != FIEAF_SrcAlpha) {
+        // not implemented
+        return FALSE;
+    }
+
+    // Y axis is flipped in FI
+    for (int32_t y = roiBottom - roiTop; y > 0; --y) {
+        const auto srcLine = static_cast<const RGBQUAD*>(static_cast<const void*>(FreeImage_GetScanLine(src, srcH - y - offsetY))) + offsetX;
+        const auto dstLine = static_cast<RGBQUAD*>(static_cast<void*>(FreeImage_GetScanLine(dst, dstH - roiTop - y))) + roiLeft;
+        for (int32_t x = 0; x < roiRight - roiLeft; ++x) {
+            const BYTE A = srcLine[x].rgbReserved;
+            if (A == 255) {
+                dstLine[x] = srcLine[x];
+            }
+            else if(A > 0) {
+                const BYTE nA = ~A;
+                dstLine[x].rgbRed   = static_cast<BYTE>((A * srcLine[x].rgbRed   + nA * dstLine[x].rgbRed)   >> 8);
+                dstLine[x].rgbGreen = static_cast<BYTE>((A * srcLine[x].rgbGreen + nA * dstLine[x].rgbGreen) >> 8);
+                dstLine[x].rgbBlue  = static_cast<BYTE>((A * srcLine[x].rgbBlue  + nA * dstLine[x].rgbBlue)  >> 8);
+                dstLine[x].rgbReserved = A;
+            }
+        }
+    }
+
+    return TRUE;
+}
+

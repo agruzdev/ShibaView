@@ -37,21 +37,21 @@ BitmapSource::~BitmapSource()
     FreeImage_Unload(mBitmap);
 }
 
-uint32_t BitmapSource::pagesCount() const Q_DECL_NOEXCEPT
+uint32_t BitmapSource::doPagesCount() const Q_DECL_NOEXCEPT
 {
     return 1;
 }
 
-FIBITMAP* BitmapSource::decodePage(uint32_t /*page*/, AnimationInfo* /*anim*/) Q_DECL_NOEXCEPT
+FIBITMAP* BitmapSource::doDecodePage(uint32_t /*page*/, AnimationInfo* /*anim*/) Q_DECL_NOEXCEPT
 {
     return mBitmap;
 }
 
-void BitmapSource::releasePage(FIBITMAP*) Q_DECL_NOEXCEPT
+void BitmapSource::doReleasePage(FIBITMAP*) Q_DECL_NOEXCEPT
 {
 }
 
-bool BitmapSource::storesResidual() const Q_DECL_NOEXCEPT
+bool BitmapSource::doStoresDifference() const Q_DECL_NOEXCEPT
 {
     return false;
 }

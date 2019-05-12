@@ -90,14 +90,15 @@ public:
     Player& operator=(Player&&) = delete;
 
 private:
+    static
     ImageFrame cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload);
 
     std::unique_ptr<ImageSource> mSource;
 
-    FIBITMAP* mCurrentPage = nullptr;
+    std::shared_ptr<FIBITMAP> mCurrentPage = nullptr;
     ImageFrame mCurrentFrame{};
     bool mFrameNeedsUnload = false;
-    AnimationInfo mCurrentAnimation{};
+    //AnimationInfo mCurrentAnimation{};
 };
 
 #endif // PLAYER_H
