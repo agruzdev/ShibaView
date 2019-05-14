@@ -267,9 +267,9 @@ BOOL FreeImageExt_Draw(FIBITMAP* dst, FIBITMAP* src, FIE_AlphaFunction alpha, in
             }
             else if(A > 0) {
                 const BYTE nA = ~A;
-                dstLine[x].rgbRed   = static_cast<BYTE>((A * srcLine[x].rgbRed   + nA * dstLine[x].rgbRed)   >> 8);
-                dstLine[x].rgbGreen = static_cast<BYTE>((A * srcLine[x].rgbGreen + nA * dstLine[x].rgbGreen) >> 8);
-                dstLine[x].rgbBlue  = static_cast<BYTE>((A * srcLine[x].rgbBlue  + nA * dstLine[x].rgbBlue)  >> 8);
+                dstLine[x].rgbRed   = static_cast<BYTE>((A * srcLine[x].rgbRed   + nA * dstLine[x].rgbRed)   / 255);
+                dstLine[x].rgbGreen = static_cast<BYTE>((A * srcLine[x].rgbGreen + nA * dstLine[x].rgbGreen) / 255);
+                dstLine[x].rgbBlue  = static_cast<BYTE>((A * srcLine[x].rgbBlue  + nA * dstLine[x].rgbBlue)  / 255);
                 dstLine[x].rgbReserved = A;
             }
         }
