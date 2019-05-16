@@ -77,12 +77,19 @@ public:
         return (mImagePlayer == nullptr);
     }
 
+    bool notNull() const
+    {
+        return (mImagePlayer != nullptr);
+    }
+
     uint32_t pagesCount() const
     {
         return mImagePlayer->framesNumber();
     }
 
     void next();
+
+    void prev();
 
     uint64_t id() const
     {

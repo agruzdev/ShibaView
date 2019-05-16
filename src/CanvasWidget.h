@@ -187,6 +187,7 @@ private:
 
     QMenu* mContextMenu = nullptr;
 
+    bool mEnableAnimation = true;
     uint32_t mAnimIndex = 0;
 
     // actions

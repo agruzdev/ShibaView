@@ -71,6 +71,7 @@ Image::Image(QString name, QString filename) noexcept
     mInfo.bytes    = file.size();
     mInfo.modified = file.lastModified();
     mInfo.dims     = { width, height };
+    mInfo.animated = (file.suffix().compare("gif", Qt::CaseInsensitive) == 0);
 }
 
 Image::~Image() = default;
@@ -91,6 +92,14 @@ void Image::removeListener(ImageListener* listener)
 void Image::next()
 {
     mImagePlayer->next();
+    for (auto listener : mListeners) {
+        listener->onInvalidated(this);
+    }
+}
+
+void Image::prev()
+{
+    mImagePlayer->prev();
     for (auto listener : mListeners) {
         listener->onInvalidated(this);
     }

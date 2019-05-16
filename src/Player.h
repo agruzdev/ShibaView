@@ -19,6 +19,7 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
+#include <deque>
 #include <type_traits>
 #include <memory>
 
@@ -83,22 +84,45 @@ public:
 
     void next();
 
+    void prev();
+    //-------------------------------------------------------------------------------------
+
     Player(const Player&) = delete;
     Player(Player&&) = delete;
 
     Player& operator=(const Player&) = delete;
     Player& operator=(Player&&) = delete;
+    //-------------------------------------------------------------------------------------
 
 private:
+    struct FrameInfo;
+    struct FrameInfoDeleter
+    {
+        void operator()(FrameInfo* p) const;
+    };
+
+    using FrameInfoPtr = std::unique_ptr<FrameInfo, FrameInfoDeleter>;
+    //-------------------------------------------------------------------------------------
+
+    static
+    FrameInfoPtr newFrameInfo();
+
     static
     ImageFrame cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload);
+    //-------------------------------------------------------------------------------------
+
+    FrameInfoPtr loadZeroFrame(ImageSource* source);
+
+    FrameInfoPtr loadNextFrame(ImageSource* source, const FrameInfo* prev);
+
+    ImageFrame* getImpl() const;
+    //-------------------------------------------------------------------------------------
 
     std::unique_ptr<ImageSource> mSource;
 
-    std::shared_ptr<FIBITMAP> mCurrentPage = nullptr;
-    ImageFrame mCurrentFrame{};
-    bool mFrameNeedsUnload = false;
-    //AnimationInfo mCurrentAnimation{};
+    std::deque<FrameInfoPtr> mFramesCache;
+    size_t mCacheIndex   = 0;
+    size_t mMaxCacheSize = 1;
 };
 
 #endif // PLAYER_H

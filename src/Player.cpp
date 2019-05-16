@@ -19,8 +19,37 @@
 #include "Player.h"
 
 #include <cassert>
+#include <vector>
+
 #include "ImageSource.h"
 #include "FreeImageExt.h"
+
+namespace
+{
+    constexpr size_t kMaxCacheBytes = 128 * 1024 * 1024;
+}
+
+struct Player::FrameInfo
+{
+    std::shared_ptr<FIBITMAP> page = nullptr;
+    ImageFrame frame{};
+    bool needsUnload = false;
+};
+
+void Player::FrameInfoDeleter::operator()(Player::FrameInfo* p) const
+{
+    if(p) {
+        if (p->needsUnload && p->frame.bmp) {
+            FreeImage_Unload(p->frame.bmp);
+        }
+        delete p;
+    }
+}
+
+Player::FrameInfoPtr Player::newFrameInfo()
+{
+    return FrameInfoPtr(new FrameInfo, FrameInfoDeleter{});
+}
 
 
 Player::Player(std::unique_ptr<ImageSource> && src)
@@ -32,31 +61,17 @@ Player::Player(std::unique_ptr<ImageSource> && src)
 
     const auto framesNum = src->pagesCount();
     if (framesNum > 0) {
-        AnimationInfo anim{};
-        mCurrentPage = src->lockPage(0, &anim);
-        if (!mCurrentPage) {
-            throw std::runtime_error("Player[Player]: Failed to read image source.");
-        }
         try {
-            mCurrentFrame = cvtToInternalType(mCurrentPage.get(), mFrameNeedsUnload);
-            if (!mCurrentFrame.bmp) {
-                throw std::runtime_error("Player[Player]: Failed to convert a frame.");
-            }
-
-            mCurrentFrame.index = 0;
-            if (framesNum > 1) {
-                mCurrentFrame.duration = anim.duration;
-            }
-
-            // Release page early if bitmap owns data
-            if (mFrameNeedsUnload) {
-                mCurrentPage.reset();
-            }
+            mFramesCache.push_back(loadZeroFrame(src.get()));
+            mCacheIndex = 0;
         }
         catch(...) {
-            mCurrentPage = nullptr;
+            mFramesCache.clear();
             throw;
         }
+
+        const size_t frameSize = FreeImage_GetMemorySize(mFramesCache[0]->frame.bmp);
+        mMaxCacheSize = std::max(static_cast<size_t>(1), kMaxCacheBytes / frameSize);
     }
 
     mSource = std::move(src);
@@ -64,73 +79,197 @@ Player::Player(std::unique_ptr<ImageSource> && src)
 
 Player::~Player()
 {
-    if (mFrameNeedsUnload) {
-        FreeImage_Unload(mCurrentFrame.bmp);
+    mFramesCache.clear();
+    mSource.reset();
+}
+
+Player::FrameInfoPtr Player::loadZeroFrame(ImageSource* source)
+{
+    const uint32_t pagesNum = source->pagesCount();
+    assert(pagesNum > 0);
+
+    auto finfo = newFrameInfo();
+
+    AnimationInfo anim{};
+    finfo->page = source->lockPage(0, &anim);
+    if (!finfo->page) {
+        throw std::runtime_error("Player[Player]: Failed to read image source.");
     }
-    mCurrentPage = nullptr;
+
+    finfo->frame = cvtToInternalType(finfo->page.get(), finfo->needsUnload);
+    if (!finfo->frame.bmp) {
+        throw std::runtime_error("Player[Player]: Failed to convert a frame.");
+    }
+
+    finfo->frame.index = 0;
+    if (pagesNum > 1) {
+        finfo->frame.duration = anim.duration;
+    }
+
+    // Release page early if bitmap owns data
+    if (finfo->needsUnload) {
+        finfo->page.reset();
+    }
+
+    return finfo;
+}
+
+Player::FrameInfoPtr Player::loadNextFrame(ImageSource* source, const FrameInfo* prev)
+{
+    auto next = newFrameInfo();
+
+    const uint32_t prevIdx = prev->frame.index;
+    const uint32_t nextIdx = (prevIdx + 1) % mSource->pagesCount();
+
+    AnimationInfo nextAnim{};
+    next->page = source->lockPage(nextIdx, &nextAnim);
+    if (!next->page) {
+        throw std::runtime_error("Player[next]: Failed to decode the next page.");
+    }
+
+    next->frame = cvtToInternalType(next->page.get(), next->needsUnload);
+    if (!next->frame.bmp) {
+        throw std::runtime_error("Player[next]: Failed to convert the next frame.");
+    }
+
+    if (next->needsUnload) {
+        next->page = nullptr;
+    }
+
+    if (source->storesDiffernece()) {
+        FIBITMAP* canvas = FreeImage_Clone(prev->frame.bmp);
+        const auto drawSuccess = FreeImageExt_Draw(canvas, next->frame.bmp, FIEAF_SrcAlpha, nextAnim.offsetX, nextAnim.offsetY);
+
+        if (next->needsUnload) {
+            FreeImage_Unload(next->frame.bmp);
+        }
+        next->frame.bmp = canvas;
+        next->needsUnload = true;
+
+        if (!drawSuccess) {
+            throw std::runtime_error("Player[Player]: Failed to combine frames.");
+        }
+    }
+
+    next->frame.index    = nextIdx;
+    next->frame.duration = nextAnim.duration;
+
+    return next;
+}
+
+
+ImageFrame* Player::getImpl() const
+{
+    if (mCacheIndex < mFramesCache.size()) {
+        return &(mFramesCache[mCacheIndex]->frame);
+    }
+    else {
+        return nullptr;
+    }
 }
 
 const ImageFrame & Player::getCurrentFrame() const
 {
-    return mCurrentFrame;
+    const auto* frame = getImpl();
+    if (!frame) {
+        throw std::runtime_error("Player[getCurrentFrame]: No frames available.");
+    }
+    return *frame;
 }
 
 void Player::next()
 {
     if (mSource->pagesCount() > 1) {
 
-        const uint32_t prevIdx = mCurrentFrame.index;
+        const uint32_t prevIdx = getCurrentFrame().index;
         const uint32_t nextIdx = (prevIdx + 1) % mSource->pagesCount();
 
-        AnimationInfo nextAnim{};
-        auto nextPage = mSource->lockPage(nextIdx, &nextAnim);
-        if (!nextPage) {
-            throw std::runtime_error("Player[next]: Failed to decode the next page.");
+        if (mCacheIndex < mFramesCache.size() - 1) {
+            // Already cached
+            ++mCacheIndex;
         }
-
-        bool nextNeedsUnload = false;
-        ImageFrame nextFrame = cvtToInternalType(nextPage.get(), nextNeedsUnload);
-        if (!nextFrame.bmp) {
-            throw std::runtime_error("Player[next]: Failed to convert the next frame.");
+        else if(mFramesCache.front()->frame.index == nextIdx) {
+            // Found in head
+            mCacheIndex = 0;
         }
-
-        if (nextNeedsUnload) {
-            nextPage = nullptr;
-        }
-
-        if (mSource->storesDiffernece()) {
-            if (!mFrameNeedsUnload) {
-                mCurrentFrame.bmp = FreeImage_Clone(mCurrentFrame.bmp);
-                mFrameNeedsUnload = true;
+        else  {
+            // Load and save in tail
+            auto next = loadNextFrame(mSource.get(), mFramesCache.at(mCacheIndex).get());
+            if (next) {
+                mFramesCache.push_back(std::move(next));
+                if (mFramesCache.size() > mMaxCacheSize) {
+                    mFramesCache.pop_front();
+                }
+                mCacheIndex = mFramesCache.size() - 1;
             }
-
-            const auto drawSuccess = FreeImageExt_Draw(mCurrentFrame.bmp, nextFrame.bmp, FIEAF_SrcAlpha, nextAnim.offsetX, nextAnim.offsetY);
-
-            if (nextNeedsUnload) {
-                FreeImage_Unload(nextFrame.bmp);
-            }
-
-            if(!drawSuccess) {
-                throw std::runtime_error("Player[Player]: Failed to combine frames.");
-            }
-
-            nextFrame.bmp = mCurrentFrame.bmp;
-            nextNeedsUnload = true;
-            mFrameNeedsUnload = false;
         }
-
-        if (mFrameNeedsUnload) {
-            FreeImage_Unload(mCurrentFrame.bmp);
-        }
-
-        mCurrentPage      = nextPage;
-        mCurrentFrame     = nextFrame;
-        mFrameNeedsUnload = nextNeedsUnload;
-
-        mCurrentFrame.index    = nextIdx;
-        mCurrentFrame.duration = nextAnim.duration;
     }
 }
+
+void Player::prev()
+{
+    if (mSource->pagesCount() > 1) {
+
+        const uint32_t prevIdx = getCurrentFrame().index;
+        const uint32_t nextIdx = prevIdx == 0 ? mSource->pagesCount() - 1 : prevIdx - 1;
+
+        if (mCacheIndex > 0) {
+            // Already cached
+            --mCacheIndex;
+        }
+        else if(mFramesCache.back()->frame.index == nextIdx) {
+            // Found in head
+            mCacheIndex = mFramesCache.size() - 1;
+        }
+        else  {
+            // Find closest previous frame
+            FrameInfoPtr buffer = nullptr;
+            FrameInfo* frame = nullptr;
+            if (nextIdx > mFramesCache.back()->frame.index) {
+                buffer = loadNextFrame(mSource.get(), mFramesCache.back().get());
+            }
+            else {
+                buffer = loadZeroFrame(mSource.get());
+            }
+            frame = buffer.get();
+
+            // Load
+            const uint32_t countToCache = static_cast<uint32_t>(std::max(2 * mMaxCacheSize / 3, mMaxCacheSize - mFramesCache.size()));
+            const uint32_t cacheFromIdx = countToCache < nextIdx ? nextIdx - countToCache : 0; // add to cache frames with index >= cacheFromIdx
+
+            size_t cachedCount = mFramesCache.size();
+
+            std::vector<FrameInfoPtr> newFrames;
+            if (buffer->frame.index >= cacheFromIdx) {
+                newFrames.push_back(std::move(buffer));
+                ++cachedCount;
+                if (cachedCount > mMaxCacheSize) {
+                    mFramesCache.pop_back();
+                }
+            }
+
+            while (frame->frame.index < nextIdx) {
+                buffer = loadNextFrame(mSource.get(), frame);
+                frame = buffer.get();
+                if (buffer->frame.index >= cacheFromIdx) {
+                    newFrames.push_back(std::move(buffer));
+                    ++cachedCount;
+                    if (cachedCount > mMaxCacheSize) {
+                        mFramesCache.pop_back();
+                    }
+                }
+            }
+
+            if (newFrames.empty() || newFrames.back()->frame.index != nextIdx) {
+                throw std::logic_error("Player[prev]: Cache was corrupted. Flushing it.");
+            }
+
+            mCacheIndex = newFrames.size() - 1;
+            mFramesCache.insert(mFramesCache.cbegin(), std::make_move_iterator(newFrames.begin()), std::make_move_iterator(newFrames.end()));
+        }
+    }
+}
+
 
 uint32_t Player::framesNumber() const
 {
@@ -139,8 +278,9 @@ uint32_t Player::framesNumber() const
 
 uint32_t Player::getWidth() const
 {
-    if (mCurrentFrame.bmp) {
-        return static_cast<uint32_t>(FreeImage_GetWidth(mCurrentFrame.bmp));
+    const auto* frame = getImpl();
+    if (frame) {
+        return static_cast<uint32_t>(FreeImage_GetWidth(frame->bmp));
     }
     else {
         return 0;
@@ -149,8 +289,9 @@ uint32_t Player::getWidth() const
 
 uint32_t Player::getHeight() const
 {
-    if (mCurrentFrame.bmp) {
-        return static_cast<uint32_t>(FreeImage_GetHeight(mCurrentFrame.bmp));
+    const auto* frame = getImpl();
+    if (frame) {
+        return static_cast<uint32_t>(FreeImage_GetHeight(frame->bmp));
     }
     else {
         return 0;

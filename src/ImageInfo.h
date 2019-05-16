@@ -35,6 +35,7 @@ struct ImageInfo
     size_t bytes = 0;
     QDateTime modified;
     ImageSize dims;
+    bool animated = false;
 };
 
 #endif // IMAGEINFO_H

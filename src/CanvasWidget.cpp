@@ -401,12 +401,15 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
                 }
                 mPageText->setText("Page 1/" + QString::number(mImage->pagesCount()));
                 repositionPageText();
+
+                mEnableAnimation = mImage->info().animated;
             }
             else {
                 if (mPageText) {
                     delete mPageText;
                     mPageText = nullptr;
                 }
+                mEnableAnimation  = false;
             }
 
             mImageDescription->setZoom(mZoomController->getFactor());
@@ -603,7 +606,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             }
         }
 
-        if(mImage->pagesCount() > 1) {
+        if (mEnableAnimation) {
             if (frame.index != mAnimIndex) {
                 new UniqueTick(mImage->id(), frame.duration, this, &CanvasWidget::onAnimationTick, this);
             }
@@ -699,8 +702,8 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         else if (event->key() == Qt::Key_Tab) {
             mShowInfo = !mShowInfo;
         }
-        else if ((event->key() == Qt::Key_Asterisk) && mImage && !mImage->isNull()) {
-            if (mZoomController) {
+        else if (event->key() == Qt::Key_Asterisk) {
+            if (mImage && mImage->notNull() && mZoomController) {
                 if(mZoomMode != ZoomMode::eFitWindow) {
                     mActZoom.get()[ZoomMode::eFitWindow]->trigger();
                 }
@@ -741,6 +744,38 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
             if (!mTransitionRequested) {
                 mTransitionRequested = true;
                 emit eventLastImage();
+            }
+        }
+        else if (event->key() == Qt::Key_Space) {
+            if (mImage && mImage->notNull() && mImage->pagesCount() > 1) {
+                if (mEnableAnimation) {
+                    mEnableAnimation = false;
+                }
+                else {
+                    mEnableAnimation = true;
+                    mAnimIndex = -1;
+                    update();
+                }
+            }
+        }
+        else if (event->key() == Qt::Key_PageUp) {
+            if (mImage && mImage->notNull() && mImage->pagesCount() > 1 && !mEnableAnimation) {
+                try {
+                    mImage->next();
+                    update();
+                }
+                catch(...)
+                { }
+            }
+        }
+        else if (event->key() == Qt::Key_PageDown) {
+            if (mImage && mImage->notNull() && mImage->pagesCount() > 1 && !mEnableAnimation) {
+                try {
+                    mImage->prev();
+                    update();
+                }
+                catch(...)
+                { }
             }
         }
     }
@@ -1010,7 +1045,7 @@ void CanvasWidget::onActZoomMode(bool checked, ZoomMode z)
 
 void CanvasWidget::onAnimationTick(uint64_t imgId)
 {
-    if (mImage && mImage->id() == imgId && !mImage->isNull()) {
+    if (mImage && mImage->id() == imgId && mImage->notNull() && mEnableAnimation) {
         try {
             mImage->next();
         }
