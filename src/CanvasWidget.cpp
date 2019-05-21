@@ -694,6 +694,12 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
             }
         }
     }
+    else if (QApplication::keyboardModifiers() == Qt::ControlModifier) {
+        // Ctrl + Key
+        if (event->key() == Qt::Key_R) {
+            emit evenReloadImage();
+        }
+    }
     else {
         // No Modifiers
         if (event->key() == Qt::Key_Escape) {

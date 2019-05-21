@@ -51,10 +51,11 @@ ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
     mCanvasWidget.reset(new CanvasWidget(t));
     mCanvasWidget->setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::MSWindowsOwnDC);
 
-    connect(mCanvasWidget.get(), &CanvasWidget::eventNextImage,  this, &ViewerApplication::onNextImage,  Qt::QueuedConnection);
-    connect(mCanvasWidget.get(), &CanvasWidget::eventPrevImage,  this, &ViewerApplication::onPrevImage,  Qt::QueuedConnection);
-    connect(mCanvasWidget.get(), &CanvasWidget::eventFirstImage, this, &ViewerApplication::onFirstImage, Qt::QueuedConnection);
-    connect(mCanvasWidget.get(), &CanvasWidget::eventLastImage,  this, &ViewerApplication::onLastImage,  Qt::QueuedConnection);
+    connect(mCanvasWidget.get(), &CanvasWidget::eventNextImage,  this, &ViewerApplication::onNextImage,   Qt::QueuedConnection);
+    connect(mCanvasWidget.get(), &CanvasWidget::eventPrevImage,  this, &ViewerApplication::onPrevImage,   Qt::QueuedConnection);
+    connect(mCanvasWidget.get(), &CanvasWidget::eventFirstImage, this, &ViewerApplication::onFirstImage,  Qt::QueuedConnection);
+    connect(mCanvasWidget.get(), &CanvasWidget::eventLastImage,  this, &ViewerApplication::onLastImage,   Qt::QueuedConnection);
+    connect(mCanvasWidget.get(), &CanvasWidget::evenReloadImage, this, &ViewerApplication::onReloadImage, Qt::QueuedConnection);
     connect(this, &ViewerApplication::eventCancelTransition, mCanvasWidget.get(), &CanvasWidget::onTransitionCanceled, Qt::QueuedConnection);
     connect(this, &ViewerApplication::eventImageDirScanned, mCanvasWidget.get(), &CanvasWidget::onImageDirScanned, Qt::QueuedConnection);
 
@@ -207,3 +208,14 @@ void ViewerApplication::onLastImage()
         emit eventCancelTransition();
     }
 }
+
+void ViewerApplication::onReloadImage()
+{
+    if (!mFilesInDirectory.empty()) {
+        loadImageAsync(mDirectory.absoluteFilePath(mOpenedName), mCurrentIdx, mFilesInDirectory.size());
+    }
+    else {
+        emit eventCancelTransition();
+    }
+}
+

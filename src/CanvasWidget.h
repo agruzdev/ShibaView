@@ -98,7 +98,7 @@ signals:
     void eventPrevImage();
     void eventFirstImage();
     void eventLastImage();
-
+    void evenReloadImage();
 
 protected:
     void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;

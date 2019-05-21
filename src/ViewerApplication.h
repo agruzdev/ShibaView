@@ -50,13 +50,14 @@ signals:
     void eventLoadImage(const QString & path);
     void eventCancelTransition();
 
-     void eventImageDirScanned(size_t imgIdx, size_t totalCount);
+    void eventImageDirScanned(size_t imgIdx, size_t totalCount);
 
 public slots:
     void onNextImage();
     void onPrevImage();
     void onFirstImage();
     void onLastImage();
+    void onReloadImage();
 
     void onError(const QString & what);
 
