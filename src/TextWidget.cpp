@@ -48,6 +48,8 @@ TextWidget::TextWidget(QWidget* parent, Qt::GlobalColor color, int fsize)
     mBrushDisabled = QBrush(Qt::gray, Qt::BrushStyle::SolidPattern);
 
     mLineHeight = mRawFont.capHeight() + 2 * FONT_VPADDING;
+
+    setAttribute(Qt::WA_TransparentForMouseEvents);
 }
 
 TextWidget::~TextWidget() = default;
@@ -84,13 +86,28 @@ void TextWidget::autoResize()
         }
         mWidth = std::max<uint32_t>(mWidth, std::ceil(lineWidth));
     }
-    resize(mWidth, mLines.size() * mLineHeight + FONT_VPADDING);
+    const int32_t w = mWidth + mPaddings.left() + mPaddings.right();
+    const int32_t h = mLines.size() * mLineHeight + FONT_VPADDING + mPaddings.top() + mPaddings.bottom();
+    resize(w, h);
 }
 
 void TextWidget::paintEvent(QPaintEvent *event)
 {
     QWidget::paintEvent(event);
     QPainter painter(this);
+
+    if (mBackgroundColor != Qt::transparent) {
+        painter.fillRect(this->rect(), mBackgroundColor);
+    }
+
+    if (mBorderColor != Qt::transparent) {
+        painter.setPen(QPen(mBorderColor));
+        QRect r = this->rect();
+        r.setWidth(r.width() - 1);
+        r.setHeight(r.height() - 1);
+        painter.drawRect(r);
+    }
+
     if(isEnabled()) {
         painter.setPen(mPen);
         painter.setBrush(mBrush);
@@ -99,6 +116,7 @@ void TextWidget::paintEvent(QPaintEvent *event)
         painter.setPen(mPenDisabled);
         painter.setBrush(mBrushDisabled);
     }
+
     painter.setRenderHint(QPainter::RenderHint::Antialiasing);
 
     QGlyphRun glyphRun;
@@ -107,7 +125,7 @@ void TextWidget::paintEvent(QPaintEvent *event)
         if (mLines[i].size() > 0) {
             auto glyphs = mRawFont.glyphIndexesForString(mLines[i]);
             painter.resetTransform();
-            painter.translate(0, (i + 1) * mLineHeight - FONT_VPADDING);
+            painter.translate(mPaddings.left(), mPaddings.top() + (i + 1) * mLineHeight - FONT_VPADDING);
             for (int32_t j = 0; j < glyphs.size(); ++j) {
                 const auto path = mRawFont.pathForGlyph(glyphs[j]);
                 painter.drawPath(path);

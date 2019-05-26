@@ -147,6 +147,7 @@ private:
 
     std::unique_ptr<ImageProcessor> mImageProcessor;
 
+    QRect mImageRect;
 
     bool mTransitionRequested = true;
 
@@ -182,6 +183,8 @@ private:
     TextWidget* mErrorText = nullptr;
 
     TextWidget* mPageText = nullptr;
+
+    TextWidget* mToolTip = nullptr;
 
     FilteringMode mFilteringMode;
 

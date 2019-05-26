@@ -92,6 +92,11 @@ public:
     }
 
     /**
+     * Apply ineversed transform to coordinates and call Image::getPixel
+     */
+    bool getPixel(uint32_t y, uint32_t x, Pixel* p) const;
+
+    /**
      * Image width after processing
      */
     uint32_t width() const;

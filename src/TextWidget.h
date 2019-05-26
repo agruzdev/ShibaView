@@ -47,6 +47,24 @@ public:
 
     void enableShadow();
 
+    void setBackgroundColor(QColor color)
+    {
+        mBackgroundColor = std::move(color);
+    }
+
+    void setBorderColor(QColor color)
+    {
+        mBorderColor = std::move(color);
+    }
+
+    void setPaddings(int32_t left, int32_t right, int32_t top, int32_t bottom)
+    {
+        mPaddings.setLeft(left);
+        mPaddings.setRight(right);
+        mPaddings.setTop(top);
+        mPaddings.setBottom(bottom);
+    }
+
 public slots:
     void setText(const QString & line);
     void setText(const QVector<QString> & lines);
@@ -70,9 +88,12 @@ private:
     uint32_t mLineHeight;
     uint32_t mWidth;
 
-    QPoint mPadding;
+    QRect mPaddings = QRect(0, 0, 0, 0);
 
     QGraphicsDropShadowEffect* mShadow = nullptr;
+
+    QColor mBorderColor = Qt::transparent;
+    QColor mBackgroundColor = Qt::transparent;
 };
 
 #endif // TEXTWIDGET_H

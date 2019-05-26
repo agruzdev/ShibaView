@@ -62,6 +62,14 @@ public:
         return mInfo;
     }
 
+    bool getPixel(uint32_t y, uint32_t x, Pixel* p) const
+    {
+        if (mImagePlayer) {
+            return mImagePlayer->getPixel(y, x, p);
+        }
+        return false;
+    }
+
     uint32_t width() const
     {
         return mInfo.dims.width;

@@ -67,6 +67,13 @@ struct ImageFrame
     QString srcFormat = {};
 };
 
+struct Pixel
+{
+    uint32_t y = 0;
+    uint32_t x = 0;
+    QString repr;
+};
+
 
 class Player
 {
@@ -85,6 +92,8 @@ public:
     void next();
 
     void prev();
+
+    bool getPixel(uint32_t y, uint32_t x, Pixel* p) const;
     //-------------------------------------------------------------------------------------
 
     Player(const Player&) = delete;
@@ -109,6 +118,9 @@ private:
 
     static
     ImageFrame cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload);
+
+    static
+    bool getSourcePixel(FIBITMAP* src, uint32_t y, uint32_t x, Pixel* pixel);
     //-------------------------------------------------------------------------------------
 
     FrameInfoPtr loadZeroFrame(ImageSource* source);

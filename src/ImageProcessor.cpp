@@ -120,3 +120,37 @@ uint32_t ImageProcessor::height() const
     return !mDstPixmap.isNull() ? mDstPixmap.height() : 0;
 }
 
+bool ImageProcessor::getPixel(uint32_t y, uint32_t x, Pixel* p) const
+{
+    const auto pImg = mSrcImage.lock();
+    bool success = false;
+    if (pImg && p && y < height() && x < width()) {
+        uint32_t srcY = y;
+        uint32_t srcX = x;
+        switch(mRotation) {
+            case Rotation::eDegree90:
+                srcY = x;
+                srcX = pImg->width() - 1 - y;
+                break;
+            case Rotation::eDegree180:
+                srcY = pImg->height() - 1 - y;
+                srcX = pImg->width()  - 1 - x;
+                break;
+            case Rotation::eDegree270:
+                srcY = pImg->height() - 1 - x;
+                srcX = y;
+                break;
+            default:
+                break;
+        }
+        if (srcX < pImg->width() && srcY < pImg->height()) {
+            success = pImg->getPixel(pImg->height() - 1 - srcY, srcX, p);
+            if (success) {
+                p->y = srcY;
+                p->x = srcX;
+            }
+        }
+    }
+    return success;
+}
+
