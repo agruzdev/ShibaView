@@ -796,6 +796,16 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
                 { }
             }
         }
+        else if(event->key() == Qt::Key_Alt || event->key() == Qt::Key_AltGr) {
+            showTooltip(mCursorPosition);
+        }
+    }
+}
+
+void CanvasWidget::keyReleaseEvent(QKeyEvent* event)
+{
+    if (event->key() == Qt::Key_Alt || event->key() == Qt::Key_AltGr) {
+        hideTooltip();
     }
 }
 
@@ -872,50 +882,59 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event)
     }
 }
 
-void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
+void CanvasWidget::showTooltip(const QPoint & pos)
 {
-    QWidget::mouseMoveEvent(event);
+    unsetCursor();
 
-    if (QApplication::keyboardModifiers() == Qt::AltModifier) {
-        // Alt pressed -> pixel view mode
-        unsetCursor();
+    if (mImageProcessor && mImageRect.contains(pos)) {
+        QPoint imgPos = pos - mImageRect.topLeft();
 
-        const QPoint pos = event->pos();
-        if (mImageProcessor && mImageRect.contains(pos)) {
-            QPoint imgPos = pos - mImageRect.topLeft();
-            // Invert Y
-            //imgPos.setY(mImageRect.height() - 1 - imgPos.y());
+        // Invert zoom
+        imgPos.setX(static_cast<int>(std::floor((imgPos.x() + 0.5) / mZoomController->getFactor())));
+        imgPos.setY(static_cast<int>(std::floor((imgPos.y() + 0.5) / mZoomController->getFactor())));
 
-            // Invert zoom
-            imgPos.setX(static_cast<int>(std::floor((imgPos.x() + 0.5) / mZoomController->getFactor())));
-            imgPos.setY(static_cast<int>(std::floor((imgPos.y() + 0.5) / mZoomController->getFactor())));
-
-            Pixel pixelValue{};
-            if(mImageProcessor->getPixel(imgPos.y(), imgPos.x(), &pixelValue)) {
-                if (!mToolTip) {
-                    mToolTip = new TextWidget(nullptr, Qt::black, 12);
-                    mToolTip->setWindowFlags(Qt::ToolTip);
-                    mToolTip->setBackgroundColor(QColor::fromRgb(255, 255, 225));
-                    mToolTip->setBorderColor(Qt::black);
-                    mToolTip->setPaddings(4, 2, 0, -4);
-                }
-                mToolTip->move(mapToGlobal(pos) + QPoint(7, 20));
-                mToolTip->setText({ QString("Y: %1, X: %2").arg(pixelValue.y).arg(pixelValue.x) , pixelValue.repr});
-                mToolTip->update();
-                mToolTip->show();
+        Pixel pixelValue{};
+        if (mImageProcessor->getPixel(imgPos.y(), imgPos.x(), &pixelValue)) {
+            if (!mToolTip) {
+                mToolTip = new TextWidget(nullptr, Qt::black, 12);
+                mToolTip->setWindowFlags(Qt::ToolTip);
+                mToolTip->setBackgroundColor(QColor::fromRgb(255, 255, 225));
+                mToolTip->setBorderColor(Qt::black);
+                mToolTip->setPaddings(4, 2, 0, -4);
             }
-        }
-        else {
-            if (mToolTip) {
-                mToolTip->hide();
-            }
+            mToolTip->move(mapToGlobal(pos) + QPoint(7, 20));
+            mToolTip->setText({ QString("Y: %1, X: %2").arg(pixelValue.y).arg(pixelValue.x), pixelValue.repr });
+            mToolTip->setColor(Qt::black);
+            mToolTip->show();
+            mToolTip->update();
         }
     }
     else {
+        hideTooltip();
+    }
+}
+
+void CanvasWidget::hideTooltip()
+{
+    if (mToolTip) {
+        // ToDo (a.gruzdev): Workaround to hide previous content
+        mToolTip->setColor(Qt::transparent);
+        mToolTip->repaint();
+        mToolTip->hide();
+    }
+}
+
+void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
+{
+    //QWidget::mouseMoveEvent(event);
+
+    if (QApplication::keyboardModifiers() == Qt::AltModifier) {
+        // Alt pressed -> pixel view mode
+        showTooltip(event->pos());
+    }
+    else {
         // Window controls
-        if (mToolTip) {
-            mToolTip->hide();
-        }
+        hideTooltip();
 
         if (!mFullScreen && mDragging) {
             move(event->globalX() - mClickPos.x(), event->globalY() - mClickPos.y());

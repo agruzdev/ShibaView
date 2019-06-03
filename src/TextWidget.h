@@ -65,6 +65,12 @@ public:
         mPaddings.setBottom(bottom);
     }
 
+    void setColor(QColor c)
+    {
+        mPen   = QPen(c);
+        mBrush = QBrush(c, Qt::BrushStyle::SolidPattern);
+    }
+
 public slots:
     void setText(const QString & line);
     void setText(const QVector<QString> & lines);

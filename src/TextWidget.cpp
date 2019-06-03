@@ -77,11 +77,10 @@ void TextWidget::setLine(uint32_t idx, const QString & line)
 void TextWidget::autoResize()
 {
     mWidth = 1;
-    for (int32_t i = 0; i < mLines.size(); ++i) {
+    for (const auto & line : mLines) {
         qreal lineWidth = 0;
-        auto glyphs = mRawFont.glyphIndexesForString(mLines[i]);
-        for (int32_t j = 0; j < glyphs.size(); ++j) {
-            const auto path = mRawFont.pathForGlyph(glyphs[j]);
+        for (const auto & glyph : mRawFont.glyphIndexesForString(line)) {
+            const auto path = mRawFont.pathForGlyph(glyph);
             lineWidth += path.boundingRect().width() + FONT_HPADDING;
         }
         mWidth = std::max<uint32_t>(mWidth, std::ceil(lineWidth));
@@ -126,8 +125,8 @@ void TextWidget::paintEvent(QPaintEvent *event)
             auto glyphs = mRawFont.glyphIndexesForString(mLines[i]);
             painter.resetTransform();
             painter.translate(mPaddings.left(), mPaddings.top() + (i + 1) * mLineHeight - FONT_VPADDING);
-            for (int32_t j = 0; j < glyphs.size(); ++j) {
-                const auto path = mRawFont.pathForGlyph(glyphs[j]);
+            for (const auto & glyph : glyphs) {
+                const auto path = mRawFont.pathForGlyph(glyph);
                 painter.drawPath(path);
                 painter.translate(path.boundingRect().width() + FONT_HPADDING, 0);
             }

@@ -104,7 +104,7 @@ protected:
     void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
     void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE;
     void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
-
+    void keyReleaseEvent(QKeyEvent* event) Q_DECL_OVERRIDE;
 
 private:
     void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
@@ -138,6 +138,9 @@ private:
     TMActionsArray initToneMappingActions();
 
     QMenu* createContextMenu();
+
+    void showTooltip(const QPoint & pos);
+    void hideTooltip();
 
 private:
 
