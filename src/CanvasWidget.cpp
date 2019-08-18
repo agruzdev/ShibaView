@@ -133,6 +133,8 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     mImageProcessor->setToneMappingMode(static_cast<FIE_ToneMapping>(settings.value(kSettingsToneMapping, static_cast<int32_t>(FIE_ToneMapping::FIETMO_NONE)).toInt()));
 
     mZoomController = std::make_unique<ZoomController>(16, settings.value(kSettingsZoomFitValue, 128).toInt(), settings.value(kSettingsZoomScaleValue, 0).toInt());
+
+    connect(static_cast<QApplication*>(QApplication::instance()), &QApplication::applicationStateChanged, this, &CanvasWidget::applicationStateChanged);
 }
 
 CanvasWidget::~CanvasWidget()
@@ -918,6 +920,13 @@ void CanvasWidget::hideTooltip()
         mToolTip->setColor(Qt::transparent);
         mToolTip->repaint();
         mToolTip->hide();
+    }
+}
+
+void CanvasWidget::applicationStateChanged(Qt::ApplicationState state)
+{
+    if (state != Qt::ApplicationState::ApplicationActive) {
+        hideTooltip();
     }
 }
 

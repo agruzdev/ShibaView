@@ -79,6 +79,8 @@ public slots:
 
     void onTransitionCanceled();
 
+    void applicationStateChanged(Qt::ApplicationState state);
+
     // Actions
     void onActNoFilter(bool checked);
     void onActAntialiasing(bool checked);
