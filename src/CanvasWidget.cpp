@@ -377,23 +377,25 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
             const auto fitRect = fitWidth(mImage->width(), mImage->height());
 
             switch (mZoomMode) {
-                case ZoomMode::eFitWindow:
-                    mZoomController->rebase(mImage->width(), fitRect.width());
+            case ZoomMode::eFitWindow:
+                mZoomController->rebase(mImage->width(), fitRect.width());
+                mZoomController->moveToFit();
+                resetOffsets();
+                break;
+            case ZoomMode::eFixed:
+                mZoomController->rebase(mImage->width());
+                break;
+            default:
+            case ZoomMode::eFree:
+                mZoomController->rebase(mImage->width(), fitRect.width());
+                if (mImage->width() <= static_cast<size_t>(width()) && mImage->height() <= static_cast<size_t>(height())) {
+                    mZoomController->moveToIdentity();
+                }
+                else {
                     mZoomController->moveToFit();
-                    break;
-                case ZoomMode::eFixed:
-                    mZoomController->rebase(mImage->width());
-                    break;
-                default:
-                case ZoomMode::eFree:
-                    mZoomController->rebase(mImage->width(), fitRect.width());
-                    if (mImage->width() <= static_cast<size_t>(width()) && mImage->height() <= static_cast<size_t>(height())) {
-                        mZoomController->moveToIdentity();
-                    }
-                    else {
-                        mZoomController->moveToFit();
-                    }
-                    break;
+                }
+                resetOffsets();
+                break;
             }
 
             if (mImage->pagesCount() > 1) {
@@ -420,8 +422,6 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
             }
 
             mImageProcessor->attachSource(mImage);
-
-            resetOffsets();
         }
 
         mImageDescription->setFormat(mImage->getFrame().srcFormat);
@@ -1115,6 +1115,7 @@ void CanvasWidget::onActZoomMode(bool checked, ZoomMode z)
         case ZoomMode::eFitWindow: {
             mZoomController->moveToFit();
             updateZoomLabel();
+            updateOffsets();
             update();
         } break;
 
