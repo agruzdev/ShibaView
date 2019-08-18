@@ -69,6 +69,8 @@ namespace
     const QString kSettingsFullscreen  = "canvas/fullscreen";
     const QString kSettingsShowInfo    = "canvas/info";
     const QString kSettingsZoomMode    = "canvas/zoom";
+    const QString kSettingsZoomScaleValue = "canvas/zoom_scale";
+    const QString kSettingsZoomFitValue   = "canvas/zoom_fit";
     const QString kSettingsFilterMode  = "canvas/filtering";
     const QString kSettingsToneMapping = "canvas/tonemapping";
 
@@ -129,6 +131,8 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
 
     mImageProcessor = std::make_unique<ImageProcessor>();
     mImageProcessor->setToneMappingMode(static_cast<FIE_ToneMapping>(settings.value(kSettingsToneMapping, static_cast<int32_t>(FIE_ToneMapping::FIETMO_NONE)).toInt()));
+
+    mZoomController = std::make_unique<ZoomController>(16, settings.value(kSettingsZoomFitValue, 128).toInt(), settings.value(kSettingsZoomScaleValue, 0).toInt());
 }
 
 CanvasWidget::~CanvasWidget()
@@ -141,11 +145,11 @@ CanvasWidget::~CanvasWidget()
         settings.setValue(kSettingsShowInfo,   mShowInfo);
         settings.setValue(kSettingsFilterMode, static_cast<int32_t>(mFilteringMode));
         settings.setValue(kSettingsZoomMode,   static_cast<int32_t>(mZoomMode));
+        settings.setValue(kSettingsZoomScaleValue, static_cast<int32_t>(mZoomController->getScaleValue()));
+        settings.setValue(kSettingsZoomFitValue,   static_cast<int32_t>(mZoomController->getFitValue()));
         settings.setValue(kSettingsToneMapping, static_cast<int32_t>(mImageProcessor->toneMappingMode()));
 
-        if (mToolTip) {
-            delete mToolTip;
-        }
+        delete mToolTip;
     }
     catch(...) {
         
@@ -220,10 +224,6 @@ QMenu* CanvasWidget::createContextMenu()
             tmMenu->addAction(tmActions[FIETMO_DRAGO03]);
             tmMenu->addAction(tmActions[FIETMO_REINHARD05]);
             tmMenu->addAction(tmActions[FIETMO_FATTAL02]);
-
-            //tmActions[FIETMO_DRAGO03]->setEnabled(mImage->isRGB());
-            //tmActions[FIETMO_REINHARD05]->setEnabled(mImage->isRGB());
-            //tmActions[FIETMO_FATTAL02]->setEnabled(mImage->isRGB());
 
             tmAction->setEnabled(true);
         }
@@ -373,30 +373,25 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
         mImageDescription->setImageInfo(mImage->info());
         if (mImage && !mImage->isNull()) {
             const auto fitRect = fitWidth(mImage->width(), mImage->height());
-            if(!mZoomController) {
-                mZoomController = std::make_unique<ZoomController>(mImage->width(), fitRect.width());
-                if (mZoomMode == ZoomMode::eFree && mImage->width() <= static_cast<size_t>(width()) && mImage->height() <= static_cast<size_t>(height())) {
-                    mZoomController->moveToIdentity();
-                }
-                else {
-                    mZoomController->moveToFit();
-                }
-                resetOffsets();
-            }
-            else {
-                if (mZoomMode == ZoomMode::eFixed) {
+
+            switch (mZoomMode) {
+                case ZoomMode::eFitWindow:
                     mZoomController->rebase(mImage->width(), fitRect.width());
-                }
-                else {
-                    mZoomController = std::make_unique<ZoomController>(mImage->width(), fitRect.width());
-                    if (mZoomMode == ZoomMode::eFree && mImage->width() <= static_cast<size_t>(width()) && mImage->height() <= static_cast<size_t>(height())) {
+                    mZoomController->moveToFit();
+                    break;
+                case ZoomMode::eFixed:
+                    mZoomController->rebase(mImage->width());
+                    break;
+                default:
+                case ZoomMode::eFree:
+                    mZoomController->rebase(mImage->width(), fitRect.width());
+                    if (mImage->width() <= static_cast<size_t>(width()) && mImage->height() <= static_cast<size_t>(height())) {
                         mZoomController->moveToIdentity();
                     }
                     else {
                         mZoomController->moveToFit();
                     }
-                    resetOffsets();
-                }
+                    break;
             }
 
             if (mImage->pagesCount() > 1) {
@@ -423,6 +418,8 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
             }
 
             mImageProcessor->attachSource(mImage);
+
+            resetOffsets();
         }
 
         mImageDescription->setFormat(mImage->getFrame().srcFormat);

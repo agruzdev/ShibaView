@@ -19,41 +19,47 @@
 #include "ZoomController.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 
 static const double kZoomKoef = std::pow(2.0, 1.0 / 7.0);
 
-ZoomController::ZoomController(int baseValue, int fitValue)
+ZoomController::ZoomController(int32_t baseValue, int32_t fitValue, int32_t scaleValue)
     : mBaseValue(baseValue)
-    , mScale(0)
+    , mScale(scaleValue)
     , mMinScale(-100)
     , mMaxScale( 100)
 {
+    assert(mBaseValue > 0);
+    if(mBaseValue < 1) {
+        mBaseValue = 1;
+    }
+
     setFitValue(fitValue);
 
     // Avoid value overflow
     mMinScale = std::max(mMinScale, -static_cast<int32_t>(std::floor(std::log(mBaseValue) / std::log(kZoomKoef))));
-    mMaxScale = std::min(mMaxScale,  static_cast<int32_t>(std::floor((std::log(std::numeric_limits<int32_t>::max()) - std::log(mBaseValue))/ std::log(kZoomKoef))));
+    mMaxScale = std::min(mMaxScale,  static_cast<int32_t>(std::floor((std::log(std::numeric_limits<int32_t>::max()) - std::log(mBaseValue)) / std::log(kZoomKoef))));
 }
 
 ZoomController::~ZoomController() = default;
 
-void ZoomController::setFitValue(int valueFit)
+void ZoomController::setFitValue(int32_t value)
 {
-    mFitValue = valueFit;
+    mFitValue = value;
 
     const double fittedScale = (std::log(mFitValue) - std::log(mBaseValue)) / std::log(kZoomKoef);
     const double eps = 1.0 / mBaseValue;
 
     mFitScaleFloor = static_cast<int32_t>(std::floor(fittedScale - eps));
-    mFitScaleCeil  = static_cast<int32_t>(std::ceil (fittedScale + eps));
+    mFitScaleCeil  = static_cast<int32_t>(std::ceil(fittedScale + eps));
 
     mFitFactor  = static_cast<float>(fittedScale);
 
     mAtFitValue = (mFitScaleFloor <= mScale) && (mScale <= mFitScaleCeil);
 }
 
-void ZoomController::rebase(int baseValue, int fitValue)
+void ZoomController::rebase(int32_t baseValue, int32_t fitValue)
 {
     if (mAtFitValue) {
         mScale = static_cast<int32_t>(std::round(mFitFactor));
@@ -70,7 +76,7 @@ float ZoomController::getFactor() const
     return static_cast<float>(std::pow(kZoomKoef, mScale));
 }
 
-int ZoomController::getValue() const
+int32_t ZoomController::getValue() const
 {
     if (mAtFitValue) {
         return mFitValue;
@@ -118,6 +124,7 @@ void ZoomController::moveToIdentity()
 
 void ZoomController::moveToFit()
 {
+    mScale = static_cast<int32_t>(std::round(mFitFactor));
     mAtFitValue = true;
 }
 

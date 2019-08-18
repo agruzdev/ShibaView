@@ -24,7 +24,7 @@
 class ZoomController
 {
 public:
-    ZoomController(int baseValue, int fitValue);
+    ZoomController(int32_t baseValue, int32_t fitValue, int32_t scaleValue = 0);
     ~ZoomController();
 
     ZoomController(const ZoomController&) = default;
@@ -40,17 +40,32 @@ public:
     /**
      * Get zoomed value = baseVal * zoomFactor
      */
-    int getValue() const;
+    int32_t getValue() const;
+
+    /**Get fit value
+     */
+    int32_t getFitValue() const
+    {
+        return mFitValue;
+    }
 
     /**
      * Update fit piont
      */
-    void setFitValue(int value);
+    void setFitValue(int32_t value);
 
     /**
      * Reset for a new base value preserving current zoom level
      */
-    void rebase(int baseValue, int fitValue);
+    void rebase(int32_t baseValue, int32_t fitValue);
+
+    /**
+     * Reset for a new base value preserving current zoom level
+     */
+    void rebase(int32_t baseValue)
+    {
+        rebase(baseValue, mFitValue);
+    }
 
     /**
      * Move zoom position
@@ -71,6 +86,14 @@ public:
      * Reset to fit value zoom
      */
     void moveToFit();
+
+    /**
+     * Get current scale value
+     */
+    int32_t getScaleValue() const
+    {
+        return mScale;
+    }
 
 private:
     int32_t mBaseValue;
