@@ -46,6 +46,12 @@ namespace
     };
 }
 
+
+QString ViewerApplication::getFileFilter()
+{
+    return "Images (" + kSupportedExtensions.join(" ") + ")";
+}
+
 ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
 {
     mCanvasWidget.reset(new CanvasWidget(t));

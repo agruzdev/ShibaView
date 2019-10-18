@@ -20,30 +20,49 @@
 #include <chrono>
 
 #include <QApplication>
+#include <QFileDialog>
+#include <QSettings>
+#include <QFileInfo>
 #include "ViewerApplication.h"
 
-int main(int argc, char *argv[])
+namespace
 {
-    try {
-        if(argc < 2) {
-            throw std::runtime_error("Wrong args");
+    const QString kSettingsLoadDir = "application/load_directory";
+}
+
+int main(int argc, char *argv[])
+try
+{
+    const auto t = std::chrono::steady_clock::now();
+        
+    QApplication app{argc, argv};
+    QApplication::setOrganizationName("Alexey Gruzdev");
+    QApplication::setApplicationName("ShibaView");
+
+    QString input;
+    if (argc > 1) {
+        input = QApplication::arguments().at(1);
+    }
+    else {
+        QSettings settings;
+        input = QFileDialog::getOpenFileName(nullptr, "Open File", settings.value(kSettingsLoadDir, "/").toString(), ViewerApplication::getFileFilter());
+        if (!input.isEmpty()) {
+            settings.setValue(kSettingsLoadDir, QFileInfo(input).dir().absolutePath());
         }
-        const auto t = std::chrono::steady_clock::now();
+    }
 
-        QApplication app{argc, argv};
-        QApplication::setOrganizationName("Alexey Gruzdev");
-        QApplication::setApplicationName("ShibaView");
+    if (input.isEmpty()) {
+        return 0;
+    }
 
-        ViewerApplication viewer(t);
-        const QString input = QApplication::arguments().at(1);
-        viewer.open(input);
+    ViewerApplication viewer(t);
+    viewer.open(input);
 
 #ifdef _MSC_VER
-        std::cout << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t).count() / 1e3 << std::endl;
+    std::cout << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t).count() / 1e3 << std::endl;
 #endif
-        return QApplication::exec();
-    }
-    catch(...){
-        return -1;
-    }
+    return QApplication::exec();
+}
+catch(...){
+    return -1;
 }
