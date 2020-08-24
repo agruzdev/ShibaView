@@ -21,6 +21,7 @@
 #include <cmath>
 
 #include <QPainter>
+#include <QPainterPath>
 #include <QGlyphRun>
 
 #include "Global.h"
