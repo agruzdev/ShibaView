@@ -22,6 +22,7 @@
 
 #include "BitmapSource.h"
 #include "MultiBitmapsource.h"
+#include "RawSource.h"
 
 
 std::unique_ptr<ImageSource> ImageSource::Load(const QString & filename) Q_DECL_NOEXCEPT
@@ -60,5 +61,19 @@ std::unique_ptr<ImageSource> ImageSource::Load(const QString & filename) Q_DECL_
             qDebug() << "ImageSource[Load]: Unknown error";
         }
     }
+
+    if (!source) {
+        // Treat as raw binary blob if nothing worked
+        try {
+            source = std::make_unique<RawSource>(filename);
+        }
+        catch(std::exception & err) {
+            qDebug() << err.what();
+        }
+        catch(...) {
+            qDebug() << "ImageSource[Load]: Unknown error";
+        }
+    }
+
     return source;
 }

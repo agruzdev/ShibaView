@@ -45,7 +45,7 @@ try
     }
     else {
         QSettings settings;
-        input = QFileDialog::getOpenFileName(nullptr, "Open File", settings.value(kSettingsLoadDir, "/").toString(), ViewerApplication::getFileFilter());
+        input = QFileDialog::getOpenFileName(nullptr, "Open File - ShibaView", settings.value(kSettingsLoadDir, "/").toString(), ViewerApplication::getFileFilter());
         if (!input.isEmpty()) {
             settings.setValue(kSettingsLoadDir, QFileInfo(input).dir().absolutePath());
         }

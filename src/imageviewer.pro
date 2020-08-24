@@ -21,7 +21,11 @@ HEADERS       = \
     FreeImageExt.h \
     ImageInfo.h \
     ImageDescription.h \
-    Player.h
+    Player.h \
+    RawSource.h \
+    RawFormatDialog.h \
+    rawformat.h \
+    RawFormatDialogWrapper.h
 
 SOURCES       = \
     main.cpp \
@@ -40,7 +44,10 @@ SOURCES       = \
     ImageProcessor.cpp \
     FreeImageExt.cpp \
     ImageDescription.cpp \
-    Player.cpp
+    Player.cpp \
+    RawSource.cpp \
+    RawFormatDialog.cpp \
+    RawFromatDialogWrapper.cpp
 
 RC_FILE = resources.rc
 
@@ -51,4 +58,5 @@ DEFINES += FREEIMAGE_COLORORDER=FREEIMAGE_COLORORDER_RGB
 RESOURCES += \
     assets.qrc
 
-FORMS +=
+FORMS += \
+    rawformatdialog.ui

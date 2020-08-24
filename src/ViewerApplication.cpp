@@ -80,18 +80,20 @@ ViewerApplication::~ViewerApplication()
 void ViewerApplication::loadImageAsync(const QString &path, size_t imgIdx, size_t totalCount)
 {
     auto loader = std::make_unique<ImageLoader>(QFileInfo(path).fileName(), imgIdx, totalCount);
-    connect(this, &ViewerApplication::eventLoadImage, loader.get(), &ImageLoader::onRun, Qt::ConnectionType::QueuedConnection);
     connect(loader.get(), &ImageLoader::eventResult, mCanvasWidget.get(), &CanvasWidget::onImageReady, Qt::ConnectionType::QueuedConnection);
     connect(loader.get(), &ImageLoader::eventError, this, &ViewerApplication::onError, Qt::ConnectionType::QueuedConnection);
     loader->moveToThread(mBackgroundThread.get());
-    emit eventLoadImage(path);
-    disconnect(this, &ViewerApplication::eventLoadImage, loader.get(), &ImageLoader::onRun);
+    if (!QMetaObject::invokeMethod(loader.get(), "onRun", Qt::ConnectionType::QueuedConnection, Q_ARG(QString, path))) {
+        connect(this, &ViewerApplication::eventLoadImage, loader.get(), &ImageLoader::onRun, Qt::ConnectionType::QueuedConnection);
+        emit eventLoadImage(path);
+        disconnect(this, &ViewerApplication::eventLoadImage, loader.get(), &ImageLoader::onRun);
+    }
     loader.release();
 }
 
 void ViewerApplication::scanDirectory()
 {
-    if(!mDirectory.exists()) {
+    if (!mDirectory.exists()) {
         mFilesInDirectory.clear();
         mCurrentFile  = mFilesInDirectory.cend();
         mCurrentIdx = 0;
