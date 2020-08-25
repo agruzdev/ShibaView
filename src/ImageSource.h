@@ -80,7 +80,7 @@ public:
     //---------------------------------------------------------
 
     static
-    std::unique_ptr<ImageSource> Load(const QString & filename) Q_DECL_NOEXCEPT;
+    std::unique_ptr<ImageSource> Load(const QString& filename) Q_DECL_NOEXCEPT;
 
 protected:
 

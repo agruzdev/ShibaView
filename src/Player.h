@@ -103,6 +103,9 @@ public:
     Player& operator=(Player&&) = delete;
     //-------------------------------------------------------------------------------------
 
+    static
+    ImageFrame cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload);
+
 private:
     struct FrameInfo;
     struct FrameInfoDeleter
@@ -115,9 +118,6 @@ private:
 
     static
     FrameInfoPtr newFrameInfo();
-
-    static
-    ImageFrame cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload);
 
     static
     bool getSourcePixel(FIBITMAP* src, uint32_t y, uint32_t x, Pixel* pixel);

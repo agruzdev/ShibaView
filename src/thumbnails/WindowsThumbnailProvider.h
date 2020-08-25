@@ -16,21 +16,21 @@
  * limitations under the License.
  */
 
-#ifndef GLOBAL_H
-#define GLOBAL_H
+#ifndef WINDOWS_THUMBNAIL_PROVIDER_H_
+#define WINDOWS_THUMBNAIL_PROVIDER_H_
 
-#include <QString>
-#include <QStringList>
+#ifdef _WIN32
 
-class Global
-{
-public:
-    static const QString defaultFont;
+#define NOMINMAX
+#define WIN_LEAN_AND_MEAN
+#include <unknwn.h>
 
-    static const QStringList& getSupportedExtensions() noexcept;
+HRESULT WindowsThumbnailProvider_CreateInstance(REFIID riid, void **ppv);
 
-private:
-    Global() = delete;
-};
+STDAPI DllRegisterServer();
 
-#endif // GLOBAL_H
+STDAPI DllUnregisterServer();
+
+#endif //_WIN32
+
+#endif //WINDOWS_THUMBNAIL_PROVIDER_H_

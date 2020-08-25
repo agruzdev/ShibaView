@@ -42,6 +42,12 @@ try
     QString input;
     if (argc > 1) {
         input = QApplication::arguments().at(1);
+        if (input == "/register") {
+            return std::system("regsvr32.exe ./ShibaThumbnail.dll");
+        }
+        else if (input == "/unregister") {
+            return std::system("regsvr32.exe /u ./ShibaThumbnail.dll");
+        }
     }
     else {
         QSettings settings;

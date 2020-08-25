@@ -21,6 +21,33 @@
 
 #include "FreeImage.h"
 
+typedef struct {
+#if FREEIMAGE_COLORORDER == FREEIMAGE_COLORORDER_BGR
+  BYTE rgbtBlue;
+  BYTE rgbtGreen;
+  BYTE rgbtRed;
+#else
+  BYTE rgbtRed;
+  BYTE rgbtGreen;
+  BYTE rgbtBlue;
+#endif // FREEIMAGE_COLORORDER
+} FIE_RGBTRIPLE;
+
+typedef struct {
+#if FREEIMAGE_COLORORDER == FREEIMAGE_COLORORDER_BGR
+      BYTE rgbBlue;
+      BYTE rgbGreen;
+      BYTE rgbRed;
+#else
+      BYTE rgbRed;
+      BYTE rgbGreen;
+      BYTE rgbBlue;
+#endif // FREEIMAGE_COLORORDER
+      BYTE rgbReserved;
+} FIE_RGBQUAD;
+
+
+
 enum FIE_ToneMapping
 {
     FIETMO_DRAGO03    = ::FITMO_DRAGO03,

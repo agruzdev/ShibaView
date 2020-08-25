@@ -40,7 +40,7 @@ SOURCES       = \
     ImageProcessor.cpp \
     FreeImageExt.cpp \
     ImageDescription.cpp \
-    Player.cpp
+    Player.cpp 
 
 RC_FILE = resources.rc
 
@@ -52,3 +52,7 @@ RESOURCES += \
     assets.qrc
 
 FORMS +=
+
+SUBDIRS = ./thumbnails
+
+DEPENDPATH += ./thumbnails

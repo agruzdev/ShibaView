@@ -18,4 +18,33 @@
 
 #include "Global.h"
 
+namespace
+{
+    
+namespace
+{
+    const QStringList kSupportedExtensions = {
+        ".png", ".pns",
+        ".jpg", ".jpeg", ".jpe",
+        ".jpf", ".jpx", ".jp2", ".j2c", ".j2k", ".jpc",
+        ".tga", ".targa",
+        ".tif", ".tiff",
+        ".bmp",
+        ".gif",
+        ".pbm", ".pgm", ".ppm", ".pnm", ".pfm", ".pam",
+        ".hdr",
+        ".webp",
+        ".dds",
+        ".iff", ".tdi",
+        ".pcx",
+        ".psd"
+    };
+}
+}
+
 const QString Global::defaultFont = ":/fonts/DejaVuSansCondensed.ttf";
+
+const QStringList& Global::getSupportedExtensions() noexcept
+{
+    return kSupportedExtensions;
+}

@@ -24,32 +24,25 @@
 #include <QFileInfo>
 #include <QCollator>
 
+#include "Global.h"
 #include "ImageLoader.h"
 
 namespace
 {
-    const QStringList kSupportedExtensions = {
-        "*.png", "*.pns",
-        "*.jpg", "*.jpeg", "*.jpe",
-        "*.jpf", "*.jpx", "*.jp2", "*.j2c", "*.j2k", "*.jpc",
-        "*.tga", "*.targa",
-        "*.tif", "*.tiff",
-        "*.bmp",
-        "*.gif",
-        "*.pbm", "*.pgm", "*.ppm", "*.pnm", "*.pfm", "*.pam",
-        "*.hdr",
-        "*.webp",
-        "*.dds",
-        "*.iff", "*.tdi",
-        "*.pcx",
-        "*.psd"
-    };
+    QStringList cvtExtensionsToFilters(const QStringList& exts)
+    {
+        QStringList filters;
+        filters.reserve(exts.size());
+        for (const auto& ext : exts) {
+            filters.push_back("*" + ext);
+        }
+        return filters;
+    }
 }
-
 
 QString ViewerApplication::getFileFilter()
 {
-    return "Images (" + kSupportedExtensions.join(" ") + ")";
+    return "Images (" + cvtExtensionsToFilters(Global::getSupportedExtensions()).join(" ") + ")";
 }
 
 ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
@@ -99,7 +92,7 @@ void ViewerApplication::scanDirectory()
     else {
         QCollator collator;
         collator.setNumericMode(true);
-        mFilesInDirectory = mDirectory.entryList(kSupportedExtensions);
+        mFilesInDirectory = mDirectory.entryList(cvtExtensionsToFilters(Global::getSupportedExtensions()));
         std::sort(mFilesInDirectory.begin(), mFilesInDirectory.end(), collator);
 
         mCurrentIdx = 0;
