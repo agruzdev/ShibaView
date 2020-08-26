@@ -65,6 +65,8 @@ set(app_resources
 
 add_executable(ShibaView WIN32 ${app_sources} ${app_resources})
 
+target_compile_features(ShibaView PRIVATE cxx_std_14)
+
 target_link_libraries(ShibaView Qt5::Core Qt5::Gui Qt5::Widgets ${FreeImage_LIBRARY})
 
 add_custom_command(TARGET ShibaView POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${FreeImage_BINARY} $<TARGET_FILE_DIR:ShibaView> COMMENT "Copy the FreeImage library.")
@@ -90,6 +92,8 @@ if(WIN32)
     )
 
     add_library(ShibaThumbnail SHARED ${thumbnails_sources})
+
+    target_compile_features(ShibaThumbnail PRIVATE cxx_std_14)
 
     target_link_libraries(ShibaThumbnail Shlwapi Qt5::Core ${FreeImage_LIBRARY})
 endif()
