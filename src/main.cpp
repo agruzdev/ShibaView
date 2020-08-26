@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 try
 {
     const auto t = std::chrono::steady_clock::now();
-        
+
     QApplication app{argc, argv};
     QApplication::setOrganizationName("Alexey Gruzdev");
     QApplication::setApplicationName("ShibaView");

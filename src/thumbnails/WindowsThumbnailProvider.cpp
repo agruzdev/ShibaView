@@ -42,7 +42,7 @@ public:
     WindowsThumbnailProvider()
     {
 #if ENABLE_LOG
-        mLog.open("D:/Snippets/ImageViewer/build/release/ShibaThumbnailService.log", std::ios::app);
+        mLog.open("./ShibaThumbnailService.log", std::ios::app);
         mLog << "Created" << std::endl;
 #endif
     }
