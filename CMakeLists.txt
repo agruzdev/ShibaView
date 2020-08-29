@@ -93,6 +93,8 @@ if(WIN32)
 
     add_library(ShibaThumbnail SHARED ${thumbnails_sources})
 
+    set_target_properties(ShibaThumbnail PROPERTIES PREFIX "")
+
     target_compile_features(ShibaThumbnail PRIVATE cxx_std_14)
 
     target_link_libraries(ShibaThumbnail Shlwapi Qt5::Core ${FreeImage_LIBRARY})
