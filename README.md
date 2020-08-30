@@ -28,4 +28,4 @@ qmake -tp vc ../src/
 
 ## Releases
 
-Download [the latest nightly build](http://95.213.199.37:8111/guestAuth/repository/downloadAll/ShibaView_Nightly/.lastSuccessful)
+Download [the latest nightly build](http://52.231.162.253:9111/job/ShibaView_Nightly/lastSuccessfulBuild/artifact/ShibaView_Nightly.zip)
