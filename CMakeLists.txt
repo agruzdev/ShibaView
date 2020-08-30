@@ -6,11 +6,31 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install)
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+
 find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
+
+get_target_property(Qt5Core_BINARY_DEBUG Qt5::Core IMPORTED_LOCATION_DEBUG)
+get_target_property(Qt5Core_BINARY_RELEASE Qt5::Core IMPORTED_LOCATION_RELEASE)
+get_target_property(Qt5Core_BINARY Qt5::Core IMPORTED_LOCATION)
+
+get_target_property(Qt5Gui_BINARY_DEBUG Qt5::Gui IMPORTED_LOCATION_DEBUG)
+get_target_property(Qt5Gui_BINARY_RELEASE Qt5::Gui IMPORTED_LOCATION_RELEASE)
+get_target_property(Qt5Gui_BINARY Qt5::Gui IMPORTED_LOCATION)
+
+get_target_property(Qt5Widgets_BINARY_DEBUG Qt5::Widgets IMPORTED_LOCATION_DEBUG)
+get_target_property(Qt5Widgets_BINARY_RELEASE Qt5::Widgets IMPORTED_LOCATION_RELEASE)
+get_target_property(Qt5Widgets_BINARY Qt5::Widgets IMPORTED_LOCATION)
+
+get_target_property(QWindowsIntegrationPlugin_BINARY_DEBUG Qt5::QWindowsIntegrationPlugin IMPORTED_LOCATION_DEBUG)
+get_target_property(QWindowsIntegrationPlugin_BINARY_RELEASE Qt5::QWindowsIntegrationPlugin IMPORTED_LOCATION_RELEASE)
+get_target_property(QWindowsIntegrationPlugin_BINARY Qt5::QWindowsIntegrationPlugin IMPORTED_LOCATION)
+
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/3rdParty/freeimage/include)
@@ -69,7 +89,25 @@ target_compile_features(ShibaView PRIVATE cxx_std_14)
 
 target_link_libraries(ShibaView Qt5::Core Qt5::Gui Qt5::Widgets ${FreeImage_LIBRARY})
 
-add_custom_command(TARGET ShibaView POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${FreeImage_BINARY} $<TARGET_FILE_DIR:ShibaView> COMMENT "Copy the FreeImage library.")
+install(TARGETS ShibaView DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(FILES ${FreeImage_BINARY} DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(FILES ${CMAKE_SOURCE_DIR}/LICENSE DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(FILES "${CMAKE_SOURCE_DIR}/3rdParty/freeimage/FreeImage License.txt" DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(FILES "${CMAKE_SOURCE_DIR}/fonts/Font License.txt" DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(FILES "${CMAKE_SOURCE_DIR}/icons/Icon License.txt" DESTINATION ${CMAKE_INSTALL_PREFIX})
+if(MSVC)
+    get_filename_component(Qt5_binary_dir ${Qt5Core_BINARY_RELEASE} DIRECTORY)
+    set_target_properties(ShibaView PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+    set_target_properties(ShibaView PROPERTIES VS_DEBUGGER_ENVIRONMENT "PATH=${CMAKE_SOURCE_DIR}/3rdParty/freeimage/lib;${Qt5_binary_dir};")
+    install(FILES ${Qt5Core_BINARY_DEBUG} ${Qt5Gui_BINARY_DEBUG} ${Qt5Widgets_BINARY_DEBUG} DESTINATION ${CMAKE_INSTALL_PREFIX} CONFIGURATIONS DEBUG)
+    install(FILES ${QWindowsIntegrationPlugin_BINARY_DEBUG} DESTINATION ${CMAKE_INSTALL_PREFIX}/platforms CONFIGURATIONS DEBUG)
+    install(FILES ${Qt5Core_BINARY_RELEASE} ${Qt5Gui_BINARY_RELEASE} ${Qt5Widgets_BINARY_RELEASE} DESTINATION ${CMAKE_INSTALL_PREFIX} CONFIGURATIONS RELEASE)
+    install(FILES ${QWindowsIntegrationPlugin_BINARY_RELEASE} DESTINATION ${CMAKE_INSTALL_PREFIX}/platforms CONFIGURATIONS RELEASE)
+else()
+    install(FILES ${Qt5Core_BINARY} ${Qt5Gui_BINARY} ${Qt5Widgets_BINARY} DESTINATION ${CMAKE_INSTALL_PREFIX})
+    install(FILES ${QWindowsIntegrationPlugin_BINARY} DESTINATION ${CMAKE_INSTALL_PREFIX}/platforms)
+endif()
+
 
 if(WIN32)
     set(thumbnails_sources
@@ -98,4 +136,6 @@ if(WIN32)
     target_compile_features(ShibaThumbnail PRIVATE cxx_std_14)
 
     target_link_libraries(ShibaThumbnail Shlwapi Qt5::Core ${FreeImage_LIBRARY})
+
+    install(TARGETS ShibaThumbnail DESTINATION ${CMAKE_INSTALL_PREFIX})
 endif()
