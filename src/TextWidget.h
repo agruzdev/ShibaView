@@ -19,6 +19,7 @@
 #ifndef TEXTWIDGET_H
 #define TEXTWIDGET_H
 
+#include <limits>
 #include <QWidget>
 #include <QFont>
 #include <QRawFont>
@@ -71,6 +72,13 @@ public:
         mBrush = QBrush(c, Qt::BrushStyle::SolidPattern);
     }
 
+    bool setColumnSeperator(QChar c);
+
+    void appendColumnOffset(qreal offset)
+    {
+        mColumnOffsets.push_back(offset);
+    }
+
 public slots:
     void setText(const QString & line);
     void setText(const QVector<QString> & lines);
@@ -103,6 +111,9 @@ private:
 
     QColor mBorderColor = Qt::transparent;
     QColor mBackgroundColor = Qt::transparent;
+
+    uint mColumnSeparator = std::numeric_limits<uint>::max();
+    QVector<qreal> mColumnOffsets;
 };
 
 #endif // TEXTWIDGET_H

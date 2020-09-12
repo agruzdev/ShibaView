@@ -53,8 +53,6 @@ AboutWidget::AboutWidget()
 
     setWindowTitle(Global::kApplicationName + " - About");
 
-    setFixedSize(320, 200);
-
     auto text = new TextWidget(this, Qt::black, 11, 0.8);
     text->setPaddings(8, 0, 4, 0);
 
@@ -65,7 +63,32 @@ AboutWidget::AboutWidget()
     textLines.push_back("Using:");
     textLines.push_back("  Qt " + QString(qVersion()));
     textLines.push_back("  FreeImage " + QString(FreeImage_GetVersion()));
+    textLines.push_back("");
+    textLines.push_back("");
+    textLines.push_back("Controls:");
+    textLines.push_back("  F1         | -  Show this page");
+    textLines.push_back("  Left       | -  Previous image");
+    textLines.push_back("  Right      | -  Next image");
+    textLines.push_back("  Home       | -  First image in directory");
+    textLines.push_back("  End        | -  Last image in directory");
+    textLines.push_back("  Plus       | -  Zoom in");
+    textLines.push_back("  Minus      | -  Zoom out");
+    textLines.push_back("  Asterisk   | -  Toggle 100% zoom / fit screen");
+    textLines.push_back("  Space      | -  Pause animation playback");
+    textLines.push_back("  PageDown   | -  Previous animation frame");
+    textLines.push_back("  PageUp     | -  Next animation frame");
+    textLines.push_back("  Ctrl+R     | -  Reload the current image");
+    textLines.push_back("  Ctrl+Up    | -  Toggle rotation 0" UTF8_DEGREE);
+    textLines.push_back("  Ctrl+Right | -  Toggle rotation 90" UTF8_DEGREE);
+    textLines.push_back("  Ctrl+Left  | -  Toggle rotation 270" UTF8_DEGREE);
+    textLines.push_back("  Ctrl+Down  | -  Toggle rotation 180" UTF8_DEGREE);
+    textLines.push_back("  Ctrl+I     | -  Color picker mode");
+    textLines.push_back("  Esc        | -  Quit");
+    text->setColumnSeperator('|');
+    text->appendColumnOffset(110);
     text->setText(textLines);
+
+    setFixedSize(350, 510);
 
     update();
     show();

@@ -44,8 +44,6 @@
 #include "Tooltip.h"
 #include "AboutWidget.h"
 
-#define UTF8_DEGREE "\xc2\xb0"
-
 enum class BorderPosition
 {
     eNone   = 0x0,

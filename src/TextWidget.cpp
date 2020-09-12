@@ -70,14 +70,39 @@ void TextWidget::setLine(uint32_t idx, const QString& line)
     }
 }
 
+bool TextWidget::setColumnSeperator(QChar c)
+{
+    quint32 glyph = 0;
+    int glyphsCount = 1;
+    if (mRawFont.glyphIndexesForChars(&c, 1, &glyph, &glyphsCount) && glyphsCount == 1) {
+        mColumnSeparator = glyph;
+        return true;
+    }
+    return false;
+}
+
 void TextWidget::autoResize()
 {
     mWidth = 1.0;
     for (const auto & line : mLines) {
         qreal lineWidth = 0.0;
-        for (const auto & glyph : mRawFont.glyphIndexesForString(line)) {
-            const auto path = mRawFont.pathForGlyph(glyph);
-            lineWidth += path.boundingRect().width() + mGlyphPadH;
+        if (!mColumnOffsets.empty()) {
+            uint32_t columnIndex = 0;
+            for (const auto& glyph : mRawFont.glyphIndexesForString(line)) {
+                if (glyph == mColumnSeparator && columnIndex < mColumnOffsets.size()) {
+                    lineWidth = mColumnOffsets[columnIndex++];
+                }
+                else {
+                    const auto path = mRawFont.pathForGlyph(glyph);
+                    lineWidth += path.boundingRect().width() + mGlyphPadH;
+                }
+            }
+        }
+        else {
+            for (const auto& glyph : mRawFont.glyphIndexesForString(line)) {
+                const auto path = mRawFont.pathForGlyph(glyph);
+                lineWidth += path.boundingRect().width() + mGlyphPadH;
+            }
         }
         mWidth = std::max(mWidth, lineWidth);
     }
@@ -118,13 +143,30 @@ void TextWidget::paintEvent(QPaintEvent *event)
     glyphRun.setRawFont(mRawFont);
     for (int32_t i = 0; i < mLines.size(); ++i) {
         if (mLines[i].size() > 0) {
+            const qreal lineOffsetY = mPaddings.top() + static_cast<qreal>(i + 1) * mLineHeight - mGlyphPadV;
             auto glyphs = mRawFont.glyphIndexesForString(mLines[i]);
             painter.resetTransform();
-            painter.translate(mPaddings.left(), mPaddings.top() + static_cast<qreal>(i + 1) * mLineHeight - mGlyphPadV);
-            for (const auto & glyph : glyphs) {
-                const auto path = mRawFont.pathForGlyph(glyph);
-                painter.drawPath(path);
-                painter.translate(path.boundingRect().width() + mGlyphPadH, 0.0);
+            painter.translate(mPaddings.left(), lineOffsetY);
+            if (!mColumnOffsets.empty()) {
+                uint32_t columnIndex = 0;
+                for (const auto & glyph : glyphs) {
+                    if (glyph == mColumnSeparator && columnIndex < mColumnOffsets.size()) {
+                        painter.resetTransform();
+                        painter.translate(mColumnOffsets[columnIndex++], lineOffsetY);
+                    }
+                    else {
+                        const auto path = mRawFont.pathForGlyph(glyph);
+                        painter.drawPath(path);
+                        painter.translate(path.boundingRect().width() + mGlyphPadH, 0.0);
+                    }
+                }
+            }
+            else {
+                for (const auto & glyph : glyphs) {
+                    const auto path = mRawFont.pathForGlyph(glyph);
+                    painter.drawPath(path);
+                    painter.translate(path.boundingRect().width() + mGlyphPadH, 0.0);
+                }
             }
         }
     }
