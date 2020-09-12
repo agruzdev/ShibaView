@@ -23,6 +23,7 @@
 #include <QFileDialog>
 #include <QSettings>
 #include <QFileInfo>
+#include "Global.h"
 #include "ViewerApplication.h"
 
 namespace
@@ -36,8 +37,8 @@ try
     const auto t = std::chrono::steady_clock::now();
 
     QApplication app{argc, argv};
-    QApplication::setOrganizationName("Alexey Gruzdev");
-    QApplication::setApplicationName("ShibaView");
+    QApplication::setOrganizationName(Global::kOrganizationName);
+    QApplication::setApplicationName(Global::kApplicationName);
 
     QString input;
     if (argc > 1) {

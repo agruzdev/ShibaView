@@ -42,6 +42,7 @@
 #include "UniqueTick.h"
 #include "ImageProcessor.h"
 #include "Tooltip.h"
+#include "AboutWidget.h"
 
 #define UTF8_DEGREE "\xc2\xb0"
 
@@ -98,6 +99,8 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     , mHoveredBorder(BorderPosition::eNone)
     , mStartTime(t)
 {
+    setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::MSWindowsOwnDC);
+
     mInfoText = new TextWidget(this);
     mInfoText->move(kTextPaddingLeft, kTextPaddingTop);
     mInfoText->enableShadow();
@@ -805,6 +808,9 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
                 catch(...)
                 { }
             }
+        }
+        else if (event->key() == Qt::Key_F1) {
+            AboutWidget::showInstance();
         }
     }
 }

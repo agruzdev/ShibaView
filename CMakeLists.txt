@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 
 project(ShibaView)
 
+set(SHIBA_VERSION_MAJOR 1)
+set(SHIBA_VERSION_MINOR 0)
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -34,8 +37,12 @@ set(FreeImage_LIBRARY "${CMAKE_SOURCE_DIR}/3rdParty/freeimage/lib/FreeImage.lib"
 set(FreeImage_BINARY  "${CMAKE_SOURCE_DIR}/3rdParty/freeimage/lib/FreeImage.dll")
 
 add_definitions(/DFREEIMAGE_COLORORDER=FREEIMAGE_COLORORDER_RGB)
+add_definitions(/DSHIBA_VERSION_MAJOR=${SHIBA_VERSION_MAJOR})
+add_definitions(/DSHIBA_VERSION_MINOR=${SHIBA_VERSION_MINOR})
 
 set(app_sources
+    ./src/AboutWidget.h
+    ./src/AboutWidget.cpp
     ./src/BitmapSource.h
     ./src/BitmapSource.cpp
     ./src/CanvasWidget.h

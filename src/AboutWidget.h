@@ -16,29 +16,34 @@
  * limitations under the License.
  */
 
-#ifndef GLOBAL_H
-#define GLOBAL_H
+#ifndef ABOUT_WIDGET_H
+#define ABOUT_WIDGET_H
 
-#include <QString>
-#include <QStringList>
+#include <QWidget>
 
-class Global
+class TextWidget;
+
+class AboutWidget final
+    : public QWidget
 {
+    Q_OBJECT
+
 public:
-    static constexpr uint32_t kVersionMajor = SHIBA_VERSION_MAJOR;
-
-    static constexpr uint32_t kVersionMinor = SHIBA_VERSION_MINOR;
-
-    static const QString kApplicationName;
-
-    static const QString kOrganizationName;
-
-    static const QString kDefaultFont;
-
-    static const QStringList& getSupportedExtensions() noexcept;
+    static
+    void showInstance();
 
 private:
-    Global() = delete;
+    AboutWidget();
+
+    AboutWidget(const AboutWidget&) = delete;
+
+    AboutWidget(AboutWidget&&) = delete;
+
+    ~AboutWidget() override;
+
+    AboutWidget& operator=(const AboutWidget&) = delete;
+
+    AboutWidget& operator=(AboutWidget&&) = delete;
 };
 
-#endif // GLOBAL_H
+#endif // ABOUT_WIDGET_H

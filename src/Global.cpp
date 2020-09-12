@@ -20,9 +20,6 @@
 
 namespace
 {
-    
-namespace
-{
     const QStringList kSupportedExtensions = {
         ".png", ".pns",
         ".jpg", ".jpeg", ".jpe",
@@ -40,9 +37,12 @@ namespace
         ".psd"
     };
 }
-}
 
-const QString Global::defaultFont = ":/fonts/DejaVuSansCondensed.ttf";
+const QString Global::kApplicationName = "ShibaView";
+
+const QString Global::kOrganizationName = "Alexey Gruzdev";
+
+const QString Global::kDefaultFont = ":/fonts/DejaVuSansCondensed.ttf";
 
 const QStringList& Global::getSupportedExtensions() noexcept
 {

@@ -39,7 +39,7 @@ TextWidget::TextWidget(QWidget *parent)
 TextWidget::TextWidget(QWidget* parent, Qt::GlobalColor color, int fsize)
     : QWidget(parent)
 {
-    mRawFont = QRawFont(Global::defaultFont, fsize);
+    mRawFont = QRawFont(Global::kDefaultFont, fsize);
     if(!mRawFont.isValid()) {
         mRawFont = QRawFont::fromFont(QFont());
     }

@@ -48,7 +48,6 @@ QString ViewerApplication::getFileFilter()
 ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
 {
     mCanvasWidget.reset(new CanvasWidget(t));
-    mCanvasWidget->setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::MSWindowsOwnDC);
 
     connect(mCanvasWidget.get(), &CanvasWidget::eventNextImage,  this, &ViewerApplication::onNextImage,   Qt::QueuedConnection);
     connect(mCanvasWidget.get(), &CanvasWidget::eventPrevImage,  this, &ViewerApplication::onPrevImage,   Qt::QueuedConnection);
