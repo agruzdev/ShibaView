@@ -51,11 +51,11 @@ void MenuWidget::init()
 {
     setMouseTracking(true);  //so we get paint updates
 
-    mTextWidget = new TextWidget(this, Qt::black, 12);
+    mTextWidget = new TextWidget(this, Qt::black, 12, 0.9);
     mTextWidget->setText(text);
     mTextWidget->setMouseTracking(true);
 
-    mBulletWidget = new TextWidget(this, Qt::black, 12);
+    mBulletWidget = new TextWidget(this, Qt::black, 12, 0.9);
     mBulletWidget->setText(UTF8_CHECK_SYMBOL);
     mBulletWidget->setMouseTracking(true);
     mBulletWidget->setFixedSize(MENU_BULLET_WIDTH, mTextWidget->textHeight());

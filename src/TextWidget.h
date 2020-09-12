@@ -32,7 +32,7 @@ class TextWidget
     Q_OBJECT
 public:
     explicit TextWidget(QWidget* parent = nullptr);
-    TextWidget(QWidget* parent, Qt::GlobalColor color, int fsize = 14);
+    TextWidget(QWidget* parent, Qt::GlobalColor color, qreal fsize = 14.0, qreal padh = 1.0);
     ~TextWidget();
 
     uint32_t textWidth() const
@@ -91,8 +91,11 @@ private:
 
     QVector<QString> mLines;
 
-    uint32_t mLineHeight;
-    uint32_t mWidth;
+    qreal mGlyphPadH = 3.75;
+    qreal mGlyphPadV = 5.0;
+
+    qreal mLineHeight;
+    qreal mWidth;
 
     QRect mPaddings = QRect(0, 0, 0, 0);
 

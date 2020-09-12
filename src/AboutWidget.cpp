@@ -23,6 +23,7 @@
 #include <QString>
 #include "Global.h"
 #include "TextWidget.h"
+#include "FreeImage.h"
 
 namespace
 {
@@ -52,16 +53,18 @@ AboutWidget::AboutWidget()
 
     setWindowTitle(Global::kApplicationName + " - About");
 
-    setFixedSize(300, 128);
+    setFixedSize(320, 200);
 
-    auto text = new TextWidget(this, Qt::black, 11);
+    auto text = new TextWidget(this, Qt::black, 11, 0.8);
     text->setPaddings(8, 0, 4, 0);
 
     QVector<QString> textLines;
     textLines.push_back("Version: " + QString::number(Global::kVersionMajor) + "." + QString::number(Global::kVersionMinor));
     textLines.push_back("Copyright 2018-2020 " + Global::kOrganizationName);
     textLines.push_back("");
-    textLines.push_back("Built with Qt" + QString::number(QT_VERSION_MAJOR) + "." + QString::number(QT_VERSION_MINOR));
+    textLines.push_back("Using:");
+    textLines.push_back("  Qt " + QString(qVersion()));
+    textLines.push_back("  FreeImage " + QString(FreeImage_GetVersion()));
     text->setText(textLines);
 
     update();

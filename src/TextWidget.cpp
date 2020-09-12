@@ -26,48 +26,43 @@
 
 #include "Global.h"
 
-namespace
-{
-    Q_DECL_CONSTEXPR uint32_t FONT_HPADDING = 4;
-    Q_DECL_CONSTEXPR uint32_t FONT_VPADDING = 5;
-}
-
 TextWidget::TextWidget(QWidget *parent)
     : TextWidget(parent, Qt::white)
 { }
 
-TextWidget::TextWidget(QWidget* parent, Qt::GlobalColor color, int fsize)
+TextWidget::TextWidget(QWidget* parent, Qt::GlobalColor color, qreal fsize, qreal padh)
     : QWidget(parent)
 {
     mRawFont = QRawFont(Global::kDefaultFont, fsize);
     if(!mRawFont.isValid()) {
         mRawFont = QRawFont::fromFont(QFont());
     }
-    mPen           = QPen(color);
+    mPen           = QPen(color, 0.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
     mPenDisabled   = QPen(Qt::gray);
     mBrush         = QBrush(color,    Qt::BrushStyle::SolidPattern);
     mBrushDisabled = QBrush(Qt::gray, Qt::BrushStyle::SolidPattern);
 
-    mLineHeight = mRawFont.capHeight() + 2 * FONT_VPADDING;
+    mGlyphPadH *= padh;
+    mLineHeight = mRawFont.capHeight() + 2.0 * mGlyphPadV;
 
     setAttribute(Qt::WA_TransparentForMouseEvents);
 }
 
 TextWidget::~TextWidget() = default;
 
-void TextWidget::setText(const QString & line)
+void TextWidget::setText(const QString& line)
 {
     mLines = QVector<QString>{ line };
     autoResize();
 }
 
-void TextWidget::setText(const QVector<QString> & lines)
+void TextWidget::setText(const QVector<QString>& lines)
 {
     mLines = lines;
     autoResize();
 }
 
-void TextWidget::setLine(uint32_t idx, const QString & line)
+void TextWidget::setLine(uint32_t idx, const QString& line)
 {
     if (static_cast<int>(idx) < mLines.size()) {
         mLines[idx] = line;
@@ -77,18 +72,18 @@ void TextWidget::setLine(uint32_t idx, const QString & line)
 
 void TextWidget::autoResize()
 {
-    mWidth = 1;
+    mWidth = 1.0;
     for (const auto & line : mLines) {
-        qreal lineWidth = 0;
+        qreal lineWidth = 0.0;
         for (const auto & glyph : mRawFont.glyphIndexesForString(line)) {
             const auto path = mRawFont.pathForGlyph(glyph);
-            lineWidth += path.boundingRect().width() + FONT_HPADDING;
+            lineWidth += path.boundingRect().width() + mGlyphPadH;
         }
-        mWidth = std::max<uint32_t>(mWidth, std::ceil(lineWidth));
+        mWidth = std::max(mWidth, lineWidth);
     }
-    const int32_t w = mWidth + mPaddings.left() + mPaddings.right();
-    const int32_t h = mLines.size() * mLineHeight + FONT_VPADDING + mPaddings.top() + mPaddings.bottom();
-    resize(w, h);
+    const qreal w = mWidth + mPaddings.left() + mPaddings.right();
+    const qreal h = mLines.size() * mLineHeight + mGlyphPadV + mPaddings.top() + mPaddings.bottom();
+    resize(static_cast<int>(std::ceil(w)), static_cast<int>(std::ceil(h)));
 }
 
 void TextWidget::paintEvent(QPaintEvent *event)
@@ -125,11 +120,11 @@ void TextWidget::paintEvent(QPaintEvent *event)
         if (mLines[i].size() > 0) {
             auto glyphs = mRawFont.glyphIndexesForString(mLines[i]);
             painter.resetTransform();
-            painter.translate(mPaddings.left(), mPaddings.top() + (i + 1) * mLineHeight - FONT_VPADDING);
+            painter.translate(mPaddings.left(), mPaddings.top() + static_cast<qreal>(i + 1) * mLineHeight - mGlyphPadV);
             for (const auto & glyph : glyphs) {
                 const auto path = mRawFont.pathForGlyph(glyph);
                 painter.drawPath(path);
-                painter.translate(path.boundingRect().width() + FONT_HPADDING, 0);
+                painter.translate(path.boundingRect().width() + mGlyphPadH, 0.0);
             }
         }
     }
@@ -138,7 +133,7 @@ void TextWidget::paintEvent(QPaintEvent *event)
 void TextWidget::enableShadow()
 {
     QGraphicsDropShadowEffect *eff = new QGraphicsDropShadowEffect(this);
-    eff->setOffset(-1, 0);
+    eff->setOffset(-1.0, 0.0);
     eff->setBlurRadius(5.0);
     eff->setColor(Qt::black);
     this->setGraphicsEffect(eff);
