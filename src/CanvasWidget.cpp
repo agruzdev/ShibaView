@@ -41,6 +41,7 @@
 #include "ZoomController.h"
 #include "UniqueTick.h"
 #include "ImageProcessor.h"
+#include "Tooltip.h"
 
 #define UTF8_DEGREE "\xc2\xb0"
 
@@ -151,7 +152,7 @@ CanvasWidget::~CanvasWidget()
         settings.setValue(kSettingsZoomFitValue,   static_cast<int32_t>(mZoomController->getFitValue()));
         settings.setValue(kSettingsToneMapping, static_cast<int32_t>(mImageProcessor->toneMappingMode()));
 
-        delete mToolTip;
+        mTooltip.reset();
     }
     catch(...) {
         
@@ -579,8 +580,8 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
         const ImageFrame & frame = mImage->getFrame();
 
-        mImageRect = calculateImageRegion();
-        const auto dstCenter = mImageRect.center();
+        const auto imageRect = calculateImageRegion();
+        const auto dstCenter = imageRect.center();
 
         // Make vertical flip
         const auto trans1 = QTransform::fromTranslate(-dstCenter.x(), -dstCenter.y());
@@ -588,7 +589,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
         const auto trans2 = QTransform::fromTranslate(dstCenter.x(), dstCenter.y());
         painter.setTransform(trans1 * scale * trans2);
 
-        painter.drawPixmap(mImageRect, mImageProcessor->getResult());
+        painter.drawPixmap(imageRect, mImageProcessor->getResult());
 
         if (mShowInfo) {
             if (!mInfoIsValid) {
@@ -710,6 +711,16 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
                 mActRotate.get()[Rotation::eDegree180]->trigger();
             }
         }
+        else if (event->key() == Qt::Key_I) {
+            if (!mTooltip) {
+                mTooltip = std::make_unique<Tooltip>();
+                mTooltip->hide();
+                invalidateTooltip();
+            }
+            else {
+                mTooltip.reset();
+            }
+        }
     }
     else {
         // No Modifiers
@@ -795,17 +806,11 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
                 { }
             }
         }
-        else if(event->key() == Qt::Key_Alt || event->key() == Qt::Key_AltGr) {
-            showTooltip(mCursorPosition);
-        }
     }
 }
 
-void CanvasWidget::keyReleaseEvent(QKeyEvent* event)
+void CanvasWidget::keyReleaseEvent(QKeyEvent* /*event*/)
 {
-    if (event->key() == Qt::Key_Alt || event->key() == Qt::Key_AltGr) {
-        hideTooltip();
-    }
 }
 
 void CanvasWidget::onTransitionCanceled()
@@ -881,52 +886,16 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event)
     }
 }
 
-void CanvasWidget::showTooltip(const QPoint & pos)
-{
-    unsetCursor();
-
-    if (mImageProcessor && mImageRect.contains(pos)) {
-        QPoint imgPos = pos - mImageRect.topLeft();
-
-        // Invert zoom
-        imgPos.setX(static_cast<int>(std::floor((imgPos.x() + 0.5) / mZoomController->getFactor())));
-        imgPos.setY(static_cast<int>(std::floor((imgPos.y() + 0.5) / mZoomController->getFactor())));
-
-        Pixel pixelValue{};
-        if (mImageProcessor->getPixel(imgPos.y(), imgPos.x(), &pixelValue)) {
-            if (!mToolTip) {
-                mToolTip = new TextWidget(nullptr, Qt::black, 12);
-                mToolTip->setWindowFlags(Qt::ToolTip);
-                mToolTip->setBackgroundColor(QColor::fromRgb(255, 255, 225));
-                mToolTip->setBorderColor(Qt::black);
-                mToolTip->setPaddings(4, 2, 0, -4);
-            }
-            mToolTip->move(mapToGlobal(pos) + QPoint(7, 20));
-            mToolTip->setText({ QString("Y: %1, X: %2").arg(pixelValue.y).arg(pixelValue.x), pixelValue.repr });
-            mToolTip->setColor(Qt::black);
-            mToolTip->show();
-            mToolTip->update();
-        }
-    }
-    else {
-        hideTooltip();
-    }
-}
-
-void CanvasWidget::hideTooltip()
-{
-    if (mToolTip) {
-        // ToDo (a.gruzdev): Workaround to hide previous content
-        mToolTip->setColor(Qt::transparent);
-        mToolTip->repaint();
-        mToolTip->hide();
-    }
-}
-
 void CanvasWidget::applicationStateChanged(Qt::ApplicationState state)
 {
-    if (state != Qt::ApplicationState::ApplicationActive) {
-        hideTooltip();
+    mCursorPosition = mapFromGlobal(QCursor::pos());
+    if (mTooltip) {
+        if (state == Qt::ApplicationState::ApplicationActive) {
+            invalidateTooltip();
+        }
+        else {
+            mTooltip->hide();
+        }
     }
 }
 
@@ -934,24 +903,20 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
 {
     //QWidget::mouseMoveEvent(event);
 
-    if (QApplication::keyboardModifiers() == Qt::AltModifier) {
-        // Alt pressed -> pixel view mode
-        showTooltip(event->pos());
-    }
-    else {
-        // Window controls
-        hideTooltip();
+    mCursorPosition = event->pos();
 
-        if (!mFullScreen && mDragging) {
-            move(event->globalX() - mClickPos.x(), event->globalY() - mClickPos.y());
-        }
-        else if (mBrowsing) {
-            mOffset += event->pos() - mClickPos;
-            mClickPos = event->pos();
-            updateOffsets();
-            repaint();
-        }
-        else if (!mFullScreen && mStretching) {
+    // Window controls
+    if (!mFullScreen && mDragging) {
+        move(event->globalX() - mClickPos.x(), event->globalY() - mClickPos.y());
+    }
+    else if (mBrowsing) {
+        mOffset += event->pos() - mClickPos;
+        mClickPos = event->pos();
+        updateOffsets();
+        repaint();
+    }
+    else if (!mFullScreen && !mTooltip) {
+        if (mStretching) {
             QRect r = mClickGeometry;
             if ((mHoveredBorder & BorderPosition::eLeft) != BorderPosition::eNone) {
                 r.setX(std::min(r.x() + event->globalX() - mClickPos.x(), r.right() - kMinSize));
@@ -968,23 +933,21 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
             setGeometry(r);
             updateOffsets();
         }
-        else if(!mFullScreen) {
-            const int x = event->x();
-            const int y = event->y();
-            BorderPosition pos = BorderPosition::eNone;
-            if (x <= kFrameThickness) {
-                pos = pos | BorderPosition::eLeft;
+        else {
+            BorderPosition borderPos = BorderPosition::eNone;
+            if (mCursorPosition.x() <= kFrameThickness) {
+                borderPos = borderPos | BorderPosition::eLeft;
             }
-            if (width() - x <= kFrameThickness) {
-                pos = pos | BorderPosition::eRight;
+            if (width() - mCursorPosition.x() <= kFrameThickness) {
+                borderPos = borderPos | BorderPosition::eRight;
             }
-            if (y <= kFrameThickness) {
-                pos = pos | BorderPosition::eTop;
+            if (mCursorPosition.y() <= kFrameThickness) {
+                borderPos = borderPos | BorderPosition::eTop;
             }
-            if (height() - y <= kFrameThickness) {
-                pos = pos | BorderPosition::eBottom;
+            if (height() - mCursorPosition.y() <= kFrameThickness) {
+                borderPos = borderPos | BorderPosition::eBottom;
             }
-            switch (pos) {
+            switch (borderPos) {
             case BorderPosition::eLeft:
             case BorderPosition::eRight:
                 setCursor(Qt::SizeHorCursor);
@@ -1005,10 +968,47 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
                 unsetCursor();
                 break;
             }
-            mHoveredBorder = pos;
+            mHoveredBorder = borderPos;
         }
     }
-    mCursorPosition = QPoint(event->x(), event->y());
+
+    invalidateTooltip();
+}
+
+void CanvasWidget::leaveEvent(QEvent* event)
+{
+    if (mTooltip) {
+        mTooltip->hide();
+    }
+}
+
+void CanvasWidget::invalidateTooltip()
+{
+    if (mTooltip) {
+        const auto imageRect = calculateImageRegion();
+        if (mImageProcessor && imageRect.contains(mCursorPosition)) {
+            unsetCursor();
+
+            QPoint imgPos = mCursorPosition - imageRect.topLeft();
+
+            // Invert zoom
+            imgPos.setX(static_cast<int>(std::floor((imgPos.x() + 0.5) / mZoomController->getFactor())));
+            imgPos.setY(static_cast<int>(std::floor((imgPos.y() + 0.5) / mZoomController->getFactor())));
+
+            Pixel pixelValue{};
+            if (mImageProcessor->getPixel(imgPos.y(), imgPos.x(), &pixelValue)) {
+                mTooltip->move(mapToGlobal(mCursorPosition));
+                mTooltip->setText({ QString("Y: %1, X: %2").arg(pixelValue.y).arg(pixelValue.x), pixelValue.repr });
+                mTooltip->show();
+            }
+            else {
+                mTooltip->hide();
+            }
+        }
+        else {
+            mTooltip->hide();
+        }
+    }
 }
 
 void CanvasWidget::zoomToTarget(QPoint target, int dir)
@@ -1048,8 +1048,9 @@ void CanvasWidget::wheelEvent(QWheelEvent* event)
     if(!mClick) {
         const QPoint degrees = event->angleDelta();
         if (!degrees.isNull() && degrees.y() != 0) {
-            mCursorPosition = QPoint(event->x(), event->y());
+            mCursorPosition = event->pos();
             zoomToTarget(mCursorPosition, (degrees.y() > 0) ? 1 : -1);
+            invalidateTooltip();
         }
     }
 }

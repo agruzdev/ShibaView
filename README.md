@@ -18,14 +18,3 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-## Build
-
-```
-mkdir build
-cd build
-qmake -tp vc ../src/
-```
-
-## Releases
-
-Download [the latest nightly build](http://52.231.162.253:9111/job/ShibaView_Nightly/lastSuccessfulBuild/artifact/ShibaView_Nightly.zip)

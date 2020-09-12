@@ -41,6 +41,7 @@ enum class BorderPosition;
 class QLabel;
 class ZoomController;
 class TextWidget;
+class Tooltip;
 
 enum class FilteringMode
 {
@@ -59,7 +60,7 @@ enum class ZoomMode
     length_
 };
 
-class CanvasWidget
+class CanvasWidget final
     : public QWidget
 {
     Q_OBJECT
@@ -114,6 +115,7 @@ private:
     void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseDoubleClickEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void wheelEvent(QWheelEvent* event) Q_DECL_OVERRIDE;
+    void leaveEvent(QEvent* event) Q_DECL_OVERRIDE;
 
     void invalidateImageDescription();
     void updateZoomLabel();
@@ -141,8 +143,7 @@ private:
 
     QMenu* createContextMenu();
 
-    void showTooltip(const QPoint & pos);
-    void hideTooltip();
+    void invalidateTooltip();
 
 private:
 
@@ -151,8 +152,6 @@ private:
     std::unique_ptr<ImageDescription> mImageDescription;
 
     std::unique_ptr<ImageProcessor> mImageProcessor;
-
-    QRect mImageRect;
 
     bool mTransitionRequested = true;
 
@@ -189,7 +188,7 @@ private:
 
     TextWidget* mPageText = nullptr;
 
-    TextWidget* mToolTip = nullptr;
+    std::unique_ptr<Tooltip> mTooltip;
 
     FilteringMode mFilteringMode;
 

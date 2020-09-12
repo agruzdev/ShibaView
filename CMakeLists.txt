@@ -36,41 +36,42 @@ set(FreeImage_BINARY  "${CMAKE_SOURCE_DIR}/3rdParty/freeimage/lib/FreeImage.dll"
 add_definitions(/DFREEIMAGE_COLORORDER=FREEIMAGE_COLORORDER_RGB)
 
 set(app_sources
-    ./src/ViewerApplication.h
-    ./src/ViewerApplication.cpp
-    ./src/ImageLoader.h
-    ./src/ImageLoader.cpp
-    ./src/CanvasWidget.h
-    ./src/CanvasWidget.cpp
-    ./src/ZoomController.h
-    ./src/ZoomController.cpp
-    ./src/TextWidget.h
-    ./src/TextWidget.cpp
-    ./src/ImageInfo.h
-    ./src/Image.h
-    ./src/Image.cpp
-    ./src/Global.h
-    ./src/Global.cpp
-    ./src/MenuWidget.h
-    ./src/MenuWidget.cpp
-    ./src/ImageSource.h
-    ./src/ImageSource.cpp
     ./src/BitmapSource.h
     ./src/BitmapSource.cpp
-    ./src/MultiBitmapsource.h
-    ./src/MultiBitmapsource.cpp
-    ./src/UniqueTick.h
-    ./src/UniqueTick.cpp
+    ./src/CanvasWidget.h
+    ./src/CanvasWidget.cpp
     ./src/EnumArray.h
-    ./src/ImageProcessor.h
-    ./src/ImageProcessor.cpp
     ./src/FreeImageExt.h
     ./src/FreeImageExt.cpp
-    ./src/ImageInfo.h
+    ./src/Global.h
+    ./src/Global.cpp
+    ./src/Image.h
+    ./src/Image.cpp
     ./src/ImageDescription.h
     ./src/ImageDescription.cpp
+    ./src/ImageInfo.h
+    ./src/ImageLoader.h
+    ./src/ImageLoader.cpp
+    ./src/ImageProcessor.h
+    ./src/ImageProcessor.cpp
+    ./src/ImageSource.h
+    ./src/ImageSource.cpp
+    ./src/MenuWidget.h
+    ./src/MenuWidget.cpp
+    ./src/MultiBitmapsource.h
+    ./src/MultiBitmapsource.cpp
     ./src/Player.h
     ./src/Player.cpp
+    ./src/TextWidget.h
+    ./src/TextWidget.cpp
+    ./src/Tooltip.h
+    ./src/Tooltip.cpp
+    ./src/UniqueTick.h
+    ./src/UniqueTick.cpp
+    ./src/ViewerApplication.h
+    ./src/ViewerApplication.cpp
+    ./src/ZoomController.h
+    ./src/ZoomController.cpp
     ./src/main.cpp
 )
 
@@ -104,18 +105,18 @@ install(FILES ${QWindowsIntegrationPlugin_BINARY_RELEASE} DESTINATION ${CMAKE_IN
 
 if(WIN32)
     set(thumbnails_sources
-        ./src/FreeImageExt.h
-        ./src/FreeImageExt.cpp
-        ./src/ImageSource.h
-        ./src/ImageSource.cpp
         ./src/BitmapSource.h
         ./src/BitmapSource.cpp
+        ./src/FreeImageExt.h
+        ./src/FreeImageExt.cpp
+        ./src/Global.h
+        ./src/Global.cpp
+        ./src/ImageSource.h
+        ./src/ImageSource.cpp
         ./src/MultiBitmapsource.h
         ./src/MultiBitmapsource.cpp
         ./src/Player.h
         ./src/Player.cpp
-        ./src/Global.h
-        ./src/Global.cpp
         ./src/thumbnails/WindowsThumbnailProvider.h
         ./src/thumbnails/WindowsThumbnailProvider.cpp
         ./src/thumbnails/WindowsThumbnailService.cpp
