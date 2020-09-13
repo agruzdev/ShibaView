@@ -42,8 +42,9 @@ public:
     WindowsThumbnailProvider()
     {
 #if ENABLE_LOG
-        mLog.open("./ShibaThumbnailService.log", std::ios::app);
-        mLog << "Created" << std::endl;
+        std::locale::global(std::locale("Russian_Russia"));
+        mLog.open("D:/ShibaThumbnailService.log", std::ios::app);
+        mLog << L"Created" << std::endl;
 #endif
     }
 
@@ -54,7 +55,7 @@ public:
     ~WindowsThumbnailProvider()
     {
 #if ENABLE_LOG
-        mLog << "Destroyed" << std::endl;
+        mLog << L"Destroyed" << std::endl;
         mLog.close();
 #endif
     }
@@ -68,7 +69,7 @@ public:
     IFACEMETHODIMP_(ULONG) AddRef()
     {
 #if ENABLE_LOG
-        mLog << "AddRef() is called" << std::endl;
+        mLog << L"AddRef() is called" << std::endl;
 #endif
         return InterlockedIncrement(&mRefs);
     }
@@ -76,7 +77,7 @@ public:
     IFACEMETHODIMP_(ULONG) Release()
     {
 #if ENABLE_LOG
-        mLog << "Release() is called" << std::endl;
+        mLog << L"Release() is called" << std::endl;
 #endif
         const ULONG cRef = InterlockedDecrement(&mRefs);
         if (!cRef) {
@@ -88,7 +89,7 @@ public:
     IFACEMETHODIMP QueryInterface(REFIID riid, void **ppv)
     {
 #if ENABLE_LOG
-        mLog << "QueryInterface() is called" << std::endl;
+        mLog << L"QueryInterface() is called" << std::endl;
 #endif
         static const QITAB qit[] = {
             QITABENT(WindowsThumbnailProvider, IThumbnailProvider),
@@ -102,7 +103,7 @@ public:
     IFACEMETHODIMP Initialize(LPCWSTR pszFilePath, DWORD /*grfMode*/)
     {
 #if ENABLE_LOG
-        mLog << "Initialize() is called" << std::endl;
+        mLog << L"Initialize() is called = " << pszFilePath << std::endl;
 #endif
         if (!pszFilePath) {
             return E_INVALIDARG;
@@ -119,7 +120,7 @@ public:
     {
         try {
 #if ENABLE_LOG
-            mLog << "GetThumbnail() is called" << std::endl;
+            mLog << L"GetThumbnail() is called" << std::endl;
 #endif
             auto bitmapSource = ImageSource::Load(QString::fromStdWString(mFilePath));
             if (!bitmapSource || bitmapSource->pagesCount() == 0) {
@@ -136,7 +137,12 @@ public:
                 thumbnailGenerated.reset(FreeImage_MakeThumbnail(bitmap.get(), cx, true));
                 thumbnail = thumbnailGenerated.get();
             }
-            if(!thumbnail) {
+            else if (FreeImage_GetHeight(thumbnail) > cx || FreeImage_GetWidth(thumbnail) > cx) {
+                thumbnailGenerated.reset(FreeImage_MakeThumbnail(thumbnail, cx, true));
+                thumbnail = thumbnailGenerated.get();
+            }
+
+            if (!thumbnail) {
                 throw std::runtime_error("Failed to acquire a thumbnail");
             }
 
@@ -227,7 +233,7 @@ public:
 
             if (phbmp) {
 #if ENABLE_LOG
-                mLog << "GetThumbnail() is OK" << std::endl;
+                mLog << L"GetThumbnail() is OK" << std::endl;
 #endif
                 *phbmp = bmp.release();
                 *pdwAlpha = resultAlpha;
@@ -242,7 +248,7 @@ public:
         catch(...) {
         }
 #if ENABLE_LOG
-        mLog << "GetThumbnail() is FAIL" << std::endl;
+        mLog << L"GetThumbnail() is FAIL" << std::endl;
 #endif
         return S_FALSE;
     }
@@ -251,7 +257,7 @@ private:
     ULONG mRefs = static_cast<ULONG>(1);
     std::wstring mFilePath;
 #if ENABLE_LOG
-    std::ofstream mLog;
+    std::wofstream mLog;
 #endif
 };
 
