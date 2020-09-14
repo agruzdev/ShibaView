@@ -17,6 +17,7 @@
  */
 
 #include "BitmapSource.h"
+#include <stdexcept>
 
 BitmapSource::BitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif)
 {

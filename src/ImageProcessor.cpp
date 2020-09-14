@@ -17,6 +17,7 @@
  */
 
 #include "ImageProcessor.h"
+#include <stdexcept>
 
 namespace
 {

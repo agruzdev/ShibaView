@@ -19,6 +19,7 @@
 #include "Player.h"
 
 #include <cassert>
+#include <stdexcept>
 #include <vector>
 
 #include "ImageSource.h"
