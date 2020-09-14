@@ -88,7 +88,7 @@ void MenuWidget::paintEvent(QPaintEvent* /*e*/)
         style()->drawControl(QStyle::CE_MenuItem, &opt, &p, this);
     }
 
-    if(checked) {
+    if (checked) {
         mBulletWidget->setVisible(true);
         mLayout->setContentsMargins(MENU_MARGIN, 0, 0, 0);
     }

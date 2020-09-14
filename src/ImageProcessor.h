@@ -47,7 +47,6 @@ class ImageProcessor
 {
 public:
     ImageProcessor();
-    ~ImageProcessor();
 
     ImageProcessor(QWeakPointer<Image> image)
         : ImageProcessor()
@@ -56,9 +55,13 @@ public:
     }
 
     ImageProcessor(const ImageProcessor&) = delete;
+
     ImageProcessor(ImageProcessor&&) = delete;
 
+    ~ImageProcessor();
+
     ImageProcessor& operator=(const ImageProcessor&) = delete;
+
     ImageProcessor& operator=(ImageProcessor&&) = delete;
 
     void attachSource(QWeakPointer<Image> image);
@@ -92,6 +95,22 @@ public:
     }
 
     /**
+     * Swap R and B channels
+     */
+    void setSwapRB(bool value)
+    {
+        if (mSwapRB != value) {
+            mSwapRB = value;
+            mIsValid = false;
+        }
+    }
+
+    bool getSwapRB() const
+    {
+        return mSwapRB;
+    }
+
+    /**
      * Apply ineversed transform to coordinates and call Image::getPixel
      */
     bool getPixel(uint32_t y, uint32_t x, Pixel* p) const;
@@ -122,6 +141,7 @@ private:
 
     Rotation mRotation = Rotation::eDegree0;
     FIE_ToneMapping mToneMapping = FIE_ToneMapping::FIETMO_NONE;
+    bool mSwapRB = false;
 };
 
 #endif // IMAGEPROCESSOR_H

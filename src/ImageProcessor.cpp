@@ -17,6 +17,7 @@
  */
 
 #include "ImageProcessor.h"
+#include "Utilities.h"
 #include <stdexcept>
 
 namespace
@@ -72,6 +73,15 @@ const QPixmap & ImageProcessor::getResult()
                 if (tonemapped) {
                     target = tonemapped.get();
                 }
+            }
+
+            std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> swizzled(nullptr, &::FreeImage_Unload);
+            if (mSwapRB) {
+                if (target == frame.bmp) {
+                    swizzled.reset(FreeImage_Clone(target));
+                    target = swizzled.get();
+                }
+                SwapRedBlue32(target);
             }
 
             mDstPixmap = QPixmap::fromImage(makeQImageView(target));

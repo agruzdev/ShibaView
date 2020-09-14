@@ -239,6 +239,22 @@ QMenu* CanvasWidget::createContextMenu()
         menu->addSeparator();
     }
 
+    // Swap channels
+    {
+        auto action = createMenuAction("Swap channels");
+        action->setCheckable(true);
+        if (mImage && mImageProcessor && testFlag(mImage->getFrame().flags, FrameFlags::eRGB)) {
+            action->setChecked(mImageProcessor->getSwapRB());
+            action->setEnabled(true);
+            connect(action, &QAction::triggered, this, &CanvasWidget::onActSwapChannels);
+        }
+        else {
+            action->setEnabled(false);
+        }
+        menu->addAction(std::move(action));
+        menu->addSeparator();
+    }
+
     const auto actQuit = createMenuAction("Quit");
     connect(actQuit, &QAction::triggered, this, &QWidget::close);
     menu->addAction(actQuit);
@@ -1158,3 +1174,10 @@ void CanvasWidget::onActToneMapping(bool checked, FIE_ToneMapping m)
     }
 }
 
+void CanvasWidget::onActSwapChannels(bool checked)
+{
+    if (mImageProcessor) {
+        mImageProcessor->setSwapRB(checked);
+        update();
+    }
+}

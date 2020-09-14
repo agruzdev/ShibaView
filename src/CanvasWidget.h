@@ -90,6 +90,8 @@ public slots:
     void onActZoomMode(bool checked, ZoomMode z);
     void onActToneMapping(bool checked, FIE_ToneMapping m);
 
+    void onActSwapChannels(bool checked);
+
     void onShowContextMenu(const QPoint &pos);
 
     void onAnimationTick(uint64_t imgId);
