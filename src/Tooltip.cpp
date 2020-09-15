@@ -67,18 +67,18 @@ void Tooltip::move(const QPoint& position)
 
     const QSize textSize = mTextWidget->size();
 
-    QPoint adjustedPosition = position + mDefaultOffset;
+    QPoint tooltipPosition = position + mDefaultOffset;
 
-    const int dx = adjustedPosition.x() + textSize.width() - screenGeometry.width();
+    const int dx = tooltipPosition.x() + textSize.width() - screenGeometry.x() - screenGeometry.width();
     if (dx > 0) {
-        adjustedPosition.setX(adjustedPosition.x() - dx);
+        tooltipPosition.setX(tooltipPosition.x() - dx);
     }
-    const int dy = adjustedPosition.y() + textSize.height() - screenGeometry.height();
+    const int dy = tooltipPosition.y() + textSize.height() - screenGeometry.y() - screenGeometry.height();
     if (dy > 0) {
-        adjustedPosition.setY(adjustedPosition.y() - dy);
+        tooltipPosition.setY(tooltipPosition.y() - dy);
     }
 
-    mTextWidget->move(adjustedPosition);
+    mTextWidget->move(tooltipPosition);
     if (mTextWidget->isVisible()) {
         mTextWidget->update();
     }
