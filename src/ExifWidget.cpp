@@ -147,8 +147,17 @@ void ExifWidget::readExifFrom(FIBITMAP* bmp)
         newSize.setWidth(std::max(newSize.width() + kMinimumPadding, kMinimumWidth));
         setFixedSize(newSize);
 
+        mText->update();
+
         update();
         show();
+    }
+}
+
+void ExifWidget::paintEvent(QPaintEvent * event)
+{
+    if (mActive) {
+        mText->update();
     }
 }
 
