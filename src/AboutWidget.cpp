@@ -21,28 +21,29 @@
 #include <mutex>
 #include <QColor>
 #include <QString>
+#include <QKeyEvent>
 #include "Global.h"
 #include "TextWidget.h"
 #include "FreeImage.h"
 
 namespace
 {
-    struct AboutWidgetStaticContext
+    struct WidgetStaticContext
     {
-        bool isCreated = false;
+        AboutWidget* instance = nullptr;
         std::mutex mutex;
     };
 
-    AboutWidgetStaticContext gAboutWidgetStaticContext{};
+    WidgetStaticContext gAboutWidgetStaticContext{};
 }
 
-void AboutWidget::showInstance()
+AboutWidget& AboutWidget::getInstance()
 {
     std::lock_guard<std::mutex> lock(gAboutWidgetStaticContext.mutex);
-    if (!gAboutWidgetStaticContext.isCreated) {
-        gAboutWidgetStaticContext.isCreated = true;
-        new AboutWidget();
+    if (!gAboutWidgetStaticContext.instance) {
+        gAboutWidgetStaticContext.instance = new AboutWidget();
     }
+    return *gAboutWidgetStaticContext.instance;
 }
 
 AboutWidget::AboutWidget()
@@ -67,6 +68,7 @@ AboutWidget::AboutWidget()
     textLines.push_back("");
     textLines.push_back("Controls:");
     textLines.push_back("  F1         | -  Show this page");
+    textLines.push_back("  F2         | -  Show EXIF data");
     textLines.push_back("  Left       | -  Previous image");
     textLines.push_back("  Right      | -  Next image");
     textLines.push_back("  Home       | -  First image in directory");
@@ -88,7 +90,7 @@ AboutWidget::AboutWidget()
     text->appendColumnOffset(110);
     text->setText(textLines);
 
-    setFixedSize(350, 510);
+    setFixedSize(350, 530);
 
     update();
     show();
@@ -97,6 +99,17 @@ AboutWidget::AboutWidget()
 AboutWidget::~AboutWidget()
 {
     std::lock_guard<std::mutex> lock(gAboutWidgetStaticContext.mutex);
-    gAboutWidgetStaticContext.isCreated = false;
+    gAboutWidgetStaticContext.instance = nullptr;
 }
 
+void AboutWidget::popUp()
+{
+}
+
+void AboutWidget::keyPressEvent(QKeyEvent *event)
+{
+    QWidget::keyPressEvent(event);
+    if (event->key() == Qt::Key_Escape) {
+        close();
+    }
+}

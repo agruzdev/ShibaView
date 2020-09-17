@@ -16,38 +16,50 @@
  * limitations under the License.
  */
 
-#ifndef ABOUT_WIDGET_H
-#define ABOUT_WIDGET_H
+#ifndef EXIF_WIDGET_H
+#define EXIF_WIDGET_H
 
 #include <QWidget>
+#include "FreeImage.h"
 
 class TextWidget;
 
-class AboutWidget final
+class ExifWidget final
     : public QWidget
 {
     Q_OBJECT
 
 public:
     static
-    AboutWidget& getInstance();
+    ExifWidget& getInstance();
 
-    AboutWidget(const AboutWidget&) = delete;
+    ExifWidget(const ExifWidget&) = delete;
 
-    AboutWidget(AboutWidget&&) = delete;
+    ExifWidget(ExifWidget&&) = delete;
 
-    AboutWidget& operator=(const AboutWidget&) = delete;
+    ExifWidget& operator=(const ExifWidget&) = delete;
 
-    AboutWidget& operator=(AboutWidget&&) = delete;
+    ExifWidget& operator=(ExifWidget&&) = delete;
 
-    void popUp();
+    void activate();
 
-private:
-    AboutWidget();
+    void readExifFrom(FIBITMAP* bmp);
 
-    ~AboutWidget() override;
+    bool isActive()
+    {
+        return mActive;
+    }
+
+public:
+    ExifWidget();
+
+    ~ExifWidget() override;
 
     void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
+    void closeEvent(QCloseEvent* event) Q_DECL_OVERRIDE;
+
+    bool mActive = false;
+    TextWidget* mText;
 };
 
-#endif // ABOUT_WIDGET_H
+#endif // EXIF_WIDGET_H

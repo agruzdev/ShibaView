@@ -39,9 +39,10 @@
 enum class BorderPosition;
 
 class QLabel;
-class ZoomController;
+
 class TextWidget;
 class Tooltip;
+class ZoomController;
 
 enum class FilteringMode
 {
@@ -147,6 +148,8 @@ private:
 
     void invalidateTooltip();
 
+    void invalidateExif();
+
 private:
 
     ImagePtr mImage;
@@ -199,7 +202,7 @@ private:
     bool mEnableAnimation = true;
     uint32_t mAnimIndex = 0;
 
-    // actions
+    // Actions
     std::shared_future<ActionsArray<Rotation>> mActRotate;
     std::shared_future<ActionsArray<ZoomMode>> mActZoom;
     std::shared_future<TMActionsArray> mActToneMapping;

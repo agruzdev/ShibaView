@@ -35,14 +35,15 @@
 #include <QRawFont>
 #include <QWidgetAction>
 
+#include "AboutWidget.h"
+#include "ExifWidget.h"
 #include "Global.h"
+#include "ImageProcessor.h"
 #include "MenuWidget.h"
 #include "TextWidget.h"
+#include "Tooltip.h"
 #include "ZoomController.h"
 #include "UniqueTick.h"
-#include "ImageProcessor.h"
-#include "Tooltip.h"
-#include "AboutWidget.h"
 
 enum class BorderPosition
 {
@@ -89,6 +90,31 @@ namespace
         return static_cast<BorderPosition>(static_cast<std::underlying_type_t<BorderPosition>>(lh) & static_cast<std::underlying_type_t<BorderPosition>>(rh));
     }
 
+
+    FilteringMode toFilteringMode(int32_t v)
+    {
+        switch(v) {
+        case static_cast<int32_t>(FilteringMode::eAntialiasing):
+            return FilteringMode::eAntialiasing;
+        default:
+        case static_cast<int32_t>(FilteringMode::eNone):
+            return FilteringMode::eNone;
+        }
+    }
+
+    ZoomMode toZoomMode(int32_t v)
+    {
+        switch(v) {
+        case static_cast<int32_t>(ZoomMode::eFixed):
+            return ZoomMode::eFixed;
+        case static_cast<int32_t>(ZoomMode::eFree):
+            return ZoomMode::eFree;
+        default:
+        case static_cast<int32_t>(ZoomMode::eFitWindow):
+            return ZoomMode::eFitWindow;
+        }
+    }
+
 }
 
 
@@ -105,12 +131,17 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
 
     mErrorText = new TextWidget(this);
 
+    const auto defaultGeometry = QRect(200, 200, 1280, 720);
+
     QSettings settings;
-    mClickGeometry = settings.value(kSettingsGeometry, QRect(200, 200, 1280, 720)).toRect();
+    mClickGeometry = settings.value(kSettingsGeometry, defaultGeometry).toRect();
+    //if (!QApplication::desktop()->geometry().contains(mClickGeometry)) {
+    //    mClickGeometry = defaultGeometry;
+    //}
     mFullScreen    = settings.value(kSettingsFullscreen, false).toBool();
     mShowInfo      = settings.value(kSettingsShowInfo, false).toBool();
-    mFilteringMode = static_cast<FilteringMode>(settings.value(kSettingsFilterMode, static_cast<int32_t>(FilteringMode::eNone)).toInt());
-    mZoomMode      = static_cast<ZoomMode>(settings.value(kSettingsZoomMode, static_cast<int32_t>(ZoomMode::eFree)).toInt());
+    mFilteringMode = toFilteringMode(settings.value(kSettingsFilterMode, static_cast<int32_t>(FilteringMode::eNone)).toInt());
+    mZoomMode      = toZoomMode(settings.value(kSettingsZoomMode, static_cast<int32_t>(ZoomMode::eFree)).toInt());
 
     QPalette palette;
     palette.setColor(QPalette::ColorRole::Window, QColor(0x2B, 0x2B, 0x2B));
@@ -154,6 +185,9 @@ CanvasWidget::~CanvasWidget()
         settings.setValue(kSettingsToneMapping, static_cast<int32_t>(mImageProcessor->toneMappingMode()));
 
         mTooltip.reset();
+        //AboutWidget::getInstance().close();
+        //ExifWidget::getInstance().close();
+        //ExifWidget::getInstance().deleteLater();
     }
     catch(...) {
         
@@ -448,6 +482,8 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
     }
 
     invalidateImageDescription();
+    invalidateTooltip();
+    invalidateExif();
 
     if(!isVisible()) {
         show();
@@ -652,7 +688,9 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
         mErrorText->show();
     }
 
-    if(mStartup){
+    invalidateTooltip();
+
+    if (mStartup) {
 #ifdef _MSC_VER
         std::cout << (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - mStartTime).count() / 1e3) << std::endl;
 #endif
@@ -824,7 +862,11 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
             }
         }
         else if (event->key() == Qt::Key_F1) {
-            AboutWidget::showInstance();
+            AboutWidget::getInstance().popUp();
+        }
+        else if (event->key() == Qt::Key_F2) {
+            ExifWidget::getInstance().activate();
+            invalidateExif();
         }
     }
 }
@@ -1028,6 +1070,18 @@ void CanvasWidget::invalidateTooltip()
         else {
             mTooltip->hide();
         }
+    }
+}
+
+void CanvasWidget::invalidateExif()
+{
+    ExifWidget& exifWidget = ExifWidget::getInstance();
+    if (exifWidget.isActive()) {
+        FIBITMAP* bmp = nullptr;
+        if (mImage && mImage->notNull()) {
+            bmp = mImage->getFrame().bmp;
+        }
+        exifWidget.readExifFrom(bmp);
     }
 }
 

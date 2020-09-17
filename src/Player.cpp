@@ -160,9 +160,20 @@ Player::FrameInfoPtr Player::loadNextFrame(ImageSource* source, const FrameInfo*
 
 bool Player::getPixel(uint32_t y, uint32_t x, Pixel* p) const
 {
-    const auto & page = mFramesCache[mCacheIndex]->page;
-    if (page && p) {
-        return getSourcePixel(page.get(), y, x, p);
+    if (mCacheIndex < mFramesCache.size()) {
+        auto& frame = mFramesCache[mCacheIndex];
+        if (mSource->storesDiffernece()) {
+            // Impossible to fetch original color without blending
+            if (frame->frame.bmp) {
+                return getSourcePixel(frame->frame.bmp, y, x, p);
+            }
+        }
+        else {
+            // Use original page
+            if (frame->page) {
+                return getSourcePixel(frame->page.get(), y, x, p);
+            }
+        }
     }
     return false;
 }
@@ -493,7 +504,7 @@ QString pixelToString1(const BYTE* raw)
 bool Player::getSourcePixel(FIBITMAP* src, uint32_t y, uint32_t x, Pixel* pixel)
 {
     assert(src != nullptr);
-    if(y >= FreeImage_GetHeight(src) || x >= FreeImage_GetWidth(src)) {
+    if (y >= FreeImage_GetHeight(src) || x >= FreeImage_GetWidth(src)) {
         return false;
     }
     bool success = true;

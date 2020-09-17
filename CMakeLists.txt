@@ -46,6 +46,8 @@ set(app_sources
     ./src/CanvasWidget.h
     ./src/CanvasWidget.cpp
     ./src/EnumArray.h
+    ./src/ExifWidget.h
+    ./src/ExifWidget.cpp
     ./src/FreeImageExt.h
     ./src/FreeImageExt.cpp
     ./src/Global.h
