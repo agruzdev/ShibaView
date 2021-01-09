@@ -126,6 +126,8 @@ if(WIN32)
         ./src/MultiBitmapsource.cpp
         ./src/Player.h
         ./src/Player.cpp
+        ./src/PluginFLO.h
+        ./src/PluginFLO.cpp
         ./src/thumbnails/WindowsThumbnailProvider.h
         ./src/thumbnails/WindowsThumbnailProvider.cpp
         ./src/thumbnails/WindowsThumbnailService.cpp
