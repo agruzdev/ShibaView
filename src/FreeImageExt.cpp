@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <cassert>
 #include <tuple>
+#include "PluginFLO.h"
 
 namespace
 {
@@ -183,6 +184,18 @@ namespace
         return dst;
     }
 }
+
+
+void FreeImageExt_Initialise()
+{
+    FreeImage_RegisterLocalPlugin(&initPluginFLO);
+}
+
+
+void FreeImageExt_DeInitialise()
+{
+}
+
 
 FIBITMAP* FreeImageExt_ToneMapping(FIBITMAP* src, FIE_ToneMapping mode)
 {

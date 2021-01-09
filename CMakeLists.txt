@@ -69,6 +69,8 @@ set(app_sources
     ./src/MultiBitmapsource.cpp
     ./src/Player.h
     ./src/Player.cpp
+    ./src/PluginFLO.h
+    ./src/PluginFLO.cpp
     ./src/TextWidget.h
     ./src/TextWidget.cpp
     ./src/Tooltip.h

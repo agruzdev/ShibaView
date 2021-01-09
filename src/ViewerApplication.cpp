@@ -26,6 +26,7 @@
 
 #include "Global.h"
 #include "ImageLoader.h"
+#include "FreeImageExt.h"
 
 namespace
 {
@@ -47,6 +48,8 @@ QString ViewerApplication::getFileFilter()
 
 ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
 {
+    FreeImageExt_Initialise();
+
     mCanvasWidget.reset(new CanvasWidget(t));
 
     connect(mCanvasWidget.get(), &CanvasWidget::eventNextImage,  this, &ViewerApplication::onNextImage,   Qt::QueuedConnection);
@@ -67,6 +70,8 @@ ViewerApplication::~ViewerApplication()
 {
     mBackgroundThread->quit();
     mBackgroundThread->wait();
+
+    FreeImageExt_DeInitialise();
 }
 
 void ViewerApplication::loadImageAsync(const QString &path, size_t imgIdx, size_t totalCount)

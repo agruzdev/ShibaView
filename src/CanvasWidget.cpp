@@ -474,9 +474,8 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
             }
 
             mImageProcessor->attachSource(mImage);
+            mImageDescription->setFormat(mImage->getFrame().srcFormat);
         }
-
-        mImageDescription->setFormat(mImage->getFrame().srcFormat);
 
         setWindowTitle(mImage->info().path + " - " + QApplication::applicationName());
     }

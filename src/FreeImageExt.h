@@ -47,6 +47,26 @@ typedef struct {
 } FIE_RGBQUAD;
 
 
+/**
+ * Extends FREE_IMAGE_FORMAT
+ */
+enum FIE_ImageFormat
+{
+    FIEF_FLO = FIF_JXR + 1
+};
+
+
+/**
+ * Must be called after FreeImage_Initialise()
+ */
+void FreeImageExt_Initialise();
+
+
+/**
+ * Does not call FreeImage_DeInitialise() internally.
+ */
+void FreeImageExt_DeInitialise();
+
 
 enum FIE_ToneMapping
 {

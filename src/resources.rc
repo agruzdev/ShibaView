@@ -1,4 +1,4 @@
-IDI_ICON1   ICON    DISCARDABLE "../icons/app.ico"
+SHIBA_VIEW_ICON   ICON    DISCARDABLE "../icons/app.ico"
 
 #include <windows.h>
 #include "Version.h"

@@ -34,7 +34,8 @@ namespace
         ".dds",
         ".iff", ".tdi",
         ".pcx",
-        ".psd"
+        ".psd",
+        ".flo"
     };
 }
 
