@@ -14,19 +14,19 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 
-find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Core Gui Widgets QWindowsIntegrationPlugin REQUIRED)
 
-get_target_property(Qt5Core_BINARY_DEBUG Qt5::Core IMPORTED_LOCATION_DEBUG)
-get_target_property(Qt5Core_BINARY_RELEASE Qt5::Core IMPORTED_LOCATION_RELEASE)
+get_target_property(Qt5Core_BINARY_DEBUG Qt6::Core IMPORTED_LOCATION_DEBUG)
+get_target_property(Qt5Core_BINARY_RELEASE Qt6::Core IMPORTED_LOCATION_RELEASE)
 
-get_target_property(Qt5Gui_BINARY_DEBUG Qt5::Gui IMPORTED_LOCATION_DEBUG)
-get_target_property(Qt5Gui_BINARY_RELEASE Qt5::Gui IMPORTED_LOCATION_RELEASE)
+get_target_property(Qt5Gui_BINARY_DEBUG Qt6::Gui IMPORTED_LOCATION_DEBUG)
+get_target_property(Qt5Gui_BINARY_RELEASE Qt6::Gui IMPORTED_LOCATION_RELEASE)
 
-get_target_property(Qt5Widgets_BINARY_DEBUG Qt5::Widgets IMPORTED_LOCATION_DEBUG)
-get_target_property(Qt5Widgets_BINARY_RELEASE Qt5::Widgets IMPORTED_LOCATION_RELEASE)
+get_target_property(Qt5Widgets_BINARY_DEBUG Qt6::Widgets IMPORTED_LOCATION_DEBUG)
+get_target_property(Qt5Widgets_BINARY_RELEASE Qt6::Widgets IMPORTED_LOCATION_RELEASE)
 
-get_target_property(QWindowsIntegrationPlugin_BINARY_DEBUG Qt5::QWindowsIntegrationPlugin IMPORTED_LOCATION_DEBUG)
-get_target_property(QWindowsIntegrationPlugin_BINARY_RELEASE Qt5::QWindowsIntegrationPlugin IMPORTED_LOCATION_RELEASE)
+get_target_property(QWindowsIntegrationPlugin_BINARY_DEBUG Qt6::QWindowsIntegrationPlugin IMPORTED_LOCATION_DEBUG)
+get_target_property(QWindowsIntegrationPlugin_BINARY_RELEASE Qt6::QWindowsIntegrationPlugin IMPORTED_LOCATION_RELEASE)
 
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
@@ -93,7 +93,7 @@ add_executable(ShibaView WIN32 ${app_sources} ${app_resources})
 
 target_compile_features(ShibaView PRIVATE cxx_std_14)
 
-target_link_libraries(ShibaView Qt5::Core Qt5::Gui Qt5::Widgets ${FreeImage_LIBRARY})
+target_link_libraries(ShibaView Qt6::Core Qt6::Gui Qt6::Widgets ${FreeImage_LIBRARY})
 
 install(TARGETS ShibaView DESTINATION .)
 install(FILES ${FreeImage_BINARY} DESTINATION .)
@@ -140,7 +140,7 @@ if(WIN32)
 
     target_compile_features(ShibaThumbnail PRIVATE cxx_std_14)
 
-    target_link_libraries(ShibaThumbnail Shlwapi Qt5::Core ${FreeImage_LIBRARY})
+    target_link_libraries(ShibaThumbnail Shlwapi Qt6::Core ${FreeImage_LIBRARY})
 
     install(TARGETS ShibaThumbnail RUNTIME DESTINATION .)
 endif()

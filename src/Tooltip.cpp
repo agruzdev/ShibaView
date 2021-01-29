@@ -20,7 +20,6 @@
 
 #include <QApplication>
 #include <QColor>
-#include <QDesktopWidget>
 #include <QScreen>
 #include "TextWidget.h"
 
@@ -57,12 +56,12 @@ void Tooltip::setText(const QVector<QString>& lines)
 
 void Tooltip::move(const QPoint& position)
 {
-    QRect screenGeometry;
+    QRect screenGeometry = QRect(0, 0, 0, 0);
     if (const auto screen = QApplication::screenAt(position)) {
         screenGeometry = screen->geometry();
     }
-    else {
-        screenGeometry = QApplication::desktop()->screenGeometry();
+    else if (const auto screen = QApplication::primaryScreen()) {
+        screenGeometry = screen->geometry();
     }
 
     const QSize textSize = mTextWidget->size();

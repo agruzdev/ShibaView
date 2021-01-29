@@ -195,7 +195,7 @@ void initPluginFLO(Plugin *plugin, int format_id)
         float miny = std::numeric_limits<float>::max();
         float maxrad = -1.0f;
 
-        const size_t flowLineSize = 2 * static_cast<size_t>(width); // two components
+        const uint32_t flowLineSize = 2 * static_cast<uint32_t>(width); // two components
         std::vector<float> flowBuffer(flowLineSize * height);
         {
             float* flowLine = flowBuffer.data();

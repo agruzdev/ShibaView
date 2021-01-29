@@ -132,7 +132,7 @@ private:
 
     void recalculateFittingScale();
 
-    void setFullscreenGeometry();
+    bool setFullscreenGeometry();
 
     void zoomToTarget(QPoint target, int dir);
 
