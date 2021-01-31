@@ -24,9 +24,9 @@
 #include "MultiBitmapsource.h"
 
 
-std::unique_ptr<ImageSource> ImageSource::Load(const QString & filename) Q_DECL_NOEXCEPT
+std::shared_ptr<ImageSource> ImageSource::Load(const QString & filename) Q_DECL_NOEXCEPT
 {
-    std::unique_ptr<ImageSource> source = nullptr;
+    std::shared_ptr<ImageSource> source = nullptr;
 #ifdef _WIN32
     const auto uniName = filename.toStdWString();
     FREE_IMAGE_FORMAT fif = FreeImage_GetFileTypeU(uniName.c_str(), 0);
@@ -46,10 +46,10 @@ std::unique_ptr<ImageSource> ImageSource::Load(const QString & filename) Q_DECL_
             case FIF_GIF:
             case FIF_ICO:
             case FIF_TIFF:
-                source = std::make_unique<MultibitmapSource>(filename, fif);
+                source = std::make_shared<MultibitmapSource>(filename, fif);
                 break;
             default:
-                source = std::make_unique<BitmapSource>(filename, fif);
+                source = std::make_shared<BitmapSource>(filename, fif);
                 break;
             }
         }

@@ -196,25 +196,25 @@ void initPluginFLO(Plugin *plugin, int format_id)
         float maxrad = -1.0f;
 
         const uint32_t flowLineSize = 2 * static_cast<uint32_t>(width); // two components
-        std::vector<float> flowBuffer(flowLineSize * height);
-        {
-            float* flowLine = flowBuffer.data();
-            for (DWORD y = 0; y < height; y++, flowLine += flowLineSize) {
-                if (io->read_proc(flowLine, sizeof(float), flowLineSize, handle) != flowLineSize) {
-                    qDebug() << "PluginFLO[Load]: file is too short";
-                    return nullptr;
-                }
-                for (DWORD x = 0; x < width; ++x) {
-                    const DWORD x2 = x << 1;
-                    const float fx = flowLine[x2];
-                    const float fy = flowLine[x2 + 1];
-                    if (!isUnknownFlow(fx, fy)) {
-                        maxx = std::max(maxx, fx);
-                        maxy = std::max(maxy, fy);
-                        minx = std::min(minx, fx);
-                        miny = std::min(miny, fy);
-                        maxrad = std::max(maxrad, std::sqrt(fx * fx + fy * fy));
-                    }
+
+        std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> flowImage(FreeImage_AllocateT(FIT_FLOAT, flowLineSize, height, 32), &::FreeImage_Unload);
+
+        for (DWORD y = 0; y < height; y++) {
+            float* flowLine = reinterpret_cast<float*>(FreeImage_GetScanLine(flowImage.get(), height - 1 - y));
+            if (io->read_proc(flowLine, sizeof(float), flowLineSize, handle) != flowLineSize) {
+                qDebug() << "PluginFLO[Load]: file is too short";
+                return nullptr;
+            }
+            for (DWORD x = 0; x < width; ++x) {
+                const DWORD x2 = x << 1;
+                const float fx = flowLine[x2];
+                const float fy = flowLine[x2 + 1];
+                if (!isUnknownFlow(fx, fy)) {
+                    maxx = std::max(maxx, fx);
+                    maxy = std::max(maxy, fy);
+                    minx = std::min(minx, fx);
+                    miny = std::min(miny, fy);
+                    maxrad = std::max(maxrad, std::sqrt(fx * fx + fy * fy));
                 }
             }
         }
@@ -223,27 +223,13 @@ void initPluginFLO(Plugin *plugin, int format_id)
             maxrad = 1;
         }
 
-        std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> rgb(FreeImage_Allocate(width, height, 24), &::FreeImage_Unload);
+        FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Min X", minx);
+        FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Max X", maxx);
+        FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Min Y", miny);
+        FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Max Y", maxy);
+        FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Max R", maxrad);
 
-        {
-            float* flowLine = flowBuffer.data();
-            for (DWORD y = 0; y < height; y++, flowLine += flowLineSize) {
-                const auto rgbLine = reinterpret_cast<FIE_RGBTRIPLE*>(FreeImage_GetScanLine(rgb.get(), height - 1 - y));
-                for (DWORD x = 0; x < width; ++x) {
-                    const DWORD x2 = x << 1;
-                    const float fx = flowLine[x2];
-                    const float fy = flowLine[x2 + 1];
-                    if (!isUnknownFlow(fx, fy)) {
-                        rgbLine[x] = ColorWheel::getInstance().computeColor(fx / maxrad, fy / maxrad);
-                    }
-                    else {
-                        std::memset(rgbLine + x, 0, sizeof(FIE_RGBTRIPLE));
-                    }
-                }
-            }
-        }
-
-        return rgb.release();
+        return flowImage.release();
     };
 
     plugin->save_proc = [](FreeImageIO* /*io*/, FIBITMAP* /*dib*/, fi_handle /*handle*/, int /*page*/, int /*flags*/, void* /*data*/) -> BOOL {
@@ -260,5 +246,40 @@ void initPluginFLO(Plugin *plugin, int format_id)
         return (tag == TAG_FLOAT);
     };
 
+}
+
+FIBITMAP* cvtFloToRgb(FIBITMAP* flo)
+{
+    if (!flo) {
+        return nullptr;
+    }
+    const DWORD width  = FreeImage_GetWidth(flo) / 2;
+    const DWORD height = FreeImage_GetHeight(flo);
+
+    if (width * height <= 0) {
+        return nullptr;
+    }
+
+    const float maxrad = FreeImageExt_GetMetadataValue<float>(FIMD_CUSTOM, flo, "Max R", 1.0f);
+
+    std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> rgb(FreeImage_Allocate(width, height, 24), &::FreeImage_Unload);
+
+    for (DWORD y = 0; y < height; y++) {
+        const auto flowLine = reinterpret_cast<const float*>(FreeImage_GetScanLine(flo, y));
+        const auto rgbLine  = reinterpret_cast<FIE_RGBTRIPLE*>(FreeImage_GetScanLine(rgb.get(), y));
+        for (DWORD x = 0; x < width; ++x) {
+            const DWORD x2 = x << 1;
+            const float fx = flowLine[x2];
+            const float fy = flowLine[x2 + 1];
+            if (!isUnknownFlow(fx, fy)) {
+                rgbLine[x] = ColorWheel::getInstance().computeColor(fx / maxrad, fy / maxrad);
+            }
+            else {
+                std::memset(rgbLine + x, 0, sizeof(FIE_RGBTRIPLE));
+            }
+        }
+    }
+
+    return rgb.release();
 }
 

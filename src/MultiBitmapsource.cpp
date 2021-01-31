@@ -22,31 +22,21 @@
 #include <limits>
 #include <vector>
 #include <fstream>
-
-
-namespace
-{
-    template <typename Ty_>
-    Ty_ FreeImage_GetMetadataValue(FREE_IMAGE_MDMODEL model, FIBITMAP *dib, const char *key, const Ty_ & defaultVal)
-    {
-        FITAG* tag = nullptr;
-        const auto succ = FreeImage_GetMetadata(model, dib, key, &tag);
-        if(succ && tag) {
-            return *static_cast<std::add_const_t<Ty_>*>(FreeImage_GetTagValue(tag));
-        }
-        return defaultVal;
-    }
-}
-
+#include "FreeImageExt.h"
 
 
 MultibitmapSource::MultibitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif)
-    : mFormat(fif)
+    : mImageFormat(fif)
 {
 #ifdef _WIN32
     const auto uniName = filename.toStdWString();
     // ToDo: Since FreeImage is missing FreeImage_OpenMultiBitmapU function, read through memory buffer
+# ifdef _MSC_VER
+    FILE* file{ nullptr };
+    _wfopen_s(&file, uniName.c_str(), L"rb");
+# else
     FILE* file = _wfopen(uniName.c_str(), L"rb");
+# endif
     if (file) {
         mBuffer = std::make_unique<MultibitmapBuffer>();
 
@@ -62,7 +52,7 @@ MultibitmapSource::MultibitmapSource(const QString & filename, FREE_IMAGE_FORMAT
 
         mBuffer->stream = FreeImage_OpenMemory(mBuffer->data.data(), static_cast<DWORD>(mBuffer->data.size()));
         if (mBuffer->stream) {
-            mMultibitmap = FreeImage_LoadMultiBitmapFromMemory(fif, mBuffer->stream, JPEG_EXIFROTATE);
+            mMultibitmap = FreeImage_LoadMultiBitmapFromMemory(mImageFormat, mBuffer->stream, JPEG_EXIFROTATE);
         }
     }
 #else
@@ -82,29 +72,32 @@ MultibitmapSource::~MultibitmapSource()
     }
 }
 
-uint32_t MultibitmapSource::doPagesCount() const Q_DECL_NOEXCEPT
+uint32_t MultibitmapSource::doPagesCount() const
 {
     return static_cast<uint32_t>(FreeImage_GetPageCount(mMultibitmap));
 }
 
-FIBITMAP* MultibitmapSource::doDecodePage(uint32_t pageIdx, AnimationInfo* anim) Q_DECL_NOEXCEPT
+const ImagePage* MultibitmapSource::doDecodePage(uint32_t pageIdx)
 {
-    const auto bmp = FreeImage_LockPage(mMultibitmap, static_cast<int>(pageIdx));
-    if (bmp && anim) {
-        anim->offsetX  = FreeImage_GetMetadataValue(FIMD_ANIMATION, bmp, "FrameLeft", 0);
-        anim->offsetY  = FreeImage_GetMetadataValue(FIMD_ANIMATION, bmp, "FrameTop",  0);
-        anim->duration = FreeImage_GetMetadataValue(FIMD_ANIMATION, bmp, "FrameTime", 0);
-        anim->disposal = FreeImage_GetMetadataValue(FIMD_ANIMATION, bmp, "DisposalMethod", DisposalType::eLeave);
+    auto page = std::make_unique<ImagePage>(FreeImage_LockPage(mMultibitmap, static_cast<int>(pageIdx)), mImageFormat);
+    AnimationInfo anim{};
+    anim.offsetX  = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getBitmap(), "FrameLeft", 0);
+    anim.offsetY  = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getBitmap(), "FrameTop",  0);
+    anim.duration = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getBitmap(), "FrameTime", 0);
+    anim.disposal = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getBitmap(), "DisposalMethod", DisposalType::eLeave);
+    page->setAnimation(std::move(anim));
+    return page.release();
+}
+
+void MultibitmapSource::doReleasePage(const ImagePage* page)
+{
+    if (page) {
+        FreeImage_UnlockPage(mMultibitmap, page->getBitmap(), false);
     }
-    return bmp;
+    delete page;
 }
 
-void MultibitmapSource::doReleasePage(FIBITMAP* page) Q_DECL_NOEXCEPT
+bool MultibitmapSource::doStoresDifference() const
 {
-    FreeImage_UnlockPage(mMultibitmap, page, false);
-}
-
-bool MultibitmapSource::doStoresDifference() const Q_DECL_NOEXCEPT
-{
-    return mFormat == FIF_GIF;
+    return (mImageFormat == FIF_GIF);
 }

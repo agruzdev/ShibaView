@@ -19,6 +19,11 @@
 #ifndef FREEIMAGEEXT_H
 #define FREEIMAGEEXT_H
 
+#ifdef __cplusplus
+# include <type_traits>
+# include <memory>
+#endif
+
 #include "FreeImage.h"
 
 typedef struct {
@@ -100,6 +105,46 @@ enum FIE_AlphaFunction
  * @return True on success
  */
 BOOL FreeImageExt_Draw(FIBITMAP* dst, FIBITMAP* src, FIE_AlphaFunction alpha, int left FI_DEFAULT(0), int top FI_DEFAULT(0));
+
+
+/**
+ * Returns short image type description
+ */
+const char* FreeImageExt_DescribeImageType(FIBITMAP* dib);
+
+
+#ifdef __cplusplus
+template <typename Ty_>
+inline
+Ty_ FreeImageExt_GetMetadataValue(FREE_IMAGE_MDMODEL model, FIBITMAP* dib, const char* key, const Ty_& defaultVal)
+{
+    FITAG* tag = nullptr;
+    const BOOL succ = FreeImage_GetMetadata(model, dib, key, &tag);
+    if(succ && tag) {
+        return *static_cast<std::add_const_t<Ty_>*>(FreeImage_GetTagValue(tag));
+    }
+    return defaultVal;
+}
+
+inline
+BOOL FreeImageExt_SetMetadataValue(FREE_IMAGE_MDMODEL model, FIBITMAP* dib, const char* key, const float& val)
+{
+    std::unique_ptr<FITAG, decltype(&::FreeImage_DeleteTag)> tag(FreeImage_CreateTag(), &::FreeImage_DeleteTag);
+    if (tag) {
+        if (FreeImage_SetTagKey(tag.get(), key) &&
+                FreeImage_SetTagLength(tag.get(), sizeof(float)) &&
+                FreeImage_SetTagCount(tag.get(), 1) &&
+                FreeImage_SetTagType(tag.get(), FIDT_FLOAT) &&
+                FreeImage_SetTagValue(tag.get(), &val)) {
+            return FreeImage_SetMetadata(model, dib, key, tag.get());
+        }
+    }
+    return false;
+}
+
+#endif //__cplusplus
+
+
 
 #endif // FREEIMAGEEXT_H
 

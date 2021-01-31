@@ -74,6 +74,10 @@ set(app_sources
     ./src/ImageInfo.h
     ./src/ImageLoader.h
     ./src/ImageLoader.cpp
+    ./src/ImagePage.h
+    ./src/ImagePage.cpp
+    ./src/ImagePageFLO.h
+    ./src/ImagePageFLO.cpp
     ./src/ImageProcessor.h
     ./src/ImageProcessor.cpp
     ./src/ImageSource.h
@@ -82,6 +86,8 @@ set(app_sources
     ./src/MenuWidget.cpp
     ./src/MultiBitmapsource.h
     ./src/MultiBitmapsource.cpp
+    ./src/Pixel.h
+    ./src/Pixel.cpp
     ./src/Player.h
     ./src/Player.cpp
     ./src/PluginFLO.h
@@ -131,14 +137,22 @@ if(WIN32)
     set(thumbnails_sources
         ./src/BitmapSource.h
         ./src/BitmapSource.cpp
+        ./src/BitmapSource.h
+        ./src/BitmapSource.cpp
         ./src/FreeImageExt.h
         ./src/FreeImageExt.cpp
         ./src/Global.h
         ./src/Global.cpp
+        ./src/ImagePage.h
+        ./src/ImagePage.cpp
+        ./src/ImagePageFLO.h
+        ./src/ImagePageFLO.cpp
         ./src/ImageSource.h
         ./src/ImageSource.cpp
         ./src/MultiBitmapsource.h
         ./src/MultiBitmapsource.cpp
+        ./src/Pixel.h
+        ./src/Pixel.cpp
         ./src/Player.h
         ./src/Player.cpp
         ./src/PluginFLO.h

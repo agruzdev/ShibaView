@@ -18,12 +18,15 @@
 
 #include "BitmapSource.h"
 #include <stdexcept>
+#include "FreeImageExt.h"
+#include "ImagePageFLO.h"
 
 BitmapSource::BitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif)
+    : mImageFormat(fif)
 {
 #ifdef _WIN32
     const auto uniName = filename.toStdWString();
-    mBitmap = FreeImage_LoadU(fif, uniName.c_str(), JPEG_EXIFROTATE);
+    mBitmap = FreeImage_LoadU(mImageFormat, uniName.c_str(), JPEG_EXIFROTATE);
 #else
     const auto utfName = filename.toUtf8().toStdString();
     mBitmap = FreeImage_Load(fif, utfName.c_str(), JPEG_EXIFROTATE);
@@ -38,21 +41,27 @@ BitmapSource::~BitmapSource()
     FreeImage_Unload(mBitmap);
 }
 
-uint32_t BitmapSource::doPagesCount() const Q_DECL_NOEXCEPT
+uint32_t BitmapSource::doPagesCount() const
 {
     return 1;
 }
 
-FIBITMAP* BitmapSource::doDecodePage(uint32_t /*page*/, AnimationInfo* /*anim*/) Q_DECL_NOEXCEPT
+const ImagePage* BitmapSource::doDecodePage(uint32_t /*pageIdx*/)
 {
-    return mBitmap;
+    switch(mImageFormat) {
+    case FIEF_FLO:
+        return new ImagePageFLO(mBitmap, mImageFormat);
+    default:
+        return new ImagePage(mBitmap, mImageFormat);
+    }
 }
 
-void BitmapSource::doReleasePage(FIBITMAP*) Q_DECL_NOEXCEPT
+void BitmapSource::doReleasePage(const ImagePage* page)
 {
+    delete page;
 }
 
-bool BitmapSource::doStoresDifference() const Q_DECL_NOEXCEPT
+bool BitmapSource::doStoresDifference() const
 {
     return false;
 }

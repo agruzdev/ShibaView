@@ -24,10 +24,10 @@
 #include <memory>
 
 #include "FreeImage.h"
-
 #include <QString>
-#include "ImageSource.h"
 
+#include "ImageSource.h"
+#include "Pixel.h"
 
 enum class FrameFlags
     : uint32_t
@@ -67,19 +67,21 @@ struct ImageFrame
     QString srcFormat = {};
 };
 
-struct Pixel
-{
-    uint32_t y = 0;
-    uint32_t x = 0;
-    QString repr;
-};
-
 
 class Player
 {
 public:
-    Player(std::unique_ptr<ImageSource> && src);
+    Player(std::shared_ptr<ImageSource> src);
+
+    Player(const Player&) = delete;
+
+    Player(Player&&) = delete;
+
     ~Player();
+
+    Player& operator=(const Player&) = delete;
+
+    Player& operator=(Player&&) = delete;
 
     const ImageFrame & getCurrentFrame() const;
 
@@ -94,45 +96,27 @@ public:
     void prev();
 
     bool getPixel(uint32_t y, uint32_t x, Pixel* p) const;
-    //-------------------------------------------------------------------------------------
 
-    Player(const Player&) = delete;
-    Player(Player&&) = delete;
-
-    Player& operator=(const Player&) = delete;
-    Player& operator=(Player&&) = delete;
     //-------------------------------------------------------------------------------------
 
     static
     ImageFrame cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload);
 
 private:
-    struct FrameInfo;
-    struct FrameInfoDeleter
-    {
-        void operator()(FrameInfo* p) const;
-    };
+    struct ConvertionContext;
 
-    using FrameInfoPtr = std::unique_ptr<FrameInfo, FrameInfoDeleter>;
     //-------------------------------------------------------------------------------------
 
-    static
-    FrameInfoPtr newFrameInfo();
+    std::unique_ptr<ConvertionContext> loadZeroFrame(ImageSource* source);
 
-    static
-    bool getSourcePixel(FIBITMAP* src, uint32_t y, uint32_t x, Pixel* pixel);
-    //-------------------------------------------------------------------------------------
-
-    FrameInfoPtr loadZeroFrame(ImageSource* source);
-
-    FrameInfoPtr loadNextFrame(ImageSource* source, const FrameInfo* prev);
+    std::unique_ptr<ConvertionContext> loadNextFrame(ImageSource* source, const ConvertionContext* prev);
 
     ImageFrame* getImpl() const;
     //-------------------------------------------------------------------------------------
 
-    std::unique_ptr<ImageSource> mSource;
+    std::shared_ptr<ImageSource> mSource;
 
-    std::deque<FrameInfoPtr> mFramesCache;
+    std::deque<std::unique_ptr<ConvertionContext>> mFramesCache;
     size_t mCacheIndex   = 0;
     size_t mMaxCacheSize = 1;
 };

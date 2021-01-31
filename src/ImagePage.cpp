@@ -16,13 +16,25 @@
  * limitations under the License.
  */
 
-#ifndef PLUGINFLO_H
-#define PLUGINFLO_H
+#include "ImagePage.h"
+#include <cassert>
 
-#include "FreeImageExt.h"
+ImagePage::ImagePage(FIBITMAP* bmp, FREE_IMAGE_FORMAT fif)
+    : mBitmap(bmp), mImageFormat(fif)
+{
+    assert(mBitmap != nullptr);
+}
 
-void initPluginFLO(Plugin *plugin, int format_id);
+ImagePage::~ImagePage()
+{
+}
 
-FIBITMAP* cvtFloToRgb(FIBITMAP* flo);
+QString ImagePage::doDescribeFormat() const
+{
+    return FreeImageExt_DescribeImageType(mBitmap);
+}
 
-#endif // PLUGINFLO_H
+bool ImagePage::doGetPixel(uint32_t y, uint32_t x, Pixel* pixel) const
+{
+    return Pixel::getBitmapPixel(mBitmap, y, x, pixel);
+}

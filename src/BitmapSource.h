@@ -28,35 +28,27 @@ class BitmapSource
 {
 public:
     BitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif);
-    ~BitmapSource() Q_DECL_OVERRIDE;
 
     BitmapSource(const BitmapSource&) = delete;
+
     BitmapSource(BitmapSource&&) = delete;
 
+    ~BitmapSource() Q_DECL_OVERRIDE;
+
     BitmapSource & operator=(const BitmapSource&) = delete;
+
     BitmapSource & operator=(BitmapSource&&) = delete;
 
-    /**
-     * Pages count
-     */
-    uint32_t doPagesCount() const Q_DECL_NOEXCEPT Q_DECL_OVERRIDE;
-
-    /**
-     * Get page data, read-only mode
-     */
-    FIBITMAP* doDecodePage(uint32_t page, AnimationInfo* anim) Q_DECL_NOEXCEPT Q_DECL_OVERRIDE;
-
-    /**
-     * Release page data
-     */
-    void doReleasePage(FIBITMAP*) Q_DECL_NOEXCEPT Q_DECL_OVERRIDE;
-
-    /**
-     * Return if pages store only difference
-     */
-    bool doStoresDifference() const Q_DECL_NOEXCEPT Q_DECL_OVERRIDE;
-
 private:
+    uint32_t doPagesCount() const Q_DECL_OVERRIDE;
+
+    const ImagePage* doDecodePage(uint32_t pageIdx) Q_DECL_OVERRIDE;
+
+    void doReleasePage(const ImagePage* page) Q_DECL_OVERRIDE;
+
+    bool doStoresDifference() const Q_DECL_OVERRIDE;
+
+    FREE_IMAGE_FORMAT mImageFormat;
     FIBITMAP* mBitmap;
 };
 

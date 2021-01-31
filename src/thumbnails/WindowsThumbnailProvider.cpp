@@ -126,15 +126,15 @@ public:
             if (!bitmapSource || bitmapSource->pagesCount() == 0) {
                 throw std::runtime_error("Failed to open file");
             }
-            auto bitmap = bitmapSource->lockPage(0, nullptr);
-            if (!bitmap) {
+            auto page = bitmapSource->lockPage(0);
+            if (!page) {
                 throw std::runtime_error("Failed to read file");
             }
 
             std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> thumbnailGenerated(nullptr, &::FreeImage_Unload);
-            FIBITMAP *thumbnail = FreeImage_GetThumbnail(bitmap.get());
+            FIBITMAP *thumbnail = FreeImage_GetThumbnail(page->getBitmap());
             if (!thumbnail) {
-                thumbnailGenerated.reset(FreeImage_MakeThumbnail(bitmap.get(), cx, true));
+                thumbnailGenerated.reset(FreeImage_MakeThumbnail(page->getBitmap(), cx, true));
                 thumbnail = thumbnailGenerated.get();
             }
             else if (FreeImage_GetHeight(thumbnail) > cx || FreeImage_GetWidth(thumbnail) > cx) {

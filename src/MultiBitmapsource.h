@@ -31,35 +31,26 @@ class MultibitmapSource
 {
 public:
     MultibitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif);
-    ~MultibitmapSource() Q_DECL_OVERRIDE;
 
     MultibitmapSource(const MultibitmapSource&) = delete;
+
     MultibitmapSource(MultibitmapSource&&) = delete;
 
+    ~MultibitmapSource() Q_DECL_OVERRIDE;
+
     MultibitmapSource & operator=(const MultibitmapSource&) = delete;
+
     MultibitmapSource & operator=(MultibitmapSource&&) = delete;
 
-    /**
-     * Pages count
-     */
-    uint32_t doPagesCount() const Q_DECL_NOEXCEPT Q_DECL_OVERRIDE;
-
-    /**
-     * Get page data, read-only mode
-     */
-    FIBITMAP* doDecodePage(uint32_t pageIdx, AnimationInfo* anim) Q_DECL_NOEXCEPT Q_DECL_OVERRIDE;
-
-    /**
-     * Release page data
-     */
-    void doReleasePage(FIBITMAP* page) Q_DECL_NOEXCEPT Q_DECL_OVERRIDE;
-
-    /**
-     * Return if pages store only residual map
-     */
-    bool doStoresDifference() const Q_DECL_NOEXCEPT Q_DECL_OVERRIDE;
-
 private:
+    uint32_t doPagesCount() const Q_DECL_OVERRIDE;
+
+    const ImagePage* doDecodePage(uint32_t pageIdx) Q_DECL_OVERRIDE;
+
+    void doReleasePage(const ImagePage* page) Q_DECL_OVERRIDE;
+
+    bool doStoresDifference() const Q_DECL_OVERRIDE;
+
     // Internal buffer for FreeImage_OpenMultiBitmapU issue workaround
     struct MultibitmapBuffer
     {
@@ -67,7 +58,7 @@ private:
         FIMEMORY* stream = nullptr;
     };
 
-    FREE_IMAGE_FORMAT mFormat;
+    FREE_IMAGE_FORMAT mImageFormat;
     FIMULTIBITMAP* mMultibitmap = nullptr;
     std::unique_ptr<MultibitmapBuffer> mBuffer = nullptr;
 };

@@ -23,40 +23,58 @@
 #include <cstdint>
 #include <memory>
 
+#include "FreeImage.h"
+#include "ImagePage.h"
+
 #include <QString>
 
-#include "FreeImage.h"
 
-enum class DisposalType
-    : uint8_t
+class ImageSource:
+    public std::enable_shared_from_this<ImageSource>
 {
-    eUnspecified = 0,
-    eLeave = 1,
-    eBackground = 2,
-    ePrevious = 3
-};
+private:
+    class ImagePageDeleter
+    {
+    public:
+        ImagePageDeleter(const std::shared_ptr<ImageSource>& parent)
+            : mParent(parent)
+        {
+            assert(parent != nullptr);
+        }
 
-struct AnimationInfo
-{
-    uint16_t offsetX  = 0;
-    uint16_t offsetY  = 0;
-    uint32_t duration = 0;
-    DisposalType disposal = DisposalType::eUnspecified;
-};
+        ImagePageDeleter(const ImagePageDeleter&) = default;
 
+        ImagePageDeleter(ImagePageDeleter&&) = default;
 
-class ImageSource
-{
+        ~ImagePageDeleter() = default;
+
+        ImagePageDeleter& operator=(const ImagePageDeleter&) = default;
+
+        ImagePageDeleter& operator=(ImagePageDeleter&&) = default;
+
+        void operator()(const ImagePage* page) const {
+            if (page) {
+                if (const auto parentPtr = mParent.lock()) {
+                    parentPtr->doReleasePage(page);
+                }
+            }
+        }
+    private:
+        std::weak_ptr<ImageSource> mParent;
+    };
+
 public:
-    ImageSource() = default;
-    virtual ~ImageSource() = default;
+    using ImagePagePtr = std::unique_ptr<const ImagePage, ImagePageDeleter>;
 
     ImageSource(const ImageSource&) = delete;
+
     ImageSource(ImageSource&&) = delete;
 
-    ImageSource& operator=(const ImageSource&) = delete;
-    ImageSource& operator=(ImageSource&&) = delete;
+    virtual ~ImageSource() = default;
 
+    ImageSource& operator=(const ImageSource&) = delete;
+
+    ImageSource& operator=(ImageSource&&) = delete;
 
     uint32_t pagesCount() const
     {
@@ -68,42 +86,39 @@ public:
         return doStoresDifference();
     }
 
-    std::shared_ptr<FIBITMAP> lockPage(uint32_t pageIdx, AnimationInfo* anim)
+    ImagePagePtr lockPage(uint32_t pageIdx)
     {
-        return std::shared_ptr<FIBITMAP>(doDecodePage(pageIdx, anim), [this](FIBITMAP* page) {
-            if (page) {
-                doReleasePage(page);
-            }
-        });
+        return ImagePagePtr(doDecodePage(pageIdx), ImagePageDeleter(shared_from_this()));
     }
 
     //---------------------------------------------------------
 
     static
-    std::unique_ptr<ImageSource> Load(const QString& filename) Q_DECL_NOEXCEPT;
+    std::shared_ptr<ImageSource> Load(const QString& filename) Q_DECL_NOEXCEPT;
 
 protected:
+    ImageSource() = default;
 
     /**
      * Pages count
      */
-    virtual uint32_t doPagesCount() const Q_DECL_NOEXCEPT = 0;
+    virtual uint32_t doPagesCount() const = 0;
 
     /**
      * Get page data, read-only mode
-     * @param anim - optional output animation info. Image is animated if pagesCount() > 1
      */
-    virtual FIBITMAP* doDecodePage(uint32_t pageIdx, AnimationInfo* anim) Q_DECL_NOEXCEPT = 0;
+    virtual const ImagePage* doDecodePage(uint32_t pageIdx) = 0;
 
     /**
      * Release page data
      */
-    virtual void doReleasePage(FIBITMAP* page) Q_DECL_NOEXCEPT = 0;
+    virtual void doReleasePage(const ImagePage* page) = 0;
 
     /**
      * Return if pages stores difference
      */
-    virtual bool doStoresDifference() const Q_DECL_NOEXCEPT = 0;
+    virtual bool doStoresDifference() const = 0;
+
 };
 
 

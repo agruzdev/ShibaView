@@ -291,3 +291,78 @@ BOOL FreeImageExt_Draw(FIBITMAP* dst, FIBITMAP* src, FIE_AlphaFunction alpha, in
     return TRUE;
 }
 
+const char* FreeImageExt_DescribeImageType(FIBITMAP* dib)
+{
+    if (dib) {
+        switch (FreeImage_GetImageType(dib)) {
+        case FIT_RGBAF:
+            return "RGBA Float32";
+
+        case FIT_RGBF:
+            return "RGB Float32";
+
+        case FIT_RGBA16:
+            return "RGBA16";
+
+        case FIT_RGB16:
+            return "RGB16";
+
+        case FIT_UINT16:
+            return "Greyscale 16bit";
+
+        case FIT_INT16:
+            return "Greyscale 16bit (signed)";
+
+        case FIT_UINT32:
+            return "Greyscale 32bit";
+
+        case FIT_INT32:
+            return "Greyscale 32bit (signed)";
+
+        case FIT_FLOAT:
+            return "Greyscale Float32";
+
+        case FIT_DOUBLE:
+            return "Greyscale Float64";
+
+        case FIT_BITMAP:
+            switch(FreeImage_GetBPP(dib)) {
+
+            case 32:
+                return "RGBA8888";
+
+            case 24:
+                return "RGB888";
+
+            case 8:
+                if (FIC_PALETTE == FreeImage_GetColorType(dib)) {
+                    return "RGB Indexed 8bit";
+                }
+                else {
+                    return "Greyscale 8bit";
+                }
+
+            case 4:
+                return "RGB Indexed 4bit";
+
+            case 1:
+                 if (FIC_PALETTE == FreeImage_GetColorType(dib)) {
+                     return "RGB Indexed 1bit";
+                 }
+                 else {
+                     return "Binary image";
+                 }
+
+            default:
+                break;
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
+    return "Unknown";
+}
+
+

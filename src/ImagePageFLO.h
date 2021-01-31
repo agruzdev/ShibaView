@@ -16,13 +16,33 @@
  * limitations under the License.
  */
 
-#ifndef PLUGINFLO_H
-#define PLUGINFLO_H
+#ifndef IMAGEPAGEFLO_H
+#define IMAGEPAGEFLO_H
 
-#include "FreeImageExt.h"
+#include "ImagePage.h"
 
-void initPluginFLO(Plugin *plugin, int format_id);
+class ImagePageFLO:
+    public ImagePage
+{
+public:
+    ImagePageFLO(FIBITMAP* flo, FREE_IMAGE_FORMAT fif);
 
-FIBITMAP* cvtFloToRgb(FIBITMAP* flo);
+    ImagePageFLO(const ImagePage&) = delete;
 
-#endif // PLUGINFLO_H
+    ImagePageFLO(ImagePageFLO&&) = delete;
+
+    virtual ~ImagePageFLO();
+
+    ImagePageFLO& operator=(const ImagePageFLO&) = delete;
+
+    ImagePageFLO& operator=(ImagePageFLO&&) = delete;
+
+private:
+    QString doDescribeFormat() const override;
+
+    bool doGetPixel(uint32_t y, uint32_t x, Pixel* pixel) const override;
+
+    FIBITMAP* mFlowImage;
+};
+
+#endif // IMAGEPAGEFLO_H
