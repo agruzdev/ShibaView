@@ -26,6 +26,7 @@
 #include <unknwn.h>
 #include <fstream>
 #include <memory>
+#include <mutex>
 #include <new>
 
 #include "../ImageSource.h"
@@ -41,6 +42,8 @@ class WindowsThumbnailProvider
 public:
     WindowsThumbnailProvider()
     {
+        static std::once_flag once;
+        std::call_once(once, []{ FreeImageExt_Initialise(); });
 #if ENABLE_LOG
         std::locale::global(std::locale("Russian_Russia"));
         mLog.open("D:/ShibaThumbnailService.log", std::ios::app);
