@@ -16,30 +16,20 @@
  * limitations under the License.
  */
 
-#include "ImagePage.h"
-#include <cassert>
+#ifndef EXIF_H
+#define EXIF_H
 
-ImagePage::ImagePage(FIBITMAP* bmp, FREE_IMAGE_FORMAT fif)
-    : mBitmap(bmp), mImageFormat(fif)
-{
-    assert(mBitmap != nullptr);
-}
+#include "FreeImage.h"
+#include <QString>
+#include <QVariant>
 
-ImagePage::~ImagePage()
+struct Exif
 {
-}
+    std::array<std::vector<std::tuple<QString, QVariant>>, FIMD_EXIF_RAW + 1> sections;
 
-QString ImagePage::doDescribeFormat() const
-{
-    return FreeImageExt_DescribeImageType(mBitmap);
-}
+    static
+    Exif load(FIBITMAP* dib);
+};
 
-bool ImagePage::doGetPixel(uint32_t y, uint32_t x, Pixel* pixel) const
-{
-    return Pixel::getBitmapPixel(mBitmap, y, x, pixel);
-}
 
-Exif ImagePage::doGetExif() const
-{
-    return Exif::load(mBitmap);
-}
+#endif // EXIF_H

@@ -40,16 +40,17 @@ public:
 
 class Image
 {
-    using BitmapPtr = std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)>;
-
 public:
     Image(QString name, QString filename) noexcept;
-    ~Image();
 
     Image(const Image&) = delete;
+
     Image(Image&&) = delete;
 
+    ~Image();
+
     Image& operator=(const Image&) = delete;
+
     Image& operator=(Image&&) = delete;
 
     const ImageFrame & getFrame() const
@@ -105,6 +106,7 @@ public:
     }
 
     void addListener(ImageListener* listener);
+
     void removeListener(ImageListener* listener);
 
 private:

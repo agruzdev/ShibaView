@@ -65,3 +65,8 @@ bool ImagePageFLO::doGetPixel(uint32_t y, uint32_t x, Pixel* pixel) const
 
     return false;
 }
+
+Exif ImagePageFLO::doGetExif() const
+{
+    return Exif::load(mFlowImage);
+}

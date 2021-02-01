@@ -471,7 +471,7 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
             }
 
             mImageProcessor->attachSource(mImage);
-            mImageDescription->setFormat(mImage->getFrame().srcFormat);
+            mImageDescription->setFormat(mImage->getFrame().page->describeFormat());
         }
 
         setWindowTitle(mImage->info().path + " - " + QApplication::applicationName());
@@ -1084,11 +1084,12 @@ void CanvasWidget::invalidateExif()
 {
     ExifWidget& exifWidget = ExifWidget::getInstance();
     if (exifWidget.isActive()) {
-        FIBITMAP* bmp = nullptr;
         if (mImage && mImage->notNull()) {
-            bmp = mImage->getFrame().bmp;
+            exifWidget.setExif(mImage->getFrame().page->getExif());
         }
-        exifWidget.readExifFrom(bmp);
+        else {
+            exifWidget.setEmpty();
+        }
     }
 }
 

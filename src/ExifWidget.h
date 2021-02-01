@@ -22,6 +22,7 @@
 #include <QWidget>
 #include "FreeImage.h"
 
+struct Exif;
 class TextWidget;
 
 class ExifWidget final
@@ -43,7 +44,9 @@ public:
 
     void activate();
 
-    void readExifFrom(FIBITMAP* bmp);
+    void setExif(const Exif& exif);
+
+    void setEmpty();
 
     bool isActive()
     {

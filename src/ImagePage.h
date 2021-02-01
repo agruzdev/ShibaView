@@ -27,6 +27,7 @@
 
 #include "FreeImageExt.h"
 #include "Pixel.h"
+#include "Exif.h"
 
 enum class DisposalType
     : uint8_t
@@ -44,7 +45,6 @@ struct AnimationInfo
     uint32_t duration = 0;
     DisposalType disposal = DisposalType::eUnspecified;
 };
-
 
 class ImagePage
 {
@@ -86,8 +86,18 @@ public:
         return doGetPixel(y, x, pixel);
     }
 
+    const Exif& getExif() const
+    {
+        if (!mExif) {
+            mExif = std::make_unique<Exif>(doGetExif());
+        }
+        return *mExif;
+    }
+
 protected:
     virtual QString doDescribeFormat() const;
+
+    virtual Exif doGetExif() const;
 
     virtual bool doGetPixel(uint32_t y, uint32_t x, Pixel* pixel) const;
 
@@ -95,6 +105,7 @@ private:
     FIBITMAP* mBitmap;
     FREE_IMAGE_FORMAT mImageFormat;
     AnimationInfo mAnimation;
+    mutable std::unique_ptr<Exif> mExif;
 };
 
 

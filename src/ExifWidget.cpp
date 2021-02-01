@@ -21,6 +21,7 @@
 #include <QKeyEvent>
 #include "Global.h"
 #include "TextWidget.h"
+#include "Exif.h"
 
 namespace
 {
@@ -102,36 +103,24 @@ void ExifWidget::activate()
     mActive = true;
 }
 
-void ExifWidget::readExifFrom(FIBITMAP* bmp)
+void ExifWidget::setExif(const Exif& exif)
 {
     if (mActive) {
 
         QVector<QString> lines;
 
-        if (bmp) {
-            for (auto metaModel : { FIMD_COMMENTS, FIMD_EXIF_MAIN, FIMD_EXIF_EXIF, FIMD_EXIF_GPS, FIMD_EXIF_MAKERNOTE,
-                    FIMD_EXIF_INTEROP, FIMD_IPTC, /*FIMD_XMP,*/ FIMD_GEOTIFF, FIMD_ANIMATION, FIMD_CUSTOM })
-            {
-                QVector<QString> sectionLines;
-                FITAG *tag = NULL;
-                if (FIMETADATA* mdhandle = FreeImage_FindFirstMetadata(metaModel, bmp, &tag)) {
-                    do {
-                        QString key = QString::fromUtf8(FreeImage_GetTagKey(tag));
-                        QString value = QString::fromUtf8(FreeImage_TagToString(metaModel, tag));
-                        QString description = QString::fromUtf8(FreeImage_GetTagDescription(tag));
-                        //sectionLines.push_back("  " + key + ": " + value + "    " + description);
-                        sectionLines.push_back("  " + key + ": " + value);
+        for (auto model : { FIMD_COMMENTS, FIMD_EXIF_MAIN, FIMD_EXIF_EXIF, FIMD_EXIF_GPS, FIMD_EXIF_MAKERNOTE,
+                FIMD_EXIF_INTEROP, FIMD_IPTC, /*FIMD_XMP,*/ FIMD_GEOTIFF, /*FIMD_ANIMATION,*/ FIMD_CUSTOM })
+        {
+            QVector<QString> sectionLines;
+            for (const auto& entry: exif.sections[model]) {
+                sectionLines.push_back("  " + std::get<0>(entry) + ": " + std::get<1>(entry).toString());
+            }
 
-                    } while(FreeImage_FindNextMetadata(mdhandle, &tag));
-
-                    FreeImage_FindCloseMetadata(mdhandle);
-                }
-
-                if (!sectionLines.empty()) {
-                    lines.push_back(toQString(metaModel) + ":");
-                    for (auto str: sectionLines) {
-                        lines.append(std::move(str));
-                    }
+            if (!sectionLines.empty()) {
+                lines.push_back(toQString(model) + ":");
+                for (auto str: sectionLines) {
+                    lines.append(std::move(str));
                 }
             }
         }
@@ -152,6 +141,12 @@ void ExifWidget::readExifFrom(FIBITMAP* bmp)
         update();
         show();
     }
+}
+
+void ExifWidget::setEmpty()
+{
+    Exif empty{};
+    setExif(empty);
 }
 
 void ExifWidget::paintEvent(QPaintEvent * event)

@@ -64,7 +64,7 @@ struct ImageFrame
     uint32_t index = kNoneIndex;
     uint32_t duration = 0;
     FrameFlags flags = FrameFlags::eNone;
-    QString srcFormat = {};
+    const ImagePage* page = nullptr; // not null
 };
 
 

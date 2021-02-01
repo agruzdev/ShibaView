@@ -116,6 +116,13 @@ const char* FreeImageExt_DescribeImageType(FIBITMAP* dib);
 #ifdef __cplusplus
 template <typename Ty_>
 inline
+const Ty_& FreeImageExt_GetTagValue(FITAG* tag)
+{
+    return *static_cast<std::add_const_t<Ty_>*>(FreeImage_GetTagValue(tag));
+}
+
+template <typename Ty_>
+inline
 Ty_ FreeImageExt_GetMetadataValue(FREE_IMAGE_MDMODEL model, FIBITMAP* dib, const char* key, const Ty_& defaultVal)
 {
     FITAG* tag = nullptr;

@@ -61,6 +61,8 @@ set(app_sources
     ./src/CanvasWidget.h
     ./src/CanvasWidget.cpp
     ./src/EnumArray.h
+    ./src/Exif.h
+    ./src/Exif.cpp
     ./src/ExifWidget.h
     ./src/ExifWidget.cpp
     ./src/FreeImageExt.h
@@ -139,6 +141,8 @@ if(WIN32)
         ./src/BitmapSource.cpp
         ./src/BitmapSource.h
         ./src/BitmapSource.cpp
+        ./src/Exif.h
+        ./src/Exif.cpp
         ./src/FreeImageExt.h
         ./src/FreeImageExt.cpp
         ./src/Global.h

@@ -42,6 +42,8 @@ private:
 
     bool doGetPixel(uint32_t y, uint32_t x, Pixel* pixel) const override;
 
+    Exif doGetExif() const override;
+
     FIBITMAP* mFlowImage;
 };
 

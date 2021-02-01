@@ -102,17 +102,12 @@ std::unique_ptr<Player::ConvertionContext> Player::loadZeroFrame(ImageSource* so
     if (!finfo->frame.bmp) {
         throw std::runtime_error("Player[loadZeroFrame]: Failed to convert a frame.");
     }
-    finfo->frame.srcFormat = finfo->page->describeFormat();
 
+    finfo->frame.page = finfo->page.get();
     finfo->frame.index = 0;
     if (pagesNum > 1) {
         finfo->frame.duration = finfo->page->getAnimation().duration;
     }
-
-    //// Release page early if bitmap owns data
-    //if (finfo->needsUnload) {
-    //    finfo->page.reset();
-    //}
 
     return finfo;
 }
@@ -132,13 +127,7 @@ std::unique_ptr<Player::ConvertionContext> Player::loadNextFrame(ImageSource* so
     if (!next->frame.bmp) {
         throw std::runtime_error("Player[loadNextFrame]: Failed to convert the next frame.");
     }
-
-    next->frame.srcFormat = next->page->describeFormat();
-
-    //if (next->needsUnload) {
-    //    next->page = nullptr;
-    //}
-
+ 
     if (source->storesDiffernece()) {
         FIBITMAP* canvas = FreeImage_Clone(prev->frame.bmp);
         const auto& nextAnim = next->page->getAnimation();
@@ -155,6 +144,7 @@ std::unique_ptr<Player::ConvertionContext> Player::loadNextFrame(ImageSource* so
         }
     }
 
+    next->frame.page     = next->page.get();
     next->frame.index    = nextIdx;
     next->frame.duration = next->page->getAnimation().duration;
 
