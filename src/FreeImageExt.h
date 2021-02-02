@@ -57,7 +57,8 @@ typedef struct {
  */
 enum FIE_ImageFormat
 {
-    FIEF_FLO = FIF_JXR + 1
+    FIEF_FLO = FIF_JXR + 1,
+    FIEF_SVG
 };
 
 

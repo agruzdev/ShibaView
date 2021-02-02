@@ -22,6 +22,7 @@
 #include <cassert>
 #include <tuple>
 #include "PluginFLO.h"
+#include "PluginSVG.h"
 
 namespace
 {
@@ -189,6 +190,7 @@ namespace
 void FreeImageExt_Initialise()
 {
     FreeImage_RegisterLocalPlugin(&initPluginFLO);
+    FreeImage_RegisterLocalPlugin(&initPluginSVG);
 }
 
 

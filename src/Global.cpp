@@ -35,6 +35,7 @@ namespace
         ".iff", ".tdi",
         ".pcx",
         ".psd",
+        ".svg",
         ".flo"
     };
 }

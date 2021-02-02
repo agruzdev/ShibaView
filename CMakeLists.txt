@@ -28,8 +28,20 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+if (Qt6_DIR)
+    set(Qt6Core_DIR ${Qt6_DIR}Core)
+    set(Qt6CoreTools_DIR ${Qt6_DIR}CoreTools)
+    set(Qt6EntryPoint_DIR ${Qt6_DIR}EntryPoint)
+    set(Qt6Gui_DIR ${Qt6_DIR}Gui)
+    set(Qt6GuiTools_DIR ${Qt6_DIR}GuiTools)
+    set(Qt6OpenGL_DIR ${Qt6_DIR}OpenGL)
+    set(Qt6QWindowsIntegrationPlugin_DIR ${Qt6_DIR}Gui)
+    set(Qt6Svg_DIR ${Qt6_DIR}Svg)
+    set(Qt6Widgets_DIR ${Qt6_DIR}Widgets)
+    set(Qt6WidgetsTools_DIR ${Qt6_DIR}WidgetsTools)
+endif()
 
-find_package(Qt6 COMPONENTS Core Gui Widgets QWindowsIntegrationPlugin REQUIRED)
+find_package(Qt6 COMPONENTS Core Gui Widgets Svg QWindowsIntegrationPlugin REQUIRED)
 
 get_target_property(Qt5Core_BINARY_DEBUG Qt6::Core IMPORTED_LOCATION_DEBUG)
 get_target_property(Qt5Core_BINARY_RELEASE Qt6::Core IMPORTED_LOCATION_RELEASE)
@@ -39,6 +51,9 @@ get_target_property(Qt5Gui_BINARY_RELEASE Qt6::Gui IMPORTED_LOCATION_RELEASE)
 
 get_target_property(Qt5Widgets_BINARY_DEBUG Qt6::Widgets IMPORTED_LOCATION_DEBUG)
 get_target_property(Qt5Widgets_BINARY_RELEASE Qt6::Widgets IMPORTED_LOCATION_RELEASE)
+
+get_target_property(Qt5Svg_BINARY_DEBUG Qt6::Svg IMPORTED_LOCATION_DEBUG)
+get_target_property(Qt5Svg_BINARY_RELEASE Qt6::Svg IMPORTED_LOCATION_RELEASE)
 
 get_target_property(QWindowsIntegrationPlugin_BINARY_DEBUG Qt6::QWindowsIntegrationPlugin IMPORTED_LOCATION_DEBUG)
 get_target_property(QWindowsIntegrationPlugin_BINARY_RELEASE Qt6::QWindowsIntegrationPlugin IMPORTED_LOCATION_RELEASE)
@@ -94,6 +109,8 @@ set(app_sources
     ./src/Player.cpp
     ./src/PluginFLO.h
     ./src/PluginFLO.cpp
+    ./src/PluginSVG.h
+    ./src/PluginSVG.cpp
     ./src/TextWidget.h
     ./src/TextWidget.cpp
     ./src/Tooltip.h
@@ -116,7 +133,7 @@ add_executable(ShibaView WIN32 ${app_sources} ${app_resources})
 
 target_compile_features(ShibaView PRIVATE cxx_std_14)
 
-target_link_libraries(ShibaView Qt6::Core Qt6::Gui Qt6::Widgets ${FreeImage_LIBRARY})
+target_link_libraries(ShibaView Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Svg ${FreeImage_LIBRARY})
 
 install(TARGETS ShibaView DESTINATION .)
 install(FILES ${FreeImage_BINARY} DESTINATION .)
@@ -128,8 +145,8 @@ install(FILES "${CMAKE_SOURCE_DIR}/icons/Icon License.txt" DESTINATION .)
 get_filename_component(Qt5_BINARY_DIR ${Qt5Core_BINARY_RELEASE} DIRECTORY)
 set_target_properties(ShibaView PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set_target_properties(ShibaView PROPERTIES VS_DEBUGGER_ENVIRONMENT "PATH=${CMAKE_SOURCE_DIR}/3rdParty/freeimage/lib;${Qt5_BINARY_DIR};")
-install(FILES ${Qt5Core_BINARY_DEBUG} ${Qt5Gui_BINARY_DEBUG} ${Qt5Widgets_BINARY_DEBUG} DESTINATION . CONFIGURATIONS DEBUG)
-install(FILES ${Qt5Core_BINARY_RELEASE} ${Qt5Gui_BINARY_RELEASE} ${Qt5Widgets_BINARY_RELEASE} DESTINATION . CONFIGURATIONS RELEASE)
+install(FILES ${Qt5Core_BINARY_DEBUG} ${Qt5Gui_BINARY_DEBUG} ${Qt5Widgets_BINARY_DEBUG} ${Qt5Svg_BINARY_DEBUG} DESTINATION . CONFIGURATIONS DEBUG)
+install(FILES ${Qt5Core_BINARY_RELEASE} ${Qt5Gui_BINARY_RELEASE} ${Qt5Widgets_BINARY_RELEASE} ${Qt5Svg_BINARY_RELEASE} DESTINATION . CONFIGURATIONS RELEASE)
 install(FILES ${QWindowsIntegrationPlugin_BINARY_DEBUG} DESTINATION platforms CONFIGURATIONS DEBUG)
 install(FILES ${QWindowsIntegrationPlugin_BINARY_RELEASE} DESTINATION platforms CONFIGURATIONS RELEASE)
 
@@ -161,6 +178,8 @@ if(WIN32)
         ./src/Player.cpp
         ./src/PluginFLO.h
         ./src/PluginFLO.cpp
+        ./src/PluginSVG.h
+        ./src/PluginSVG.cpp
         ./src/thumbnails/WindowsThumbnailProvider.h
         ./src/thumbnails/WindowsThumbnailProvider.cpp
         ./src/thumbnails/WindowsThumbnailService.cpp
@@ -173,7 +192,7 @@ if(WIN32)
 
     target_compile_features(ShibaThumbnail PRIVATE cxx_std_14)
 
-    target_link_libraries(ShibaThumbnail Shlwapi Qt6::Core ${FreeImage_LIBRARY})
+    target_link_libraries(ShibaThumbnail Shlwapi Qt6::Core Qt6::Svg ${FreeImage_LIBRARY})
 
     install(TARGETS ShibaThumbnail RUNTIME DESTINATION .)
 endif()
