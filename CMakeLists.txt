@@ -75,6 +75,8 @@ set(app_sources
     ./src/BitmapSource.cpp
     ./src/CanvasWidget.h
     ./src/CanvasWidget.cpp
+    ./src/Controls.h
+    ./src/Controls.cpp
     ./src/EnumArray.h
     ./src/Exif.h
     ./src/Exif.cpp

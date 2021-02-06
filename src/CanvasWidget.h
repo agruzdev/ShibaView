@@ -40,6 +40,7 @@ enum class BorderPosition;
 
 class QLabel;
 
+class Controls;
 class TextWidget;
 class Tooltip;
 class ZoomController;

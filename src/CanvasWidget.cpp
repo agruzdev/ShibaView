@@ -35,7 +35,10 @@
 #include <QRawFont>
 #include <QWidgetAction>
 
+#include <QKeySequence>
+
 #include "AboutWidget.h"
+#include "Controls.h"
 #include "ExifWidget.h"
 #include "Global.h"
 #include "ImageProcessor.h"
@@ -733,137 +736,153 @@ void CanvasWidget::resizeEvent(QResizeEvent * event)
 void CanvasWidget::keyPressEvent(QKeyEvent* event)
 {
     QWidget::keyPressEvent(event);
-    if (QApplication::keyboardModifiers() == Qt::AltModifier) {
-        // Alt + Key
-        
-    }
-    else if (QApplication::keyboardModifiers() == Qt::ControlModifier) {
-        // Ctrl + Key
-        if (event->key() == Qt::Key_R) {
-            emit evenReloadImage();
-        }
-        else if (event->key() == Qt::Key_Up) {
-            if(mImage && mImage->notNull()) {
-                mActRotate.get()[Rotation::eDegree0]->trigger();
-            }
-        }
-        else if (event->key() == Qt::Key_Left) {
-            if(mImage && mImage->notNull()) {
-                mActRotate.get()[Rotation::eDegree270]->trigger();
-            }
-        }
-        else if (event->key() == Qt::Key_Right) {
-            if(mImage && mImage->notNull()) {
-                mActRotate.get()[Rotation::eDegree90]->trigger();
-            }
-        }
-        else if (event->key() == Qt::Key_Down) {
-            if(mImage && mImage->notNull()) {
-                mActRotate.get()[Rotation::eDegree180]->trigger();
-            }
-        }
-        else if (event->key() == Qt::Key_I) {
-            if (!mTooltip) {
-                mTooltip = std::make_unique<Tooltip>();
-                mTooltip->hide();
-                invalidateTooltip();
+    switch(Controls::getInstance().decodeAction(event)) {
+
+    case ControlAction::eOverlay:
+        mShowInfo = !mShowInfo;
+        update();
+        break;
+
+    case ControlAction::eSwitchZoom:
+        if (mImage && mImage->notNull() && mZoomController) {
+            if (mZoomMode != ZoomMode::eFitWindow) {
+                mActZoom.get()[ZoomMode::eFitWindow]->trigger();
             }
             else {
-                mTooltip.reset();
+                mZoomController->moveToIdentity();
+                mActZoom.get()[ZoomMode::eFree]->trigger();
             }
+            updateZoomLabel();
+            resetOffsets();
+            update();
         }
-    }
-    else {
-        // No Modifiers
-        if (event->key() == Qt::Key_Escape) {
-            close();
+        break;
+
+    case ControlAction::eReload:
+        emit evenReloadImage();
+        break;
+
+    case ControlAction::eRotation0:
+        if (mImage && mImage->notNull()) {
+            mActRotate.get()[Rotation::eDegree0]->trigger();
         }
-        else if (event->key() == Qt::Key_Tab) {
-            mShowInfo = !mShowInfo;
+        break;
+
+    case ControlAction::eRotation270:
+        if (mImage && mImage->notNull()) {
+            mActRotate.get()[Rotation::eDegree270]->trigger();
         }
-        else if (event->key() == Qt::Key_Asterisk) {
-            if (mImage && mImage->notNull() && mZoomController) {
-                if(mZoomMode != ZoomMode::eFitWindow) {
-                    mActZoom.get()[ZoomMode::eFitWindow]->trigger();
-                }
-                else {
-                    mZoomController->moveToIdentity();
-                    mActZoom.get()[ZoomMode::eFree]->trigger();
-                }
-                updateZoomLabel();
-                resetOffsets();
+        break;
+
+    case ControlAction::eRotation90:
+        if(mImage && mImage->notNull()) {
+            mActRotate.get()[Rotation::eDegree90]->trigger();
+        }
+        break;
+
+    case ControlAction::eRotation180:
+        if (mImage && mImage->notNull()) {
+            mActRotate.get()[Rotation::eDegree180]->trigger();
+        }
+        break;
+
+    case ControlAction::eColorPicker:
+        if (!mTooltip) {
+            mTooltip = std::make_unique<Tooltip>();
+            mTooltip->hide();
+            invalidateTooltip();
+        }
+        else {
+            mTooltip.reset();
+        }
+        break;
+
+    case ControlAction::eZoomIn:
+        zoomToTarget(QPoint(width() / 2, height() / 2), 1);
+        break;
+
+    case ControlAction::eZoomOut:
+        zoomToTarget(QPoint(width() / 2, height() / 2), -1);
+        break;
+
+    case ControlAction::ePreviousImage:
+        if (!mTransitionRequested) {
+            mTransitionRequested = true;
+            emit eventPrevImage();
+        }
+        break;
+        
+    case ControlAction::eNextImage:
+        if (!mTransitionRequested) {
+            mTransitionRequested = true;
+            emit eventNextImage();
+        }
+        break;
+        
+    case ControlAction::eFirstImage:
+        if (!mTransitionRequested) {
+            mTransitionRequested = true;
+            emit eventFirstImage();
+        }
+        break;
+
+    case ControlAction::eLastImage:
+        if (!mTransitionRequested) {
+            mTransitionRequested = true;
+            emit eventLastImage();
+        }
+        break;
+
+    case ControlAction::ePause:
+        if (mImage && mImage->notNull() && mImage->pagesCount() > 1) {
+            if (mEnableAnimation) {
+                mEnableAnimation = false;
+            }
+            else {
+                mEnableAnimation = true;
+                mAnimIndex = -1;
                 update();
             }
         }
-        else if (event->key() == Qt::Key_Plus) {
-            zoomToTarget(QPoint(width() / 2, height() / 2), 1);
-        }
-        else if (event->key() == Qt::Key_Minus) {
-            zoomToTarget(QPoint(width() / 2, height() / 2), -1);
-        }
-        else if (event->key() == Qt::Key_Left) {
-            if (!mTransitionRequested) {
-                mTransitionRequested = true;
-                emit eventPrevImage();
+        break;
+
+    case ControlAction::ePreviousFrame:
+        if (mImage && mImage->notNull() && mImage->pagesCount() > 1 && !mEnableAnimation) {
+            try {
+                mImage->next();
+                update();
             }
+            catch(...)
+            { }
         }
-        else if (event->key() == Qt::Key_Right) {
-            if (!mTransitionRequested) {
-                mTransitionRequested = true;
-                emit eventNextImage();
+        break;
+
+    case ControlAction::eNextFrame:
+        if (mImage && mImage->notNull() && mImage->pagesCount() > 1 && !mEnableAnimation) {
+            try {
+                mImage->prev();
+                update();
             }
+            catch(...)
+            { }
         }
-        else if (event->key() == Qt::Key_Home) {
-            if (!mTransitionRequested) {
-                mTransitionRequested = true;
-                emit eventFirstImage();
-            }
-        }
-        else if (event->key() == Qt::Key_End) {
-            if (!mTransitionRequested) {
-                mTransitionRequested = true;
-                emit eventLastImage();
-            }
-        }
-        else if (event->key() == Qt::Key_Space) {
-            if (mImage && mImage->notNull() && mImage->pagesCount() > 1) {
-                if (mEnableAnimation) {
-                    mEnableAnimation = false;
-                }
-                else {
-                    mEnableAnimation = true;
-                    mAnimIndex = -1;
-                    update();
-                }
-            }
-        }
-        else if (event->key() == Qt::Key_PageUp) {
-            if (mImage && mImage->notNull() && mImage->pagesCount() > 1 && !mEnableAnimation) {
-                try {
-                    mImage->next();
-                    update();
-                }
-                catch(...)
-                { }
-            }
-        }
-        else if (event->key() == Qt::Key_PageDown) {
-            if (mImage && mImage->notNull() && mImage->pagesCount() > 1 && !mEnableAnimation) {
-                try {
-                    mImage->prev();
-                    update();
-                }
-                catch(...)
-                { }
-            }
-        }
-        else if (event->key() == Qt::Key_F1) {
-            AboutWidget::getInstance().popUp();
-        }
-        else if (event->key() == Qt::Key_F2) {
-            ExifWidget::getInstance().activate();
-            invalidateExif();
-        }
+        break;
+
+    case ControlAction::eAbout:
+        AboutWidget::getInstance().popUp();
+        break;
+
+    case ControlAction::eImageInfo:
+        ExifWidget::getInstance().activate();
+        invalidateExif();
+        break;
+
+    case ControlAction::eQuit:
+        close();
+        break;
+
+    default:
+        break;
     }
 }
 

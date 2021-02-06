@@ -22,6 +22,7 @@
 #include <QColor>
 #include <QString>
 #include <QKeyEvent>
+#include "Controls.h"
 #include "Global.h"
 #include "TextWidget.h"
 #include "FreeImage.h"
@@ -59,7 +60,7 @@ AboutWidget::AboutWidget()
 
     QVector<QString> textLines;
     textLines.push_back("Version: " + QString::number(Global::kVersionMajor) + "." + QString::number(Global::kVersionMinor));
-    textLines.push_back("Copyright 2018-2020 " + Global::kOrganizationName);
+    textLines.push_back("Copyright 2018-2021 " + Global::kOrganizationName);
     textLines.push_back("");
     textLines.push_back("Using:");
     textLines.push_back("  Qt " + QString(qVersion()));
@@ -67,30 +68,14 @@ AboutWidget::AboutWidget()
     textLines.push_back("");
     textLines.push_back("");
     textLines.push_back("Controls:");
-    textLines.push_back("  F1         | -  Show this page");
-    textLines.push_back("  F2         | -  Show EXIF data");
-    textLines.push_back("  Left       | -  Previous image");
-    textLines.push_back("  Right      | -  Next image");
-    textLines.push_back("  Home       | -  First image in directory");
-    textLines.push_back("  End        | -  Last image in directory");
-    textLines.push_back("  Plus       | -  Zoom in");
-    textLines.push_back("  Minus      | -  Zoom out");
-    textLines.push_back("  Asterisk   | -  Toggle 100% zoom / fit screen");
-    textLines.push_back("  Space      | -  Pause animation playback");
-    textLines.push_back("  PageDown   | -  Previous animation frame");
-    textLines.push_back("  PageUp     | -  Next animation frame");
-    textLines.push_back("  Ctrl+R     | -  Reload the current image");
-    textLines.push_back("  Ctrl+Up    | -  Toggle rotation 0" UTF8_DEGREE);
-    textLines.push_back("  Ctrl+Right | -  Toggle rotation 90" UTF8_DEGREE);
-    textLines.push_back("  Ctrl+Left  | -  Toggle rotation 270" UTF8_DEGREE);
-    textLines.push_back("  Ctrl+Down  | -  Toggle rotation 180" UTF8_DEGREE);
-    textLines.push_back("  Ctrl+I     | -  Color picker mode");
-    textLines.push_back("  Esc        | -  Quit");
+    for (const auto& [action, keys] : Controls::getInstance().printControls()) {
+        textLines.push_back("  " + action + " | " + keys);
+    }
     text->setColumnSeperator('|');
-    text->appendColumnOffset(110);
+    text->appendColumnOffset(225);
     text->setText(textLines);
 
-    setFixedSize(350, 530);
+    setFixedSize(400, 540);
 
     update();
     show();
