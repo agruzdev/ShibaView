@@ -32,7 +32,7 @@ enum class Rotation
     eDegree180 = 2,
     eDegree270 = 3,
 
-    length_ = 4
+    length_
 };
 
 constexpr
@@ -40,6 +40,19 @@ int toDegree(Rotation r)
 {
     return 90 * static_cast<int>(r);
 }
+
+
+enum class ChannelSwizzle
+{
+    eRGB = 0,
+    eBGR,
+    eRed,
+    eGreen,
+    eBlue,
+    eAlpha,
+
+    length_
+};
 
 
 class ImageProcessor
@@ -95,19 +108,19 @@ public:
     }
 
     /**
-     * Swap R and B channels
+     * Setup arbitrary channel order
      */
-    void setSwapRB(bool value)
+    void setChannelSwizzle(ChannelSwizzle swizzle)
     {
-        if (mSwapRB != value) {
-            mSwapRB = value;
+        if (mSwizzleType != swizzle) {
+            mSwizzleType = swizzle;
             mIsValid = false;
         }
     }
 
-    bool getSwapRB() const
+    ChannelSwizzle getChannelSwizzle() const
     {
-        return mSwapRB;
+        return mSwizzleType;
     }
 
     /**
@@ -141,7 +154,8 @@ private:
 
     Rotation mRotation = Rotation::eDegree0;
     FIE_ToneMapping mToneMapping = FIE_ToneMapping::FIETMO_NONE;
-    bool mSwapRB = false;
+
+    ChannelSwizzle mSwizzleType = ChannelSwizzle::eRGB;
 };
 
 #endif // IMAGEPROCESSOR_H

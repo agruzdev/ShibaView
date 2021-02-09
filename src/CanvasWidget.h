@@ -91,8 +91,7 @@ public slots:
     void onActRotation(bool checked, Rotation r);
     void onActZoomMode(bool checked, ZoomMode z);
     void onActToneMapping(bool checked, FIE_ToneMapping m);
-
-    void onActSwapChannels(bool checked);
+    void onActSwizzle(bool checked, ChannelSwizzle s);
 
     void onShowContextMenu(const QPoint &pos);
 
@@ -144,6 +143,7 @@ private:
     ActionsArray<Rotation> initRotationActions();
     ActionsArray<ZoomMode> initZoomActions();
     TMActionsArray initToneMappingActions();
+    ActionsArray<ChannelSwizzle> initSwizzleActions();
 
     QMenu* createContextMenu();
 
@@ -207,6 +207,7 @@ private:
     std::shared_future<ActionsArray<Rotation>> mActRotate;
     std::shared_future<ActionsArray<ZoomMode>> mActZoom;
     std::shared_future<TMActionsArray> mActToneMapping;
+    std::shared_future<ActionsArray<ChannelSwizzle>> mActSwizzle;
 };
 
 

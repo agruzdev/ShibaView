@@ -199,6 +199,37 @@ void FreeImageExt_DeInitialise()
 }
 
 
+DWORD FreeImageExt_GetChannelsNumber(FIBITMAP* dib)
+{
+    if (!dib) {
+        return 0;
+    }
+
+    switch(FreeImage_GetImageType(dib)) {
+    case FIT_BITMAP:
+        switch(FreeImage_GetBPP(dib)) {
+        case 32:
+            return 4;
+        case 24:
+            return 3;
+        default:
+            return 1;
+        }
+
+    case FIT_RGB16:
+    case FIT_RGBF:
+        return 3;
+
+    case FIT_RGBA16:
+    case FIT_RGBAF:
+        return 4;
+
+    default:
+        return 1;
+    }
+}
+
+
 FIBITMAP* FreeImageExt_ToneMapping(FIBITMAP* src, FIE_ToneMapping mode)
 {
     FIBITMAP* dst = nullptr;

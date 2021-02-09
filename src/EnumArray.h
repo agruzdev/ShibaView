@@ -21,6 +21,7 @@
 
 #include <array>
 #include <cassert>
+#include <type_traits>
 
 /**
  * Array using enum as index.
@@ -32,6 +33,7 @@ class EnumArray
 public:
     using ValueType = Ty_;
     using IndexType = Enum_;
+    using UnderlayingType = std::underlying_type_t<Enum_>;
     using SizeType  = size_t;
     static constexpr size_t Length = Length_;
 
@@ -43,16 +45,28 @@ public:
         return Length;
     }
 
+    ValueType & operator[](SizeType idx)
+    {
+        assert(idx < Length);
+        return data[idx];
+    }
+
+    const ValueType & operator[](SizeType idx) const
+    {
+        assert(idx < Length);
+        return data[idx];
+    }
+
     ValueType & operator[](IndexType idx)
     {
-        assert(static_cast<SizeType>(idx) < Length);
-        return data[static_cast<SizeType>(idx)];
+        assert(static_cast<UnderlayingType>(idx) >= static_cast<UnderlayingType>(0));
+        return operator[](static_cast<SizeType>(idx));
     }
 
     const ValueType & operator[](IndexType idx) const
     {
-        assert(static_cast<SizeType>(idx) < Length);
-        return data[static_cast<SizeType>(idx)];
+        assert(static_cast<UnderlayingType>(idx) >= static_cast<UnderlayingType>(0));
+        return operator[](static_cast<SizeType>(idx));
     }
 
     auto begin()

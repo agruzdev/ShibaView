@@ -158,6 +158,7 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
 
     mActRotate      = std::async(std::launch::deferred, [this]{ return initRotationActions();    });
     mActZoom        = std::async(std::launch::deferred, [this]{ return initZoomActions();        });
+    mActSwizzle     = std::async(std::launch::deferred, [this]{ return initSwizzleActions();     });
     mActToneMapping = std::async(std::launch::deferred, [this]{ return initToneMappingActions(); });
 
     connect(this, &QWidget::customContextMenuRequested, this, &CanvasWidget::onShowContextMenu);
@@ -242,7 +243,8 @@ QMenu* CanvasWidget::createContextMenu()
 
     // Zoom
     {
-        const auto & zoom = mActZoom.get(); 
+        const auto & zoom = mActZoom.get();
+        zoom[mZoomMode]->setChecked(true);
         menu->addAction(zoom[ZoomMode::eFree]);
         menu->addAction(zoom[ZoomMode::eFitWindow]);
         menu->addAction(zoom[ZoomMode::eFixed]);
@@ -255,14 +257,11 @@ QMenu* CanvasWidget::createContextMenu()
         const auto tmAction = createMenuAction(QString::fromUtf8("Tone mapping " "\xE2\x80\xA3"));
         QMenu* tmMenu = new QMenu(menu);
         if (mImage && testFlag(mImage->getFrame().flags, FrameFlags::eHRD)) {
-            const auto & tmActions = mActToneMapping.get();
-
-            tmMenu->addAction(tmActions[FIETMO_NONE]);
-            tmMenu->addAction(tmActions[FIETMO_LINEAR]);
-            tmMenu->addAction(tmActions[FIETMO_DRAGO03]);
-            tmMenu->addAction(tmActions[FIETMO_REINHARD05]);
-            tmMenu->addAction(tmActions[FIETMO_FATTAL02]);
-
+            auto& tmActions = mActToneMapping.get();
+            for (int32_t i = 0; i < tmActions.size(); ++i) {
+                tmActions[i]->setChecked(static_cast<FIE_ToneMapping>(i) == mImageProcessor->toneMappingMode());
+                tmMenu->addAction(tmActions[i]);
+            }
             tmAction->setEnabled(true);
         }
         else {
@@ -275,17 +274,24 @@ QMenu* CanvasWidget::createContextMenu()
 
     // Swap channels
     {
-        auto action = createMenuAction("Swap channels");
-        action->setCheckable(true);
+        // ToDo (.gruzdev): Temporal arrow fix
+        const auto swAction = createMenuAction(QString::fromUtf8("Channels " "\xE2\x80\xA3"));
+        swAction->setEnabled(false);
+        QMenu* swMenu = new QMenu(menu);
         if (mImage && mImageProcessor && testFlag(mImage->getFrame().flags, FrameFlags::eRGB)) {
-            action->setChecked(mImageProcessor->getSwapRB());
-            action->setEnabled(true);
-            connect(action, &QAction::triggered, this, &CanvasWidget::onActSwapChannels);
+            const auto channelsNumber = mImage->channels();
+            if (channelsNumber > 1) {
+                auto& swActions = mActSwizzle.get();
+                for (int32_t i = 0; i < swActions.size(); ++i) {
+                    swActions[i]->setChecked(static_cast<ChannelSwizzle>(i) == mImageProcessor->getChannelSwizzle());
+                    swMenu->addAction(swActions[i]);
+                }
+                swActions[ChannelSwizzle::eAlpha]->setEnabled(channelsNumber == 4);
+                swAction->setEnabled(true);
+            }
         }
-        else {
-            action->setEnabled(false);
-        }
-        menu->addAction(std::move(action));
+        swAction->setMenu(swMenu);
+        menu->addAction(swAction);
         menu->addSeparator();
     }
 
@@ -343,8 +349,6 @@ CanvasWidget::ActionsArray<ZoomMode> CanvasWidget::initZoomActions()
     actions[ZoomMode::eFixed]->setCheckable(true);
     actions[ZoomMode::eFixed]->setActionGroup(groupZoom);
 
-    actions[mZoomMode]->setChecked(true);
-
     connect(actions[ZoomMode::eFree],      &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eFree));
     connect(actions[ZoomMode::eFitWindow], &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eFitWindow));
     connect(actions[ZoomMode::eFixed],     &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eFixed));
@@ -377,13 +381,50 @@ CanvasWidget::TMActionsArray CanvasWidget::initToneMappingActions()
     actions[FIETMO_FATTAL02]->setCheckable(true);
     actions[FIETMO_FATTAL02]->setActionGroup(groupTM);
 
-    actions[mImageProcessor->toneMappingMode()]->setChecked(true);
-
     connect(actions[FIETMO_NONE],       &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_NONE      ));
     connect(actions[FIETMO_LINEAR],     &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_LINEAR    ));
     connect(actions[FIETMO_DRAGO03],    &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_DRAGO03   ));
     connect(actions[FIETMO_REINHARD05], &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_REINHARD05));
     connect(actions[FIETMO_FATTAL02],   &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_FATTAL02  ));
+
+    return actions;
+}
+
+CanvasWidget::ActionsArray<ChannelSwizzle> CanvasWidget::initSwizzleActions()
+{
+    const auto group = new QActionGroup(this);
+    ActionsArray<ChannelSwizzle> actions = {};
+
+    actions[ChannelSwizzle::eRGB] = createMenuAction(QString::fromUtf8("RGB"));
+    actions[ChannelSwizzle::eRGB]->setCheckable(true);
+    actions[ChannelSwizzle::eRGB]->setActionGroup(group);
+
+    actions[ChannelSwizzle::eBGR] = createMenuAction(QString::fromUtf8("BGR"));
+    actions[ChannelSwizzle::eBGR]->setCheckable(true);
+    actions[ChannelSwizzle::eBGR]->setActionGroup(group);
+
+    actions[ChannelSwizzle::eRed] = createMenuAction(QString::fromUtf8("Red"));
+    actions[ChannelSwizzle::eRed]->setCheckable(true);
+    actions[ChannelSwizzle::eRed]->setActionGroup(group);
+
+    actions[ChannelSwizzle::eGreen] = createMenuAction(QString::fromUtf8("Green"));
+    actions[ChannelSwizzle::eGreen]->setCheckable(true);
+    actions[ChannelSwizzle::eGreen]->setActionGroup(group);
+
+    actions[ChannelSwizzle::eBlue] = createMenuAction(QString::fromUtf8("Blue"));
+    actions[ChannelSwizzle::eBlue]->setCheckable(true);
+    actions[ChannelSwizzle::eBlue]->setActionGroup(group);
+
+    actions[ChannelSwizzle::eAlpha] = createMenuAction(QString::fromUtf8("Alpha"));
+    actions[ChannelSwizzle::eAlpha]->setCheckable(true);
+    actions[ChannelSwizzle::eAlpha]->setActionGroup(group);
+
+    connect(actions[ChannelSwizzle::eRGB],   &QAction::triggered, std::bind(&CanvasWidget::onActSwizzle, this, std::placeholders::_1, ChannelSwizzle::eRGB));
+    connect(actions[ChannelSwizzle::eBGR],   &QAction::triggered, std::bind(&CanvasWidget::onActSwizzle, this, std::placeholders::_1, ChannelSwizzle::eBGR));
+    connect(actions[ChannelSwizzle::eRed],   &QAction::triggered, std::bind(&CanvasWidget::onActSwizzle, this, std::placeholders::_1, ChannelSwizzle::eRed));
+    connect(actions[ChannelSwizzle::eGreen], &QAction::triggered, std::bind(&CanvasWidget::onActSwizzle, this, std::placeholders::_1, ChannelSwizzle::eGreen));
+    connect(actions[ChannelSwizzle::eBlue],  &QAction::triggered, std::bind(&CanvasWidget::onActSwizzle, this, std::placeholders::_1, ChannelSwizzle::eBlue));
+    connect(actions[ChannelSwizzle::eAlpha], &QAction::triggered, std::bind(&CanvasWidget::onActSwizzle, this, std::placeholders::_1, ChannelSwizzle::eAlpha));
 
     return actions;
 }
@@ -1255,10 +1296,10 @@ void CanvasWidget::onActToneMapping(bool checked, FIE_ToneMapping m)
     }
 }
 
-void CanvasWidget::onActSwapChannels(bool checked)
+void CanvasWidget::onActSwizzle(bool checked, ChannelSwizzle s)
 {
-    if (mImageProcessor) {
-        mImageProcessor->setSwapRB(checked);
+    if (checked && mImageProcessor) {
+        mImageProcessor->setChannelSwizzle(s);
         update();
     }
 }

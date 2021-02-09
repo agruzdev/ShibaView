@@ -89,6 +89,14 @@ void Image::removeListener(ImageListener* listener)
     }
 }
 
+uint32_t Image::channels() const
+{
+    if (mImagePlayer) {
+        return FreeImageExt_GetChannelsNumber(getFrame().bmp);
+    }
+    return 0;
+}
+
 void Image::next()
 {
     mImagePlayer->next();

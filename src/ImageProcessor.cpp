@@ -76,12 +76,35 @@ const QPixmap & ImageProcessor::getResult()
             }
 
             std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> swizzled(nullptr, &::FreeImage_Unload);
-            if (mSwapRB) {
-                if (target == frame.bmp) {
+            if (mSwizzleType != ChannelSwizzle::eRGB) {
+                switch(mSwizzleType) {
+                case ChannelSwizzle::eBGR:
                     swizzled.reset(FreeImage_Clone(target));
+                    SwapRedBlue32(swizzled.get());
+                    break;
+
+                case ChannelSwizzle::eRed:
+                    swizzled.reset(FreeImage_GetChannel(target, FICC_RED));
+                    break;
+
+                case ChannelSwizzle::eBlue:
+                    swizzled.reset(FreeImage_GetChannel(target, FICC_BLUE));
+                    break;
+
+                case ChannelSwizzle::eGreen:
+                    swizzled.reset(FreeImage_GetChannel(target, FICC_GREEN));
+                    break;
+
+                case ChannelSwizzle::eAlpha:
+                    swizzled.reset(FreeImage_GetChannel(target, FICC_ALPHA));
+                    break;
+
+                default:
+                    break;
+                }
+                if (swizzled) {
                     target = swizzled.get();
                 }
-                SwapRedBlue32(target);
             }
 
             mDstPixmap = QPixmap::fromImage(makeQImageView(target));

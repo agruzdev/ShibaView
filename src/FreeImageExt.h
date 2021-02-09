@@ -73,6 +73,10 @@ void FreeImageExt_Initialise();
  */
 void FreeImageExt_DeInitialise();
 
+/**
+ * Returns a number of channels for color images, otherwise 1
+ */
+DWORD FreeImageExt_GetChannelsNumber(FIBITMAP* dib);
 
 enum FIE_ToneMapping
 {

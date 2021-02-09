@@ -19,6 +19,7 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
+#include <cassert>
 #include <limits>
 #include <memory>
 
@@ -55,6 +56,7 @@ public:
 
     const ImageFrame & getFrame() const
     {
+        assert(mImagePlayer);
         return mImagePlayer->getCurrentFrame();
     }
 
@@ -81,6 +83,8 @@ public:
         return mInfo.dims.height;
     }
 
+    uint32_t channels() const;
+
     bool isNull() const
     {
         return (mImagePlayer == nullptr);
@@ -93,7 +97,7 @@ public:
 
     uint32_t pagesCount() const
     {
-        return mImagePlayer->framesNumber();
+        return mImagePlayer ? mImagePlayer->framesNumber() : 0;
     }
 
     void next();
