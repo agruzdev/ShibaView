@@ -111,13 +111,30 @@ namespace
         const unsigned h = FreeImage_GetHeight(src);
         const unsigned w = FreeImage_GetWidth(src);
         Ty_ minVal = std::numeric_limits<Ty_>::max();
-        Ty_ maxVal = std::numeric_limits<Ty_>::min();
+        Ty_ maxVal = std::numeric_limits<Ty_>::lowest();
         const uint32_t lineLength = w * (FreeImage_GetBPP(src) / 8 / sizeof(Ty_));
         for (unsigned j = 0; j < h; ++j) {
             const auto srcLine = static_cast<const Ty_*>(static_cast<const void*>(FreeImage_GetScanLine(src, j)));
-            for (unsigned i = 0; i < lineLength; ++i) {
-                minVal = std::min(minVal, srcLine[i]);
-                maxVal = std::max(maxVal, srcLine[i]);
+            const auto minMaxIt = std::minmax_element(srcLine, srcLine + lineLength);
+            minVal = std::min(minVal, *(minMaxIt.first));
+            maxVal = std::max(maxVal, *(minMaxIt.second));
+        }
+        return std::make_tuple(minVal, maxVal);
+    }
+
+    std::tuple<float, float> findMinMaxRGBAF(FIBITMAP* src)
+    {
+        assert(src);
+        const unsigned h = FreeImage_GetHeight(src);
+        const unsigned w = FreeImage_GetWidth(src);
+        float minVal = std::numeric_limits<float>::max();
+        float maxVal = std::numeric_limits<float>::lowest();
+        for (unsigned j = 0; j < h; ++j) {
+            const auto srcLine = static_cast<const tagFIRGBAF*>(static_cast<const void*>(FreeImage_GetScanLine(src, j)));
+            for (unsigned i = 0; i < w; ++i) {
+                const auto& p = srcLine[i];
+                minVal = std::min(p.red, std::min(p.green, std::min(p.blue, minVal)));
+                maxVal = std::max(p.red, std::max(p.green, std::max(p.blue, maxVal)));
             }
         }
         return std::make_tuple(minVal, maxVal);
@@ -132,7 +149,7 @@ namespace
         switch (FreeImage_GetImageType(src)) {
             case FIT_RGBAF: {
                 float minVal = 0.0f, maxVal = 1.0f;
-                std::tie(minVal, maxVal) = findMinMax<float>(src);
+                std::tie(minVal, maxVal) = findMinMaxRGBAF(src);
                 dst = FreeImage_Allocate(w, h, 32);
                 cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
                     const auto dstPixel = static_cast<tagRGBQUAD*>(dstPtr);
@@ -140,7 +157,7 @@ namespace
                     dstPixel->rgbRed      = static_cast<BYTE>(((srcPixel->red   - minVal) / (maxVal - minVal)) * 255.0f);
                     dstPixel->rgbGreen    = static_cast<BYTE>(((srcPixel->green - minVal) / (maxVal - minVal)) * 255.0f);
                     dstPixel->rgbBlue     = static_cast<BYTE>(((srcPixel->blue  - minVal) / (maxVal - minVal)) * 255.0f);
-                    dstPixel->rgbReserved = static_cast<BYTE>(((srcPixel->alpha - minVal) / (maxVal - minVal)) * 255.0f);
+                    dstPixel->rgbReserved = static_cast<BYTE>(srcPixel->alpha * 255.0f);
                 });
                 break;
             }

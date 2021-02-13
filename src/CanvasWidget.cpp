@@ -258,9 +258,14 @@ QMenu* CanvasWidget::createContextMenu()
         QMenu* tmMenu = new QMenu(menu);
         if (mImage && testFlag(mImage->getFrame().flags, FrameFlags::eHRD)) {
             auto& tmActions = mActToneMapping.get();
+            // Manual order is important
+            tmMenu->addAction(tmActions[FIETMO_NONE]);
+            tmMenu->addAction(tmActions[FIETMO_LINEAR]);
+            tmMenu->addAction(tmActions[FIETMO_DRAGO03]);
+            tmMenu->addAction(tmActions[FIETMO_REINHARD05]);
+            tmMenu->addAction(tmActions[FIETMO_FATTAL02]);
             for (int32_t i = 0; i < tmActions.size(); ++i) {
                 tmActions[i]->setChecked(static_cast<FIE_ToneMapping>(i) == mImageProcessor->toneMappingMode());
-                tmMenu->addAction(tmActions[i]);
             }
             tmAction->setEnabled(true);
         }
