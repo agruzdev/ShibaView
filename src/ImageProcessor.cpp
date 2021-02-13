@@ -40,7 +40,7 @@ namespace
             imageView = QImage(FreeImage_GetBits(bmp), FreeImage_GetWidth(bmp), FreeImage_GetHeight(bmp), FreeImage_GetPitch(bmp), QImage::Format_RGBA8888);
             break;
         default:
-            throw std::logic_error("Internal image is 1, 8, 24 or 32 bit");
+            throw std::logic_error("Internal image must be 1, 8, 24 or 32 bit");
         }
         return imageView;
     }

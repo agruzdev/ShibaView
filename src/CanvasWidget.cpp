@@ -670,51 +670,65 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
     QWidget::paintEvent(event);
 
-    if (mImage && !mImage->isNull()) {
-        QPainter painter(this);
-        if (mFilteringMode == FilteringMode::eAntialiasing) {
-            painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, true);
-        }
+    bool success = false;
+    try {
+        if (mImage && !mImage->isNull()) {
+            QPainter painter(this);
+            if (mFilteringMode == FilteringMode::eAntialiasing) {
+                painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, true);
+            }
 
-        const ImageFrame & frame = mImage->getFrame();
+            const ImageFrame & frame = mImage->getFrame();
 
-        const auto imageRect = calculateImageRegion();
-        const auto dstCenter = imageRect.center();
+            const auto imageRect = calculateImageRegion();
+            const auto dstCenter = imageRect.center();
 
-        // Make vertical flip
-        const auto trans1 = QTransform::fromTranslate(-dstCenter.x(), -dstCenter.y());
-        const auto scale  = QTransform::fromScale(1.0, -1.0);
-        const auto trans2 = QTransform::fromTranslate(dstCenter.x(), dstCenter.y());
-        painter.setTransform(trans1 * scale * trans2);
+            // Make vertical flip
+            const auto trans1 = QTransform::fromTranslate(-dstCenter.x(), -dstCenter.y());
+            const auto scale  = QTransform::fromScale(1.0, -1.0);
+            const auto trans2 = QTransform::fromTranslate(dstCenter.x(), dstCenter.y());
+            painter.setTransform(trans1 * scale * trans2);
 
-        painter.drawPixmap(imageRect, mImageProcessor->getResult());
+            painter.drawPixmap(imageRect, mImageProcessor->getResult());
 
-        if (mShowInfo) {
-            if (!mInfoIsValid) {
-                if (mInfoText && mImageDescription) {
-                    mInfoText->setText(mImageDescription->toLines());
+            if (mShowInfo) {
+                if (!mInfoIsValid) {
+                    if (mInfoText && mImageDescription) {
+                        mInfoText->setText(mImageDescription->toLines());
+                    }
+                    mInfoIsValid = true;
                 }
-                mInfoIsValid = true;
+                mInfoText->show();
+                if (mPageText) {
+                    mPageText->setText("Page " + QString::number(frame.index + 1) + "/" + QString::number(mImage->pagesCount()));
+                    mPageText->show();
+                }
             }
-            mInfoText->show();
-            if (mPageText) {
-                mPageText->setText("Page " + QString::number(frame.index + 1) + "/" + QString::number(mImage->pagesCount()));
-                mPageText->show();
+            else {
+                mInfoText->hide();
+                if (mPageText) {
+                    mPageText->hide();
+                }
             }
-        }
-        else {
-            mInfoText->hide();
-            if (mPageText) {
-                mPageText->hide();
-            }
-        }
 
-        if (mEnableAnimation) {
-            if (frame.index != mAnimIndex) {
-                new UniqueTick(mImage->id(), frame.duration, this, &CanvasWidget::onAnimationTick, this);
+            if (mEnableAnimation) {
+                if (frame.index != mAnimIndex) {
+                    new UniqueTick(mImage->id(), frame.duration, this, &CanvasWidget::onAnimationTick, this);
+                }
+                mAnimIndex = frame.index;
             }
-            mAnimIndex = frame.index;
+
+            success = true;
         }
+    }
+    catch(const std::exception& err) {
+        qDebug() << err.what();
+    }
+    catch(...) {
+    }
+
+    if (success) {
+        mErrorText->hide();
     }
     else {
         const auto dstRegion = fitWidth(512, 512);

@@ -375,9 +375,15 @@ ImageFrame Player::cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload)
             dstNeedUnload = false;
         }
         else if (8 == bpp) {
-            if (FIC_PALETTE == FreeImage_GetColorType(src)) {
+            const auto colorType = FreeImage_GetColorType(src);
+            if (FIC_PALETTE == colorType) {
                 frame.flags = FrameFlags::eRGB;
                 frame.bmp = FreeImage_ConvertTo32Bits(src);
+                dstNeedUnload = true;
+            }
+            else if (FIC_MINISWHITE == colorType) {
+                frame.bmp = FreeImage_Clone(src);
+                FreeImage_Invert(frame.bmp);
                 dstNeedUnload = true;
             }
             else {
@@ -391,9 +397,15 @@ ImageFrame Player::cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload)
             dstNeedUnload = true;
         }
         else if(1 == bpp) {
-            if (FIC_PALETTE == FreeImage_GetColorType(src)) {
+            const auto colorType = FreeImage_GetColorType(src);
+            if (FIC_PALETTE == colorType) {
                 frame.flags = FrameFlags::eRGB;
                 frame.bmp = FreeImage_ConvertTo32Bits(src);
+                dstNeedUnload = true;
+            }
+            else if (FIC_MINISWHITE == colorType) {
+                frame.bmp = FreeImage_Clone(src);
+                FreeImage_Invert(frame.bmp);
                 dstNeedUnload = true;
             }
             else {
