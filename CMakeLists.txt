@@ -137,6 +137,8 @@ target_compile_features(ShibaView PRIVATE cxx_std_14)
 
 target_link_libraries(ShibaView Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Svg ${FreeImage_LIBRARY})
 
+set_property(TARGET ShibaView PROPERTY AUTORCC_OPTIONS "--no-compress")
+
 install(TARGETS ShibaView DESTINATION .)
 install(FILES ${FreeImage_BINARY} DESTINATION .)
 install(FILES ${CMAKE_SOURCE_DIR}/LICENSE DESTINATION .)

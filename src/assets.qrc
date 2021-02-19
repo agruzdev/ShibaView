@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>../fonts/DejaVuSansCondensed.ttf</file>
+        <file alias="APPICON">../icons/app.ico</file>
     </qresource>
 </RCC>

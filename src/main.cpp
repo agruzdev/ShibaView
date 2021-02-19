@@ -39,6 +39,7 @@ try
     QApplication app{argc, argv};
     QApplication::setOrganizationName(Global::kOrganizationName);
     QApplication::setApplicationName(Global::kApplicationName);
+    QApplication::setWindowIcon(QIcon(QPixmap(":APPICON")));
 
     QString input;
     if (argc > 1) {
