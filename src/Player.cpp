@@ -331,15 +331,15 @@ ImageFrame Player::cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload)
 
     case FIT_RGBA16:
         assert(bpp == 64);
-        frame.flags = FrameFlags::eRGB;
-        frame.bmp = FreeImage_ConvertTo32Bits(src);
+        frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
+        frame.bmp = FreeImage_ConvertToRGBAF(src);
         dstNeedUnload = true;
         break;
 
     case FIT_RGB16:
         assert(bpp == 48);
-        frame.flags = FrameFlags::eRGB;
-        frame.bmp = FreeImage_ConvertTo24Bits(src);
+        frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
+        frame.bmp = FreeImage_ConvertToRGBF(src);
         dstNeedUnload = true;
         break;
 
@@ -347,7 +347,8 @@ ImageFrame Player::cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload)
     case FIT_INT16:
     case FIT_UINT32:
     case FIT_INT32:
-        frame.bmp = FreeImage_ConvertToStandardType(src);
+        frame.bmp = FreeImage_ConvertToFloat(src);
+        frame.flags = FrameFlags::eHRD;
         dstNeedUnload = true;
         break;
 
