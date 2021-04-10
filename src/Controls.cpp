@@ -80,6 +80,7 @@ Controls::Controls()
     loadKey(ControlAction::eAbout, "Show the About page", Qt::Key_F1);
     loadKey(ControlAction::eImageInfo, "Show EXIF data", Qt::Key_F2);
     loadKey(ControlAction::eOverlay, "Show overlay", Qt::Key_Tab);
+    loadKey(ControlAction::eOpenFile, "Open file dialog", Qt::ControlModifier | Qt::Key_O);
     loadKey(ControlAction::eReload, "Reload the current image", Qt::ControlModifier | Qt::Key_R);
     loadKey(ControlAction::ePreviousImage, "Previous image", Qt::Key_Left);
     loadKey(ControlAction::eNextImage, "Next image", Qt::Key_Right);

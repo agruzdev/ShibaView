@@ -819,7 +819,17 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         break;
 
     case ControlAction::eReload:
-        emit evenReloadImage();
+        if (!mTransitionRequested) {
+            emit eventReloadImage();
+            mTransitionRequested = true;
+        }
+        break;
+
+    case ControlAction::eOpenFile:
+        if (!mTransitionRequested) {
+            emit eventOpenImage();
+            mTransitionRequested = true;
+        }
         break;
 
     case ControlAction::eRotation0:
@@ -867,29 +877,29 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
 
     case ControlAction::ePreviousImage:
         if (!mTransitionRequested) {
-            mTransitionRequested = true;
             emit eventPrevImage();
+            mTransitionRequested = true;
         }
         break;
         
     case ControlAction::eNextImage:
         if (!mTransitionRequested) {
-            mTransitionRequested = true;
             emit eventNextImage();
+            mTransitionRequested = true;
         }
         break;
         
     case ControlAction::eFirstImage:
         if (!mTransitionRequested) {
-            mTransitionRequested = true;
             emit eventFirstImage();
+            mTransitionRequested = true;
         }
         break;
 
     case ControlAction::eLastImage:
         if (!mTransitionRequested) {
-            mTransitionRequested = true;
             emit eventLastImage();
+            mTransitionRequested = true;
         }
         break;
 

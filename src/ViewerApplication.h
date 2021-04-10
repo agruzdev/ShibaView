@@ -61,6 +61,7 @@ public slots:
     void onFirstImage();
     void onLastImage();
     void onReloadImage();
+    void onOpenImage();
 
     void onError(const QString & what);
 

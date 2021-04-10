@@ -20,9 +20,11 @@
 
 #include <iostream>
 
-#include <QDir>
-#include <QFileInfo>
 #include <QCollator>
+#include <QDir>
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QSettings>
 
 #include "Global.h"
 #include "ImageLoader.h"
@@ -52,13 +54,14 @@ ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
 
     mCanvasWidget.reset(new CanvasWidget(t));
 
-    connect(mCanvasWidget.get(), &CanvasWidget::eventNextImage,  this, &ViewerApplication::onNextImage,   Qt::QueuedConnection);
-    connect(mCanvasWidget.get(), &CanvasWidget::eventPrevImage,  this, &ViewerApplication::onPrevImage,   Qt::QueuedConnection);
-    connect(mCanvasWidget.get(), &CanvasWidget::eventFirstImage, this, &ViewerApplication::onFirstImage,  Qt::QueuedConnection);
-    connect(mCanvasWidget.get(), &CanvasWidget::eventLastImage,  this, &ViewerApplication::onLastImage,   Qt::QueuedConnection);
-    connect(mCanvasWidget.get(), &CanvasWidget::evenReloadImage, this, &ViewerApplication::onReloadImage, Qt::QueuedConnection);
+    connect(mCanvasWidget.get(), &CanvasWidget::eventNextImage,   this, &ViewerApplication::onNextImage,   Qt::QueuedConnection);
+    connect(mCanvasWidget.get(), &CanvasWidget::eventPrevImage,   this, &ViewerApplication::onPrevImage,   Qt::QueuedConnection);
+    connect(mCanvasWidget.get(), &CanvasWidget::eventFirstImage,  this, &ViewerApplication::onFirstImage,  Qt::QueuedConnection);
+    connect(mCanvasWidget.get(), &CanvasWidget::eventLastImage,   this, &ViewerApplication::onLastImage,   Qt::QueuedConnection);
+    connect(mCanvasWidget.get(), &CanvasWidget::eventReloadImage, this, &ViewerApplication::onReloadImage, Qt::QueuedConnection);
+    connect(mCanvasWidget.get(), &CanvasWidget::eventOpenImage,   this, &ViewerApplication::onOpenImage,   Qt::QueuedConnection);
     connect(this, &ViewerApplication::eventCancelTransition, mCanvasWidget.get(), &CanvasWidget::onTransitionCanceled, Qt::QueuedConnection);
-    connect(this, &ViewerApplication::eventImageDirScanned, mCanvasWidget.get(), &CanvasWidget::onImageDirScanned, Qt::QueuedConnection);
+    connect(this, &ViewerApplication::eventImageDirScanned,  mCanvasWidget.get(), &CanvasWidget::onImageDirScanned,    Qt::QueuedConnection);
 
     mBackgroundThread.reset(new QThread);
     mBackgroundThread->start();
@@ -222,3 +225,13 @@ void ViewerApplication::onReloadImage()
     }
 }
 
+void ViewerApplication::onOpenImage()
+{
+    QString input = QFileDialog::getOpenFileName(nullptr, "Open File", mDirectory.absolutePath(), ViewerApplication::getFileFilter());
+    if (!input.isEmpty()) {
+        open(input);
+    }
+    else {
+        emit eventCancelTransition();
+    }
+}
