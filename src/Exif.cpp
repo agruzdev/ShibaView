@@ -33,36 +33,36 @@ Exif Exif::load(FIBITMAP* dib)
                 QVariant value;
                 switch(FreeImage_GetTagType(tag)) {
                 case FIDT_BYTE:
-                    value = FreeImageExt_GetTagValue<uint8_t>(tag);
+                    value = QVariant::fromValue(FreeImageExt_GetTagValue<uint8_t>(tag));
                     break;
                 case FIDT_SHORT:
-                    value = FreeImageExt_GetTagValue<uint16_t>(tag);
+                    value = QVariant::fromValue(FreeImageExt_GetTagValue<uint16_t>(tag));
                     break;
                 case FIDT_LONG:
                 case FIDT_IFD:
-                    value = FreeImageExt_GetTagValue<uint32_t>(tag);
+                    value = QVariant::fromValue(FreeImageExt_GetTagValue<uint32_t>(tag));
                     break;
                 case FIDT_SBYTE:
-                    value = FreeImageExt_GetTagValue<int8_t>(tag);
+                    value = QVariant::fromValue(FreeImageExt_GetTagValue<int8_t>(tag));
                     break;
                 case FIDT_SSHORT:
-                    value = FreeImageExt_GetTagValue<int16_t>(tag);
+                    value = QVariant::fromValue(FreeImageExt_GetTagValue<int16_t>(tag));
                     break;
                 case FIDT_SLONG:
-                    value = FreeImageExt_GetTagValue<int32_t>(tag);
+                    value = QVariant::fromValue(FreeImageExt_GetTagValue<int32_t>(tag));
                     break;
                 case FIDT_FLOAT:
-                    value = FreeImageExt_GetTagValue<float>(tag);
+                    value = QVariant::fromValue(FreeImageExt_GetTagValue<float>(tag));
                     break;
                 case FIDT_DOUBLE:
-                    value = FreeImageExt_GetTagValue<double>(tag);
+                    value = QVariant::fromValue(FreeImageExt_GetTagValue<double>(tag));
                     break;
                 case FIDT_LONG8:
                 case FIDT_IFD8:
-                    value = FreeImageExt_GetTagValue<uint64_t>(tag);
+                    value = QVariant::fromValue(FreeImageExt_GetTagValue<uint64_t>(tag));
                     break;
                 case FIDT_SLONG8:
-                    value = FreeImageExt_GetTagValue<int64_t>(tag);
+                    value = QVariant::fromValue(FreeImageExt_GetTagValue<int64_t>(tag));
                     break;
                 case FIDT_RATIONAL:
                 case FIDT_SRATIONAL:

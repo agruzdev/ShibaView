@@ -27,3 +27,13 @@ Prebuilt ShibaView executable requires MSVC 2019 runtime on Windows, so please i
 
   1. Image load color space is chnaged to RGB by a compile definition, fixed appeared compilation errors
   2. Exported utility functions from DLL
+
+
+## Building for Linux
+
+For using Qt6 gcc prebuilt binaries:
+
+```
+sudo apt-get install libglu1-mesa-dev freeglut3-dev mesa-common-dev mesa-utils libopengl-dev
+sudo apt-get install libxcb.*-dev
+```
