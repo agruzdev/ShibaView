@@ -19,6 +19,7 @@
 #include "FreeImageExt.h"
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <tuple>
 #include "PluginFLO.h"
@@ -104,41 +105,108 @@ namespace
         return dst;
     }
 
-    template <typename Ty_>
-    std::tuple<Ty_, Ty_> findMinMax(FIBITMAP* src)
-    {
-        assert(src);
-        const unsigned h = FreeImage_GetHeight(src);
-        const unsigned w = FreeImage_GetWidth(src);
-        Ty_ minVal = std::numeric_limits<Ty_>::max();
-        Ty_ maxVal = std::numeric_limits<Ty_>::lowest();
-        const uint32_t lineLength = w * (FreeImage_GetBPP(src) / 8 / sizeof(Ty_));
-        for (unsigned j = 0; j < h; ++j) {
-            const auto srcLine = static_cast<const Ty_*>(static_cast<const void*>(FreeImage_GetScanLine(src, j)));
-            const auto minMaxIt = std::minmax_element(srcLine, srcLine + lineLength);
-            minVal = std::min(minVal, *(minMaxIt.first));
-            maxVal = std::max(maxVal, *(minMaxIt.second));
-        }
-        return std::make_tuple(minVal, maxVal);
-    }
 
-    std::tuple<float, float> findMinMaxRGBAF(FIBITMAP* src)
+    template <typename ElemType_, typename Less_ = std::less<>>
+    std::tuple<ElemType_*, ElemType_*> findMinMax(FIBITMAP* src, Less_ less = Less_{})
     {
-        assert(src);
+        if (!src) {
+            return std::tuple<ElemType_*, ElemType_*>(nullptr, nullptr);
+        }
         const unsigned h = FreeImage_GetHeight(src);
         const unsigned w = FreeImage_GetWidth(src);
-        float minVal = std::numeric_limits<float>::max();
-        float maxVal = std::numeric_limits<float>::lowest();
+        if (h < 1 || w < 1) {
+            return std::tuple<ElemType_*, ElemType_*>(nullptr, nullptr);
+        }
+        ElemType_* minIt = static_cast<ElemType_*>(static_cast<void*>(FreeImage_GetScanLine(src, 0)));
+        ElemType_* maxIt = minIt;
         for (unsigned j = 0; j < h; ++j) {
-            const auto srcLine = static_cast<const tagFIRGBAF*>(static_cast<const void*>(FreeImage_GetScanLine(src, j)));
-            for (unsigned i = 0; i < w; ++i) {
-                const auto& p = srcLine[i];
-                minVal = std::min(p.red, std::min(p.green, std::min(p.blue, minVal)));
-                maxVal = std::max(p.red, std::max(p.green, std::max(p.blue, maxVal)));
+            auto srcLine = static_cast<ElemType_*>(static_cast<void*>(FreeImage_GetScanLine(src, j)));
+            for (unsigned i = 0; i < w; ++i, ++srcLine) {
+                if (less(*srcLine, *minIt)) {
+                    minIt = srcLine;
+                }
+                if (less(*maxIt, *srcLine)) {
+                    maxIt = srcLine;
+                }
             }
         }
-        return std::make_tuple(minVal, maxVal);
+        return std::make_tuple(minIt, maxIt);
     }
+
+    template <typename Ty_>
+    inline
+    Ty_ GetBrightness(Ty_ r, Ty_ g, Ty_ b)
+    {
+        return static_cast<Ty_>(0.114 * b + 0.587 * g + 0.299 * r);
+    }
+
+    inline
+    float GetBrightness(const tagFIRGBF& p)
+    {
+        return GetBrightness(p.red, p.green, p.blue);
+    }
+
+    inline
+    float GetBrightness(const tagFIRGBAF& p)
+    {
+        return GetBrightness(p.red, p.green, p.blue);
+    }
+
+    inline
+    bool LessBrightness(const tagRGBTRIPLE& p1, const tagRGBTRIPLE& p2)
+    {
+        const uint32_t b1 = 114 * p1.rgbtBlue + 587 * p1.rgbtGreen + 299 * p1.rgbtRed;
+        const uint32_t b2 = 114 * p2.rgbtBlue + 587 * p2.rgbtGreen + 299 * p2.rgbtRed;
+        return b1 < b2;
+    }
+
+    inline
+    bool LessBrightness(const tagFIRGBF& p1, const tagFIRGBF& p2)
+    {
+        return GetBrightness(p1) < GetBrightness(p2);
+    }
+
+    inline
+    bool LessBrightness(const tagFIRGBAF& p1, const tagFIRGBAF& p2)
+    {
+        return GetBrightness(p1) < GetBrightness(p2);
+    }
+
+    template <typename Ty_>
+    inline
+    std::array<Ty_, 3> RgbToYuv(Ty_ r, Ty_ g, Ty_ b)
+    {
+        return {
+            static_cast<Ty_>(0.114 * b + 0.587 * g + 0.299 * r),
+            static_cast<Ty_>(0.5 * b - 0.3313 * g - 0.1687 * r),
+            static_cast<Ty_>(0.5 * r - 0.4187 * g - 0.0813 * b)
+        };
+    }
+
+    inline
+    std::array<float, 3> RgbToYuv(const std::array<float, 3>& p)
+    {
+        return RgbToYuv(p[0], p[1], p[2]);
+    }
+
+
+    template <typename Ty_>
+    inline
+    std::array<Ty_, 3> YuvToRgb(Ty_ y, Ty_ cb, Ty_ cr)
+    {
+        return {
+            static_cast<Ty_>(y + 1.402 * cr),
+            static_cast<Ty_>(y - 0.3441 * cb - 0.7141 * cr),
+            static_cast<Ty_>(y + 1.772 * cb)
+        };
+    }
+
+    inline
+    std::array<float, 3> YuvToRgb(const std::array<float, 3>& p)
+    {
+        return YuvToRgb(p[0], p[1], p[2]);
+    }
+
 
     FIBITMAP* applyToneMappingGlobal(FIBITMAP* src)
     {
@@ -148,56 +216,90 @@ namespace
         const unsigned w = FreeImage_GetWidth(src);
         switch (FreeImage_GetImageType(src)) {
             case FIT_RGBAF: {
-                float minVal = 0.0f, maxVal = 1.0f;
-                std::tie(minVal, maxVal) = findMinMaxRGBAF(src);
-                dst = FreeImage_Allocate(w, h, 32);
-                cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
-                    const auto dstPixel = static_cast<tagRGBQUAD*>(dstPtr);
-                    const auto srcPixel = static_cast<const tagFIRGBAF*>(srcPtr);
-                    dstPixel->rgbRed      = static_cast<BYTE>(((srcPixel->red   - minVal) / (maxVal - minVal)) * 255.0f);
-                    dstPixel->rgbGreen    = static_cast<BYTE>(((srcPixel->green - minVal) / (maxVal - minVal)) * 255.0f);
-                    dstPixel->rgbBlue     = static_cast<BYTE>(((srcPixel->blue  - minVal) / (maxVal - minVal)) * 255.0f);
-                    dstPixel->rgbReserved = static_cast<BYTE>(srcPixel->alpha * 255.0f);
-                });
+                tagFIRGBAF* minVal = nullptr;
+                tagFIRGBAF* maxVal = nullptr;
+                std::tie(minVal, maxVal) = findMinMax<tagFIRGBAF>(src, static_cast<bool(*)(const tagFIRGBAF&, const tagFIRGBAF&)>(&LessBrightness));
+                if (minVal != maxVal) {
+                    const float maxBrighness = GetBrightness(*maxVal);
+                    const float minBrighness = GetBrightness(*minVal);
+                    if (maxBrighness > 0 && maxBrighness > minBrighness) {
+                        const float div = 1.0f / (maxBrighness - minBrighness);
+                        dst = FreeImage_Allocate(w, h, 32);
+                        cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
+                            const auto dstPixel = static_cast<tagRGBQUAD*>(dstPtr);
+                            const auto srcPixel = static_cast<const tagFIRGBAF*>(srcPtr);
+                            auto yuv = RgbToYuv(srcPixel->red, srcPixel->green, srcPixel->blue);
+                            yuv[0] = (yuv[0] - minBrighness) * div;
+                            auto rgb = YuvToRgb(yuv);
+                            dstPixel->rgbRed      = static_cast<BYTE>(std::clamp(rgb[0], 0.0f, 1.0f) * 255.0f);
+                            dstPixel->rgbGreen    = static_cast<BYTE>(std::clamp(rgb[1], 0.0f, 1.0f) * 255.0f);
+                            dstPixel->rgbBlue     = static_cast<BYTE>(std::clamp(rgb[2], 0.0f, 1.0f) * 255.0f);
+                            dstPixel->rgbReserved = static_cast<BYTE>(srcPixel->alpha * 255.0f);
+                        });
+                    }
+                }
                 break;
             }
             case FIT_RGBF : {
-                float minVal = 0.0f, maxVal = 1.0f;
-                std::tie(minVal, maxVal) = findMinMax<float>(src);
-                dst = FreeImage_Allocate(w, h, 24);
-                cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
-                    const auto dstPixel = static_cast<tagRGBTRIPLE*>(dstPtr);
-                    const auto srcPixel = static_cast<const tagFIRGBF*>(srcPtr);
-                    dstPixel->rgbtRed   = static_cast<BYTE>(((srcPixel->red   - minVal) / (maxVal - minVal)) * 255.0f);
-                    dstPixel->rgbtGreen = static_cast<BYTE>(((srcPixel->green - minVal) / (maxVal - minVal)) * 255.0f);
-                    dstPixel->rgbtBlue  = static_cast<BYTE>(((srcPixel->blue  - minVal) / (maxVal - minVal)) * 255.0f);
-                });
+                tagFIRGBF* minVal = nullptr;
+                tagFIRGBF* maxVal = nullptr;
+                std::tie(minVal, maxVal) = findMinMax<tagFIRGBF>(src, static_cast<bool(*)(const tagFIRGBF&, const tagFIRGBF&)>(&LessBrightness));
+                if (minVal != maxVal) {
+                    const float maxBrighness = GetBrightness(*maxVal);
+                    const float minBrighness = GetBrightness(*minVal);
+                    if (maxBrighness > 0 && maxBrighness > minBrighness) {
+                        const float div = 1.0f / (maxBrighness - minBrighness);
+                        dst = FreeImage_Allocate(w, h, 24);
+                        cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
+                            const auto dstPixel = static_cast<tagRGBTRIPLE*>(dstPtr);
+                            const auto srcPixel = static_cast<const tagFIRGBF*>(srcPtr);
+                            auto yuv = RgbToYuv(srcPixel->red, srcPixel->green, srcPixel->blue);
+                            yuv[0] = (yuv[0] - minBrighness) * div;
+                            auto rgb = YuvToRgb(yuv);
+                            dstPixel->rgbtRed   = static_cast<BYTE>(std::clamp(rgb[0], 0.0f, 1.0f) * 255.0f);
+                            dstPixel->rgbtGreen = static_cast<BYTE>(std::clamp(rgb[1], 0.0f, 1.0f) * 255.0f);
+                            dstPixel->rgbtBlue  = static_cast<BYTE>(std::clamp(rgb[2], 0.0f, 1.0f) * 255.0f);
+                        });
+                    }
+                }
                 break;
             }
             case FIT_DOUBLE: {
-                double minVal = 0.0f, maxVal = 1.0f;
+                double* minVal = nullptr;
+                double* maxVal = nullptr;
                 std::tie(minVal, maxVal) = findMinMax<double>(src);
-                dst = FreeImage_Allocate(w, h, 8);
-                cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
-                    const auto dstPixel = static_cast<BYTE*>(dstPtr);
-                    const auto srcPixel = static_cast<const double*>(srcPtr);
-                    *dstPixel = static_cast<BYTE>(((*srcPixel - minVal) / (maxVal - minVal)) * 255.0f);
-                });
+                if ((minVal != maxVal) && (*maxVal > *minVal)) {
+                    double div = 255.0f / (*maxVal - *minVal);
+                    dst = FreeImage_Allocate(w, h, 8);
+                    cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
+                        const auto dstPixel = static_cast<BYTE*>(dstPtr);
+                        const auto srcPixel = static_cast<const double*>(srcPtr);
+                        *dstPixel = static_cast<BYTE>((*srcPixel - *minVal) * div);
+                    });
+                }
                 break;
             }
             case FIT_FLOAT: {
-                float minVal = 0.0f, maxVal = 1.0f;
+                float* minVal = nullptr;
+                float* maxVal = nullptr;
                 std::tie(minVal, maxVal) = findMinMax<float>(src);
-                dst = FreeImage_Allocate(w, h, 8);
-                cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
-                    const auto dstPixel = static_cast<BYTE*>(dstPtr);
-                    const auto srcPixel = static_cast<const float*>(srcPtr);
-                    *dstPixel = static_cast<BYTE>(((*srcPixel - minVal) / (maxVal - minVal)) * 255.0f);
-                });
+                if ((minVal != maxVal) && (*maxVal > *minVal)) {
+                    float div = 255.0f / (*maxVal - *minVal);
+                    dst = FreeImage_Allocate(w, h, 8);
+                    cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
+                        const auto dstPixel = static_cast<BYTE*>(dstPtr);
+                        const auto srcPixel = static_cast<const float*>(srcPtr);
+                        *dstPixel = static_cast<BYTE>((*srcPixel - *minVal) * div);
+                    });
+                }
                 break;
             }
             default:
                 break;
+        }
+        if (!dst) {
+            // If failed try to at least convert
+            dst = applyToneMappingNone(src);
         }
         return dst;
     }
@@ -226,8 +328,12 @@ DWORD FreeImageExt_GetChannelsNumber(FIBITMAP* dib)
     case FIT_BITMAP:
         switch(FreeImage_GetBPP(dib)) {
         case 32:
+        case 64:
+        case 128:
             return 4;
         case 24:
+        case 48:
+        case 96:
             return 3;
         default:
             return 1;
