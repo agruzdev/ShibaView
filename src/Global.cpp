@@ -26,6 +26,7 @@ namespace
         ".jpf", ".jpx", ".jp2", ".j2c", ".j2k", ".jpc",
         ".tga", ".targa",
         ".tif", ".tiff",
+        ".exr",
         ".bmp",
         ".gif",
         ".pbm", ".pgm", ".ppm", ".pnm", ".pfm", ".pam",
