@@ -155,9 +155,18 @@ public:
                 throw std::runtime_error("Failed to convert thumbnail");
             }
 
+            std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> tonemappedFramePtr(nullptr, &::FreeImage_Unload);
+            FIBITMAP* tonemappedFrame;
+            if ((internalFrame.flags & FrameFlags::eHRD) != FrameFlags::eNone) {
+                tonemappedFramePtr.reset(FreeImageExt_ToneMapping(internalFrame.bmp, FIETMO_LINEAR));
+                tonemappedFrame = tonemappedFramePtr.get();
+            }
+            else {
+                tonemappedFrame = internalFrame.bmp;
+            }
 
-            const uint32_t bmpHeight = FreeImage_GetHeight(thumbnail);
-            const uint32_t bmpWidth  = FreeImage_GetWidth(thumbnail);
+            const uint32_t bmpHeight = FreeImage_GetHeight(tonemappedFrame);
+            const uint32_t bmpWidth  = FreeImage_GetWidth(tonemappedFrame);
             const size_t   bmpStride = bmpWidth * 4;
 
 
@@ -175,13 +184,13 @@ public:
 
             WTS_ALPHATYPE resultAlpha = WTSAT_RGB;
 
-            switch (FreeImage_GetBPP(internalFrame.bmp)) {
+            switch (FreeImage_GetBPP(tonemappedFrame)) {
             case 1:
                 for (uint32_t y = 0; y < bmpHeight; ++y) {
                     const auto dstLine = reinterpret_cast<RGBQUAD*>(pBits + y * bmpStride);
                     for (uint32_t x = 0; x < bmpWidth; ++x) {
                         BYTE val = 0;
-                        FreeImage_GetPixelIndex(internalFrame.bmp, x, y, &val);
+                        FreeImage_GetPixelIndex(tonemappedFrame, x, y, &val);
                         val = val ? 255 : 0;
                         dstLine[x].rgbRed   = val;
                         dstLine[x].rgbGreen = val;
@@ -191,7 +200,7 @@ public:
                 break;
             case 8:
                 for (uint32_t y = 0; y < bmpHeight; ++y) {
-                    const auto srcLine = reinterpret_cast<const BYTE*>(FreeImage_GetScanLine(internalFrame.bmp, y));
+                    const auto srcLine = reinterpret_cast<const BYTE*>(FreeImage_GetScanLine(tonemappedFrame, y));
                     const auto dstLine = reinterpret_cast<RGBQUAD*>(pBits + y * bmpStride);
                     for (uint32_t x = 0; x < bmpWidth; ++x) {
                         const BYTE val = srcLine[x];
@@ -203,7 +212,7 @@ public:
                 break;
             case 24:
                 for (uint32_t y = 0; y < bmpHeight; ++y) {
-                    const auto srcLine = reinterpret_cast<const FIE_RGBTRIPLE*>(FreeImage_GetScanLine(internalFrame.bmp, y));
+                    const auto srcLine = reinterpret_cast<const FIE_RGBTRIPLE*>(FreeImage_GetScanLine(tonemappedFrame, y));
                     const auto dstLine = reinterpret_cast<RGBQUAD*>(pBits + y * bmpStride);
                     for (uint32_t x = 0; x < bmpWidth; ++x) {
                         dstLine[x].rgbRed   = srcLine[x].rgbtRed;
@@ -214,7 +223,7 @@ public:
                 break;
             case 32:
                 for (uint32_t y = 0; y < bmpHeight; ++y) {
-                    const auto srcLine = reinterpret_cast<const FIE_RGBQUAD*>(FreeImage_GetScanLine(internalFrame.bmp, y));
+                    const auto srcLine = reinterpret_cast<const FIE_RGBQUAD*>(FreeImage_GetScanLine(tonemappedFrame, y));
                     const auto dstLine = reinterpret_cast<RGBQUAD*>(pBits + y * bmpStride);
                     for (uint32_t x = 0; x < bmpWidth; ++x) {
                         dstLine[x].rgbRed       = srcLine[x].rgbRed;
