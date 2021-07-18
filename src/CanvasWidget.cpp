@@ -24,6 +24,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QActionGroup>
+#include <QColor>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QPainter>
@@ -69,6 +70,7 @@ namespace
     Q_CONSTEXPR int kMinZoomRatio = 30;
     Q_CONSTEXPR int kMaxZoomRatio = 30;
 
+    const QString kSettingsBackground  = "canvas/background";
     const QString kSettingsGeometry    = "canvas/geometry";
     const QString kSettingsFullscreen  = "canvas/fullscreen";
     const QString kSettingsShowInfo    = "canvas/info";
@@ -121,6 +123,7 @@ namespace
 
 CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     : QWidget(nullptr)
+    , mBackgroundColor(QColor(0x2B, 0x2B, 0x2B))
     , mHoveredBorder(BorderPosition::eNone)
     , mStartTime(t)
 {
@@ -135,6 +138,7 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     const auto kDefaultGeometry = QRect(200, 200, 1280, 720);
 
     QSettings settings;
+    mBackgroundColor.setNamedColor(settings.value(kSettingsBackground, mBackgroundColor.name(QColor::NameFormat::HexRgb)).toString());
     mClickGeometry = settings.value(kSettingsGeometry, kDefaultGeometry).toRect();
     mFullScreen    = settings.value(kSettingsFullscreen, false).toBool();
     mShowInfo      = settings.value(kSettingsShowInfo, false).toBool();
@@ -142,7 +146,7 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     mZoomMode      = toZoomMode(settings.value(kSettingsZoomMode, static_cast<int32_t>(ZoomMode::eFitWindow)).toInt());
 
     QPalette palette;
-    palette.setColor(QPalette::ColorRole::Window, QColor(0x2B, 0x2B, 0x2B));
+    palette.setColor(QPalette::ColorRole::Window, mBackgroundColor);
     setPalette(palette);
 
     setMouseTracking(true);
@@ -174,6 +178,7 @@ CanvasWidget::~CanvasWidget()
     assert(mImageProcessor); // never null
     try {
         QSettings settings;
+        settings.setValue(kSettingsBackground, mBackgroundColor.name(QColor::NameFormat::HexRgb));
         settings.setValue(kSettingsGeometry,   mClickGeometry);
         settings.setValue(kSettingsFullscreen, mFullScreen);
         settings.setValue(kSettingsShowInfo,   mShowInfo);

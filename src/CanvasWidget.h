@@ -152,6 +152,7 @@ private:
     void invalidateExif();
 
 private:
+    QColor mBackgroundColor;
 
     ImagePtr mImage;
 
