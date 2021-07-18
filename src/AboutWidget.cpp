@@ -75,7 +75,7 @@ AboutWidget::AboutWidget()
     text->appendColumnOffset(225);
     text->setText(textLines);
 
-    setFixedSize(400, 540);
+    setFixedSize(400, 90 + textLines.size() * 16);
 
     update();
     show();
