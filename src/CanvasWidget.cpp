@@ -258,7 +258,7 @@ QMenu* CanvasWidget::createContextMenu()
         // ToDo (.gruzdev): Temporal arrow fix
         const auto tmAction = createMenuAction(QString::fromUtf8("Tone mapping " "\xE2\x80\xA3"));
         QMenu* tmMenu = new QMenu(menu);
-        if (mImage && testFlag(mImage->getFrame().flags, FrameFlags::eHRD)) {
+        if (mImage && mImage->notNull() && testFlag(mImage->getFrame().flags, FrameFlags::eHRD)) {
             auto& tmActions = mActToneMapping.get();
             // Manual order is important
             tmMenu->addAction(tmActions[FIETMO_NONE]);
@@ -285,7 +285,7 @@ QMenu* CanvasWidget::createContextMenu()
         const auto swAction = createMenuAction(QString::fromUtf8("Channels " "\xE2\x80\xA3"));
         swAction->setEnabled(false);
         QMenu* swMenu = new QMenu(menu);
-        if (mImage && mImageProcessor && testFlag(mImage->getFrame().flags, FrameFlags::eRGB)) {
+        if (mImage && mImage->notNull() && mImageProcessor && testFlag(mImage->getFrame().flags, FrameFlags::eRGB)) {
             const auto channelsNumber = mImage->channels();
             if (channelsNumber > 1) {
                 auto& swActions = mActSwizzle.get();
