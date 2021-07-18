@@ -33,20 +33,18 @@ namespace
         return std::max(lo, std::min(x, hi));
     }
 
-    template <typename PixelCvt_>
-    void cvtBitmap(FIBITMAP* dst, FIBITMAP* src, PixelCvt_ && pixelConverter)
+    template <typename DstType_, typename SrcType_, typename PixelCvt_>
+    void cvtBitmap(FIBITMAP* dst, FIBITMAP* src, PixelCvt_ pixelConverter)
     {
         const unsigned h = FreeImage_GetHeight(src);
         const unsigned w = FreeImage_GetWidth(src);
         assert(h == FreeImage_GetHeight(dst));
         assert(w == FreeImage_GetWidth(dst));
-        const auto srcPixelStride = FreeImage_GetBPP(src) / 8;
-        const auto dstPixelStride = FreeImage_GetBPP(dst) / 8;
         for (unsigned j = 0; j < h; ++j) {
-            auto dstIt = FreeImage_GetScanLine(dst, j);
-            auto srcIt = FreeImage_GetScanLine(src, j);
-            for(unsigned i = 0; i < w; ++i, dstIt += dstPixelStride, srcIt += srcPixelStride) {
-                pixelConverter(dstIt, srcIt);
+            auto dstLine = static_cast<DstType_*>(static_cast<void*>(FreeImage_GetScanLine(dst, j)));
+            auto srcLine = static_cast<const SrcType_*>(static_cast<const void*>(FreeImage_GetScanLine(src, j)));
+            for(unsigned i = 0; i < w; ++i, ++dstLine, ++srcLine) {
+                pixelConverter(dstLine, srcLine);
             }
         }
     }
@@ -60,9 +58,7 @@ namespace
         switch (FreeImage_GetImageType(src)) {
             case FIT_RGBAF: {
                 dst = FreeImage_Allocate(w, h, 32);
-                cvtBitmap(dst, src, [](void* dstPtr, const void* srcPtr) {
-                    const auto dstPixel = static_cast<tagRGBQUAD*>(dstPtr);
-                    const auto srcPixel = static_cast<const tagFIRGBAF*>(srcPtr);
+                cvtBitmap<tagRGBQUAD, tagFIRGBAF>(dst, src, [](tagRGBQUAD* dstPixel, const tagFIRGBAF* srcPixel) {
                     dstPixel->rgbRed      = static_cast<BYTE>(clamp(srcPixel->red)   * 255.0f);
                     dstPixel->rgbGreen    = static_cast<BYTE>(clamp(srcPixel->green) * 255.0f);
                     dstPixel->rgbBlue     = static_cast<BYTE>(clamp(srcPixel->blue)  * 255.0f);
@@ -72,9 +68,7 @@ namespace
             }
             case FIT_RGBF: {
                 dst = FreeImage_Allocate(w, h, 24);
-                cvtBitmap(dst, src, [](void* dstPtr, const void* srcPtr) {
-                    const auto dstPixel = static_cast<tagRGBTRIPLE*>(dstPtr);
-                    const auto srcPixel = static_cast<const tagFIRGBF*>(srcPtr);
+                cvtBitmap<tagRGBTRIPLE, tagFIRGBF>(dst, src, [](tagRGBTRIPLE* dstPixel, const tagFIRGBF* srcPixel) {
                     dstPixel->rgbtRed   = static_cast<BYTE>(clamp(srcPixel->red)   * 255.0f);
                     dstPixel->rgbtGreen = static_cast<BYTE>(clamp(srcPixel->green) * 255.0f);
                     dstPixel->rgbtBlue  = static_cast<BYTE>(clamp(srcPixel->blue)  * 255.0f);
@@ -83,18 +77,14 @@ namespace
             }
             case FIT_DOUBLE: {
                 dst = FreeImage_Allocate(w, h, 8);
-                cvtBitmap(dst, src, [](void* dstPtr, const void* srcPtr) {
-                    const auto dstPixel = static_cast<BYTE*>(dstPtr);
-                    const auto srcPixel = static_cast<const double*>(srcPtr);
+                cvtBitmap<BYTE, double>(dst, src, [](BYTE* dstPixel, const double* srcPixel) {
                     *dstPixel = static_cast<BYTE>(clamp(*srcPixel) * 255.0);
                 });
                 break;
             }
             case FIT_FLOAT: {
                 dst = FreeImage_Allocate(w, h, 8);
-                cvtBitmap(dst, src, [](void* dstPtr, const void* srcPtr) {
-                    const auto dstPixel = static_cast<BYTE*>(dstPtr);
-                    const auto srcPixel = static_cast<const float*>(srcPtr);
+                cvtBitmap<BYTE, float>(dst, src, [](BYTE* dstPixel, const float* srcPixel) {
                     *dstPixel = static_cast<BYTE>(clamp(*srcPixel) * 255.0f);
                 });
                 break;
@@ -225,9 +215,7 @@ namespace
                     if (maxBrighness > 0 && maxBrighness > minBrighness) {
                         const float div = 1.0f / (maxBrighness - minBrighness);
                         dst = FreeImage_Allocate(w, h, 32);
-                        cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
-                            const auto dstPixel = static_cast<tagRGBQUAD*>(dstPtr);
-                            const auto srcPixel = static_cast<const tagFIRGBAF*>(srcPtr);
+                        cvtBitmap<tagRGBQUAD, tagFIRGBAF>(dst, src, [&](tagRGBQUAD* dstPixel, const tagFIRGBAF* srcPixel) {
                             auto yuv = RgbToYuv(srcPixel->red, srcPixel->green, srcPixel->blue);
                             yuv[0] = (yuv[0] - minBrighness) * div;
                             auto rgb = YuvToRgb(yuv);
@@ -250,9 +238,7 @@ namespace
                     if (maxBrighness > 0 && maxBrighness > minBrighness) {
                         const float div = 1.0f / (maxBrighness - minBrighness);
                         dst = FreeImage_Allocate(w, h, 24);
-                        cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
-                            const auto dstPixel = static_cast<tagRGBTRIPLE*>(dstPtr);
-                            const auto srcPixel = static_cast<const tagFIRGBF*>(srcPtr);
+                        cvtBitmap<tagRGBTRIPLE, tagFIRGBF>(dst, src, [&](tagRGBTRIPLE* dstPixel, const tagFIRGBF* srcPixel) {
                             auto yuv = RgbToYuv(srcPixel->red, srcPixel->green, srcPixel->blue);
                             yuv[0] = (yuv[0] - minBrighness) * div;
                             auto rgb = YuvToRgb(yuv);
@@ -271,9 +257,7 @@ namespace
                 if ((minVal != maxVal) && (*maxVal > *minVal)) {
                     double div = 255.0f / (*maxVal - *minVal);
                     dst = FreeImage_Allocate(w, h, 8);
-                    cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
-                        const auto dstPixel = static_cast<BYTE*>(dstPtr);
-                        const auto srcPixel = static_cast<const double*>(srcPtr);
+                    cvtBitmap<BYTE, double>(dst, src, [&](BYTE* dstPixel, const double* srcPixel) {
                         *dstPixel = static_cast<BYTE>((*srcPixel - *minVal) * div);
                     });
                 }
@@ -286,9 +270,7 @@ namespace
                 if ((minVal != maxVal) && (*maxVal > *minVal)) {
                     float div = 255.0f / (*maxVal - *minVal);
                     dst = FreeImage_Allocate(w, h, 8);
-                    cvtBitmap(dst, src, [&](void* dstPtr, const void* srcPtr) {
-                        const auto dstPixel = static_cast<BYTE*>(dstPtr);
-                        const auto srcPixel = static_cast<const float*>(srcPtr);
+                    cvtBitmap<BYTE, float>(dst, src, [&](BYTE* dstPixel, const float* srcPixel) {
                         *dstPixel = static_cast<BYTE>((*srcPixel - *minVal) * div);
                     });
                 }
@@ -350,6 +332,50 @@ DWORD FreeImageExt_GetChannelsNumber(FIBITMAP* dib)
     default:
         return 1;
     }
+}
+
+
+FIBITMAP* FreeImageExt_ConvertToFloat(FIBITMAP* src)
+{
+    if (!src) {
+        return nullptr;
+    }
+    const unsigned h = FreeImage_GetHeight(src);
+    const unsigned w = FreeImage_GetWidth(src);
+    if (!h || !w) {
+        return nullptr;
+    }
+    FIBITMAP* dst = nullptr;
+    switch(FreeImage_GetImageType(src)) {
+    case FIT_INT16:
+        dst = FreeImage_AllocateT(FIT_FLOAT, w, h, 32);
+        cvtBitmap<float, int16_t>(dst, src, [&](float* dstPtr, const int16_t* srcPtr) {
+            *dstPtr = static_cast<float>(*srcPtr);
+        });
+        break;
+    case FIT_UINT16:
+        dst = FreeImage_AllocateT(FIT_FLOAT, w, h, 32);
+        cvtBitmap<float, uint16_t>(dst, src, [&](float* dstPtr, const uint16_t* srcPtr) {
+            *dstPtr = static_cast<float>(*srcPtr);
+        });
+        break;
+    case FIT_INT32:
+        dst = FreeImage_AllocateT(FIT_FLOAT, w, h, 32);
+        cvtBitmap<float, int32_t>(dst, src, [&](float* dstPtr, const int32_t* srcPtr) {
+            *dstPtr = static_cast<float>(*srcPtr);
+        });
+        break;
+    case FIT_UINT32:
+        dst = FreeImage_AllocateT(FIT_FLOAT, w, h, 32);
+        cvtBitmap<float, uint32_t>(dst, src, [&](float* dstPtr, const uint32_t* srcPtr) {
+            *dstPtr = static_cast<float>(*srcPtr);
+        });
+        break;
+    default:
+        dst = FreeImage_ConvertToFloat(src);
+        break;
+    }
+    return dst;
 }
 
 

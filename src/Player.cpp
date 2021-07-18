@@ -347,7 +347,7 @@ ImageFrame Player::cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload)
     case FIT_INT16:
     case FIT_UINT32:
     case FIT_INT32:
-        frame.bmp = FreeImage_ConvertToFloat(src);
+        frame.bmp = FreeImageExt_ConvertToFloat(src);
         frame.flags = FrameFlags::eHRD;
         dstNeedUnload = true;
         break;

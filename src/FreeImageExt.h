@@ -78,6 +78,13 @@ void FreeImageExt_DeInitialise();
  */
 DWORD FreeImageExt_GetChannelsNumber(FIBITMAP* dib);
 
+
+/**
+ * Extended version of FreeImage_ConvertToFloat converting int16, uint16, int32, and uint32 as c-cast without normalization
+ */
+FIBITMAP* FreeImageExt_ConvertToFloat(FIBITMAP* dib);
+
+
 enum FIE_ToneMapping
 {
     FIETMO_DRAGO03    = ::FITMO_DRAGO03,
