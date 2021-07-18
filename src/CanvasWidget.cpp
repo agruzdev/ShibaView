@@ -110,8 +110,6 @@ namespace
         switch(v) {
         case static_cast<int32_t>(ZoomMode::eFixed):
             return ZoomMode::eFixed;
-        case static_cast<int32_t>(ZoomMode::eFree):
-            return ZoomMode::eFree;
         default:
         case static_cast<int32_t>(ZoomMode::eFitWindow):
             return ZoomMode::eFitWindow;
@@ -141,7 +139,7 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     mFullScreen    = settings.value(kSettingsFullscreen, false).toBool();
     mShowInfo      = settings.value(kSettingsShowInfo, false).toBool();
     mFilteringMode = toFilteringMode(settings.value(kSettingsFilterMode, static_cast<int32_t>(FilteringMode::eNone)).toInt());
-    mZoomMode      = toZoomMode(settings.value(kSettingsZoomMode, static_cast<int32_t>(ZoomMode::eFree)).toInt());
+    mZoomMode      = toZoomMode(settings.value(kSettingsZoomMode, static_cast<int32_t>(ZoomMode::eFitWindow)).toInt());
 
     QPalette palette;
     palette.setColor(QPalette::ColorRole::Window, QColor(0x2B, 0x2B, 0x2B));
@@ -245,7 +243,6 @@ QMenu* CanvasWidget::createContextMenu()
     {
         const auto & zoom = mActZoom.get();
         zoom[mZoomMode]->setChecked(true);
-        menu->addAction(zoom[ZoomMode::eFree]);
         menu->addAction(zoom[ZoomMode::eFitWindow]);
         menu->addAction(zoom[ZoomMode::eFixed]);
         menu->addSeparator();
@@ -342,19 +339,14 @@ CanvasWidget::ActionsArray<ZoomMode> CanvasWidget::initZoomActions()
     const auto groupZoom = new QActionGroup(this);
     ActionsArray<ZoomMode> actions = {};
 
-    actions[ZoomMode::eFree] = createMenuAction(QString::fromUtf8("Free zoom"));
-    actions[ZoomMode::eFree]->setCheckable(true);
-    actions[ZoomMode::eFree]->setActionGroup(groupZoom);
-
     actions[ZoomMode::eFitWindow] = createMenuAction(QString::fromUtf8("Fit window"));
     actions[ZoomMode::eFitWindow]->setCheckable(true);
     actions[ZoomMode::eFitWindow]->setActionGroup(groupZoom);
 
-    actions[ZoomMode::eFixed] = createMenuAction(QString::fromUtf8("Fix zoom"));
+    actions[ZoomMode::eFixed] = createMenuAction(QString::fromUtf8("Fixed zoom"));
     actions[ZoomMode::eFixed]->setCheckable(true);
     actions[ZoomMode::eFixed]->setActionGroup(groupZoom);
 
-    connect(actions[ZoomMode::eFree],      &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eFree));
     connect(actions[ZoomMode::eFitWindow], &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eFitWindow));
     connect(actions[ZoomMode::eFixed],     &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eFixed));
 
@@ -475,23 +467,13 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
             const auto fitRect = fitWidth(mImage->width(), mImage->height());
 
             switch (mZoomMode) {
-            case ZoomMode::eFitWindow:
-                mZoomController->rebase(mImage->width(), fitRect.width());
-                mZoomController->moveToFit();
-                resetOffsets();
-                break;
             case ZoomMode::eFixed:
                 mZoomController->rebase(mImage->width());
                 break;
             default:
-            case ZoomMode::eFree:
+            case ZoomMode::eFitWindow:
                 mZoomController->rebase(mImage->width(), fitRect.width());
-                if (mImage->width() <= static_cast<size_t>(width()) && mImage->height() <= static_cast<size_t>(height())) {
-                    mZoomController->moveToIdentity();
-                }
-                else {
-                    mZoomController->moveToFit();
-                }
+                mZoomController->moveToFit();
                 resetOffsets();
                 break;
             }
@@ -810,7 +792,7 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
             }
             else {
                 mZoomController->moveToIdentity();
-                mActZoom.get()[ZoomMode::eFree]->trigger();
+                mActZoom.get()[ZoomMode::eFixed]->trigger();
             }
             updateZoomLabel();
             resetOffsets();
@@ -1205,7 +1187,7 @@ void CanvasWidget::zoomToTarget(QPoint target, int dir)
         mOffset.ry() -= dy;
 
         if (mZoomMode == ZoomMode::eFitWindow) {
-            mActZoom.get()[ZoomMode::eFree]->trigger();
+            mActZoom.get()[ZoomMode::eFixed]->trigger();
         }
 
         updateOffsets();
@@ -1293,7 +1275,6 @@ void CanvasWidget::onActZoomMode(bool checked, ZoomMode z)
 
         default:
         case ZoomMode::eFixed:
-        case ZoomMode::eFree:
             break;
         }
     }

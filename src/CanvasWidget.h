@@ -55,7 +55,6 @@ enum class FilteringMode
 
 enum class ZoomMode
 {
-    eFree,
     eFitWindow,
     eFixed,
 
