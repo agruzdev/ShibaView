@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 
 project(ShibaView)
 
 set(SHIBA_VERSION_MAJOR 1)
-set(SHIBA_VERSION_MINOR 3)
+set(SHIBA_VERSION_MINOR 4)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -146,7 +146,11 @@ set(app_resources
     ./src/assets.qrc
 )
 
-add_executable(ShibaView WIN32 ${app_sources} ${app_resources})
+if(WIN32)
+    add_executable(ShibaView WIN32 ${app_sources} ${app_resources})
+else()
+    add_executable(ShibaView ${app_sources} ${app_resources})
+endif()
 
 target_compile_features(ShibaView PRIVATE cxx_std_14)
 
