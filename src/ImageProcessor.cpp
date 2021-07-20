@@ -66,6 +66,23 @@ const QPixmap & ImageProcessor::getResult()
                 }
             }
 
+            // flips
+            std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> flipped(nullptr, &::FreeImage_Unload);
+            if (mFlips[FlipType::eHorizontal]) {
+                if (target == frame.bmp) {
+                    flipped.reset(FreeImage_Clone(frame.bmp));
+                    target = flipped.get();
+                }
+                FreeImage_FlipHorizontal(target);
+            }
+            if (mFlips[FlipType::eVertical]) {
+                if (target == frame.bmp) {
+                    flipped.reset(FreeImage_Clone(frame.bmp));
+                    target = flipped.get();
+                }
+                FreeImage_FlipVertical(target);
+            }
+
             std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> tonemapped(nullptr, &::FreeImage_Unload);
             const auto imgType = FreeImage_GetImageType(target);
             if (imgType == FIT_RGBF || imgType == FIT_RGBAF || imgType == FIT_FLOAT || imgType == FIT_DOUBLE) {

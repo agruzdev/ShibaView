@@ -23,6 +23,7 @@
 #include <QPixmap>
 
 #include "FreeImageExt.h"
+#include "EnumArray.h"
 #include "Image.h"
 
 enum class Rotation
@@ -40,6 +41,14 @@ int toDegree(Rotation r)
 {
     return 90 * static_cast<int>(r);
 }
+
+enum class FlipType
+{
+    eHorizontal,
+    eVertical,
+
+    length_
+};
 
 
 enum class ChannelSwizzle
@@ -90,6 +99,14 @@ public:
     {
         if (mRotation != r) {
             mRotation = r;
+            mIsValid = false;
+        }
+    }
+
+    void setFlip(FlipType flip, bool value)
+    {
+        if (mFlips[flip] != value) {
+            mFlips[flip] = value;
             mIsValid = false;
         }
     }
@@ -153,6 +170,9 @@ private:
     bool mIsValid = false;
 
     Rotation mRotation = Rotation::eDegree0;
+
+    EnumArray<bool, FlipType> mFlips = { false };
+
     FIE_ToneMapping mToneMapping = FIE_ToneMapping::FIETMO_NONE;
 
     ChannelSwizzle mSwizzleType = ChannelSwizzle::eRGB;

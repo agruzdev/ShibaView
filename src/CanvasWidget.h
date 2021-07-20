@@ -89,6 +89,7 @@ public slots:
     void onActAntialiasing(bool checked);
 
     void onActRotation(bool checked, Rotation r);
+    void onActFlip(bool checked, FlipType f);
     void onActZoomMode(bool checked, ZoomMode z);
     void onActToneMapping(bool checked, FIE_ToneMapping m);
     void onActSwizzle(bool checked, ChannelSwizzle s);
@@ -142,6 +143,7 @@ private:
     QWidgetAction* createMenuAction(const QString & text);
 
     ActionsArray<Rotation> initRotationActions();
+    ActionsArray<FlipType> initFlipActions();
     ActionsArray<ZoomMode> initZoomActions();
     TMActionsArray initToneMappingActions();
     ActionsArray<ChannelSwizzle> initSwizzleActions();
@@ -207,6 +209,7 @@ private:
 
     // Actions
     std::shared_future<ActionsArray<Rotation>> mActRotate;
+    std::shared_future<ActionsArray<FlipType>> mActFlip;
     std::shared_future<ActionsArray<ZoomMode>> mActZoom;
     std::shared_future<TMActionsArray> mActToneMapping;
     std::shared_future<ActionsArray<ChannelSwizzle>> mActSwizzle;

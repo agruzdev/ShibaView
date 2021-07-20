@@ -161,6 +161,7 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     }
 
     mActRotate      = std::async(std::launch::deferred, [this]{ return initRotationActions();    });
+    mActFlip        = std::async(std::launch::deferred, [this]{ return initFlipActions();        });
     mActZoom        = std::async(std::launch::deferred, [this]{ return initZoomActions();        });
     mActSwizzle     = std::async(std::launch::deferred, [this]{ return initSwizzleActions();     });
     mActToneMapping = std::async(std::launch::deferred, [this]{ return initToneMappingActions(); });
@@ -238,7 +239,7 @@ QMenu* CanvasWidget::createContextMenu()
 
     // Rotation
     {
-        const auto & rotate = mActRotate.get(); 
+        const auto& rotate = mActRotate.get(); 
         menu->addAction(rotate[Rotation::eDegree0]);
         menu->addAction(rotate[Rotation::eDegree90]);
         menu->addAction(rotate[Rotation::eDegree180]);
@@ -246,9 +247,17 @@ QMenu* CanvasWidget::createContextMenu()
         menu->addSeparator();
     }
 
+    // Flip
+    {
+        const auto& flip = mActFlip.get();
+        menu->addAction(flip[FlipType::eHorizontal]);
+        menu->addAction(flip[FlipType::eVertical]);
+        menu->addSeparator();
+    }
+
     // Zoom
     {
-        const auto & zoom = mActZoom.get();
+        const auto& zoom = mActZoom.get();
         zoom[mZoomMode]->setChecked(true);
         menu->addAction(zoom[ZoomMode::eIdentity]);
         menu->addAction(zoom[ZoomMode::eFitWindow]);
@@ -338,6 +347,24 @@ CanvasWidget::ActionsArray<Rotation> CanvasWidget::initRotationActions()
     connect(actions[Rotation::eDegree90],  &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree90));
     connect(actions[Rotation::eDegree180], &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree180));
     connect(actions[Rotation::eDegree270], &QAction::triggered, std::bind(&CanvasWidget::onActRotation, this, std::placeholders::_1, Rotation::eDegree270));
+
+    return actions;
+}
+
+CanvasWidget::ActionsArray<FlipType> CanvasWidget::initFlipActions()
+{
+    ActionsArray<FlipType> actions = {};
+    
+    actions[FlipType::eHorizontal] = createMenuAction(QString::fromUtf8("Flip horizontally"));
+    actions[FlipType::eHorizontal]->setCheckable(true);
+    actions[FlipType::eHorizontal]->setChecked(false);
+
+    actions[FlipType::eVertical] = createMenuAction(QString::fromUtf8("Flip vertically"));
+    actions[FlipType::eVertical]->setCheckable(true);
+    actions[FlipType::eVertical]->setChecked(false);
+
+    connect(actions[FlipType::eHorizontal], &QAction::triggered, std::bind(&CanvasWidget::onActFlip, this, std::placeholders::_1, FlipType::eHorizontal));
+    connect(actions[FlipType::eVertical],   &QAction::triggered, std::bind(&CanvasWidget::onActFlip, this, std::placeholders::_1, FlipType::eVertical));
 
     return actions;
 }
@@ -1275,6 +1302,14 @@ void CanvasWidget::onActRotation(bool checked, Rotation rot)
             updateZoomLabel();
             update();
         }
+    }
+}
+
+void CanvasWidget::onActFlip(bool checked, FlipType f)
+{
+    if (mImageProcessor) {
+        mImageProcessor->setFlip(f, checked);
+        update();
     }
 }
 
