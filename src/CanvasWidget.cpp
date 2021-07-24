@@ -164,6 +164,7 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     mActFlip        = std::async(std::launch::deferred, [this]{ return initFlipActions();        });
     mActZoom        = std::async(std::launch::deferred, [this]{ return initZoomActions();        });
     mActSwizzle     = std::async(std::launch::deferred, [this]{ return initSwizzleActions();     });
+    mActGammaType   = std::async(std::launch::deferred, [this]{ return initGammaTypeActions();   });
     mActToneMapping = std::async(std::launch::deferred, [this]{ return initToneMappingActions(); });
 
     connect(this, &QWidget::customContextMenuRequested, this, &CanvasWidget::onShowContextMenu);
@@ -288,6 +289,16 @@ QMenu* CanvasWidget::createContextMenu()
         }
         tmAction->setMenu(tmMenu);
         menu->addAction(tmAction);
+        menu->addSeparator();
+    }
+
+    // Gamma
+    {
+        const auto& gamma = mActGammaType.get();
+        gamma[mGammaType]->setChecked(true);
+        menu->addAction(gamma[GammaType::eLinear]);
+        menu->addAction(gamma[GammaType::eGamma22]);
+        menu->addAction(gamma[GammaType::eDegamma22]);
         menu->addSeparator();
     }
 
@@ -423,6 +434,30 @@ CanvasWidget::TMActionsArray CanvasWidget::initToneMappingActions()
     connect(actions[FIETMO_DRAGO03],    &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_DRAGO03   ));
     connect(actions[FIETMO_REINHARD05], &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_REINHARD05));
     connect(actions[FIETMO_FATTAL02],   &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_FATTAL02  ));
+
+    return actions;
+}
+
+CanvasWidget::ActionsArray<GammaType> CanvasWidget::initGammaTypeActions()
+{
+    const auto group = new QActionGroup(this);
+    ActionsArray<GammaType> actions = {};
+
+    actions[GammaType::eLinear] = createMenuAction("Linear");
+    actions[GammaType::eLinear]->setCheckable(true);
+    actions[GammaType::eLinear]->setActionGroup(group);
+
+    actions[GammaType::eGamma22] = createMenuAction("Gamma 2.2");
+    actions[GammaType::eGamma22]->setCheckable(true);
+    actions[GammaType::eGamma22]->setActionGroup(group);
+
+    actions[GammaType::eDegamma22] = createMenuAction("Gamma 1/2.2");
+    actions[GammaType::eDegamma22]->setCheckable(true);
+    actions[GammaType::eDegamma22]->setActionGroup(group);
+
+    connect(actions[GammaType::eLinear],    &QAction::triggered, std::bind(&CanvasWidget::onActGammaType, this, std::placeholders::_1, GammaType::eLinear));
+    connect(actions[GammaType::eGamma22],   &QAction::triggered, std::bind(&CanvasWidget::onActGammaType, this, std::placeholders::_1, GammaType::eGamma22));
+    connect(actions[GammaType::eDegamma22], &QAction::triggered, std::bind(&CanvasWidget::onActGammaType, this, std::placeholders::_1, GammaType::eDegamma22));
 
     return actions;
 }
@@ -1360,6 +1395,33 @@ void CanvasWidget::onActToneMapping(bool checked, FIE_ToneMapping m)
             mImageDescription->setToneMapping(m);
         }
         invalidateImageDescription();
+        update();
+    }
+}
+
+void CanvasWidget::onActGammaType(bool checked, GammaType g)
+{
+    if (checked) {
+        mGammaType = g;
+        double value = 1.0;
+        switch(g) {
+        default:
+        case GammaType::eLinear:
+            break;
+        case GammaType::eGamma22:
+            value = 2.2;
+            break;
+        case GammaType::eDegamma22:
+            value = 1.0 / 2.2;
+            break;
+        }
+        if (mImageProcessor) {
+            mImageProcessor->setGamma(value);
+        }
+        if (mImageDescription) {
+            mImageDescription->setGammaValue(value);
+            invalidateImageDescription();
+        }
         update();
     }
 }

@@ -124,6 +124,19 @@ public:
         }
     }
 
+    void setGamma(double value)
+    {
+        if (mGammaValue != value) {
+            mGammaValue = value;
+            mIsValid = false;
+        }
+    }
+
+    double getGamma() const
+    {
+        return mGammaValue;
+    }
+
     /**
      * Setup arbitrary channel order
      */
@@ -174,6 +187,8 @@ private:
     EnumArray<bool, FlipType> mFlips = { false };
 
     FIE_ToneMapping mToneMapping = FIE_ToneMapping::FIETMO_NONE;
+
+    double mGammaValue = 1.0;
 
     ChannelSwizzle mSwizzleType = ChannelSwizzle::eRGB;
 };

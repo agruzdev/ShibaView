@@ -84,11 +84,25 @@ const QPixmap & ImageProcessor::getResult()
             }
 
             std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> tonemapped(nullptr, &::FreeImage_Unload);
-            const auto imgType = FreeImage_GetImageType(target);
-            if (imgType == FIT_RGBF || imgType == FIT_RGBAF || imgType == FIT_FLOAT || imgType == FIT_DOUBLE) {
-                tonemapped.reset(FreeImageExt_ToneMapping(target, mToneMapping));
-                if (tonemapped) {
-                    target = tonemapped.get();
+            {
+                const auto imgType = FreeImage_GetImageType(target);
+                if (imgType == FIT_RGBF || imgType == FIT_RGBAF || imgType == FIT_FLOAT || imgType == FIT_DOUBLE) {
+                    tonemapped.reset(FreeImageExt_ToneMapping(target, mToneMapping));
+                    if (tonemapped) {
+                        target = tonemapped.get();
+                    }
+                }
+            }
+
+            std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> gammaCorrected(nullptr, &::FreeImage_Unload);
+            if (mGammaValue != 1.0) {
+                const auto imgType = FreeImage_GetImageType(target);
+                if (imgType == FIT_BITMAP) {
+                    if (target == frame.bmp) {
+                        gammaCorrected.reset(FreeImage_Clone(frame.bmp));
+                        target = gammaCorrected.get();
+                    }
+                    FreeImage_AdjustGamma(target, mGammaValue);
                 }
             }
 

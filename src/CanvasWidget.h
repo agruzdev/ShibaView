@@ -62,6 +62,15 @@ enum class ZoomMode
     length_
 };
 
+enum class GammaType
+{
+    eLinear,
+    eGamma22,
+    eDegamma22,
+
+    length_
+};
+
 class CanvasWidget final
     : public QWidget
 {
@@ -92,6 +101,7 @@ public slots:
     void onActFlip(bool checked, FlipType f);
     void onActZoomMode(bool checked, ZoomMode z);
     void onActToneMapping(bool checked, FIE_ToneMapping m);
+    void onActGammaType(bool checked, GammaType g);
     void onActSwizzle(bool checked, ChannelSwizzle s);
 
     void onShowContextMenu(const QPoint &pos);
@@ -146,6 +156,7 @@ private:
     ActionsArray<FlipType> initFlipActions();
     ActionsArray<ZoomMode> initZoomActions();
     TMActionsArray initToneMappingActions();
+    ActionsArray<GammaType> initGammaTypeActions();
     ActionsArray<ChannelSwizzle> initSwizzleActions();
 
     QMenu* createContextMenu();
@@ -202,6 +213,8 @@ private:
 
     FilteringMode mFilteringMode;
 
+    GammaType mGammaType = GammaType::eLinear;
+
     QMenu* mContextMenu = nullptr;
 
     bool mEnableAnimation = true;
@@ -212,6 +225,7 @@ private:
     std::shared_future<ActionsArray<FlipType>> mActFlip;
     std::shared_future<ActionsArray<ZoomMode>> mActZoom;
     std::shared_future<TMActionsArray> mActToneMapping;
+    std::shared_future<ActionsArray<GammaType>> mActGammaType;
     std::shared_future<ActionsArray<ChannelSwizzle>> mActSwizzle;
 };
 

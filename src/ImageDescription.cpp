@@ -17,6 +17,7 @@
  */
 
 #include "ImageDescription.h"
+#include "Global.h"
 
 namespace
 {
@@ -44,8 +45,11 @@ QVector<QString> ImageDescription::toLines() const
     }
     res.push_back("File size: " + QString::number(mFileInfo.bytes / 1024.0f, 'f', 1) + "KB");
     res.push_back("Format: " + mFormat);
-    if(mToneMapping != FIE_ToneMapping::FIETMO_NONE) {
+    if (mToneMapping != FIE_ToneMapping::FIETMO_NONE) {
         res.back().append(" (TM: " + QString::fromUtf8(FreeImageExt_TMtoString(mToneMapping)) + ")");
+    }
+    if (mGammaValue != 1.0) {
+        res.back().append(" (" + QString::fromUtf8(UTF8_GAMMA) + ": " + QString::number(mGammaValue, 'f', 2) + ")");
     }
     res.push_back("Last modified: " + mFileInfo.modified.toString("yyyy/MM/dd hh:mm:ss"));
     res.push_back("Resolution: " + QString::number(mFileInfo.dims.width) + "x" + QString::number(mFileInfo.dims.height));

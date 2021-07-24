@@ -45,6 +45,11 @@ public:
         mToneMapping = mode;
     }
 
+    void setGammaValue(double value)
+    {
+        mGammaValue = value;
+    }
+
     void setZoom(float factor)
     {
         mZoomFactor = factor;
@@ -68,6 +73,7 @@ private:
     QString mFormat;
     float mZoomFactor = 1.0f;
     FIE_ToneMapping mToneMapping = FIE_ToneMapping::FIETMO_NONE;
+    double mGammaValue = 1.0;
     bool mChangedFlag = false;
     size_t mImageIndex = 0;
     size_t mImagesCount = 0;

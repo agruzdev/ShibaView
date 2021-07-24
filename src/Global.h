@@ -22,7 +22,8 @@
 #include <QString>
 #include <QStringList>
 
-#define UTF8_DEGREE "\xc2\xb0"
+#define UTF8_DEGREE "\xC2\xB0"
+#define UTF8_GAMMA  "\xCE\xB3"
 
 class Global
 {
