@@ -671,20 +671,31 @@ void CanvasWidget::updateOffsets()
 
 QRect CanvasWidget::fitWidth(int w, int h) const
 {
-    const int zeroX = width()  / 2;
-    const int zeroY = height() / 2;
+    const int windowWidth  = width();
+    const int windowHeight = height();
 
-    const float kx = static_cast<float>(width())  / w;
-    const float ky = static_cast<float>(height()) / h;
-    const int fitWidth = static_cast<int>(std::floor(std::min(kx, ky) * w));
+    const int zeroX = windowWidth  / 2;
+    const int zeroY = windowHeight / 2;
 
-    const int fitHeight = static_cast<int>(static_cast<int64_t>(fitWidth) * h / w);
+    const float kx = static_cast<float>(windowWidth)  / w;
+    const float ky = static_cast<float>(windowHeight) / h;
+
+    int fitWidth  = 1;
+    int fitHeight = 1;
+    if (kx < ky) {
+        fitWidth  = windowWidth;
+        fitHeight = static_cast<int>(static_cast<int64_t>(fitWidth) * h / w);
+    }
+    else {
+        fitHeight = windowHeight;
+        fitWidth  = static_cast<int>(static_cast<int64_t>(fitHeight) * w / h);
+    }
 
     QRect r;
     r.setLeft(zeroX - fitWidth  / 2);
     r.setTop (zeroY - fitHeight / 2);
-    r.setWidth(fitWidth);
-    r.setHeight(fitHeight);
+    r.setRight(zeroX + (fitWidth - fitWidth / 2));
+    r.setBottom(zeroY + (fitHeight - fitHeight / 2));
 
     return r;
 }
@@ -762,7 +773,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             const ImageFrame & frame = mImage->getFrame();
 
             const auto imageRect = calculateImageRegion();
-            const auto dstCenter = imageRect.center();
+            const auto dstCenter = QRectF(imageRect).center();
 
             // Make vertical flip
             const auto trans1 = QTransform::fromTranslate(-dstCenter.x(), -dstCenter.y());
