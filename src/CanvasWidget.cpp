@@ -1092,12 +1092,17 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event)
 
 bool CanvasWidget::setFullscreenGeometry()
 {
+#ifdef _WIN32
+    const auto getScreenGeometry_ = [](const QScreen& s) { return s.geometry(); };
+#else
+    const auto getScreenGeometry_ = [](const QScreen& s) { return s.availableGeometry(); };
+#endif
     if (const auto screen = QApplication::screenAt(mClickGeometry.center())) {
-        setGeometry(screen->geometry());
+        setGeometry(getScreenGeometry_(*screen));
         return true;
     }
     if (const auto screen = QApplication::primaryScreen()) {
-        setGeometry(screen->geometry());
+        setGeometry(getScreenGeometry_(*screen));
         return true;
     }
     return false;
