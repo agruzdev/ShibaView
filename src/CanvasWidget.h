@@ -103,6 +103,7 @@ public slots:
     void onActToneMapping(bool checked, FIE_ToneMapping m);
     void onActGammaType(bool checked, GammaType g);
     void onActSwizzle(bool checked, ChannelSwizzle s);
+    void onActTransparency(bool checked);
 
     void onShowContextMenu(const QPoint &pos);
 
@@ -219,6 +220,9 @@ private:
 
     bool mEnableAnimation = true;
     uint32_t mAnimIndex = 0;
+
+    bool mShowTransparencyCheckboard = false;
+    std::shared_future<QPixmap> mCheckboard;
 
     // Actions
     std::shared_future<ActionsArray<Rotation>> mActRotate;

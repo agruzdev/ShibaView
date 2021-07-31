@@ -79,6 +79,7 @@ namespace
     const QString kSettingsZoomFitValue   = "canvas/zoom_fit";
     const QString kSettingsFilterMode  = "canvas/filtering";
     const QString kSettingsToneMapping = "canvas/tonemapping";
+    const QString kSettingsCheckboard  = "canvas/checkboard";
 
     Q_CONSTEXPR int kTextPaddingLeft = 15;
     Q_CONSTEXPR int kTextPaddingTop  = 30;
@@ -175,6 +176,17 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     mZoomController = std::make_unique<ZoomController>(16, settings.value(kSettingsZoomFitValue, 128).toInt(), settings.value(kSettingsZoomScaleValue, 0).toInt());
 
     connect(static_cast<QApplication*>(QApplication::instance()), &QApplication::applicationStateChanged, this, &CanvasWidget::applicationStateChanged);
+
+    mShowTransparencyCheckboard = settings.value(kSettingsCheckboard, mShowTransparencyCheckboard).toBool();
+    mCheckboard = std::async(std::launch::deferred, [this]{
+        QPixmap p(16, 16);
+        QPainter painter(&p);
+        painter.fillRect(0, 0, 8, 8, QColor(Qt::lightGray));
+        painter.fillRect(8, 0, 8, 8, QColor(Qt::white));
+        painter.fillRect(8, 8, 8, 8, QColor(Qt::lightGray));
+        painter.fillRect(0, 8, 8, 8, QColor(Qt::white));
+        return p;
+    });
 }
 
 CanvasWidget::~CanvasWidget()
@@ -191,6 +203,7 @@ CanvasWidget::~CanvasWidget()
         settings.setValue(kSettingsZoomScaleValue, static_cast<int32_t>(mZoomController->getScaleValue()));
         settings.setValue(kSettingsZoomFitValue,   static_cast<int32_t>(mZoomController->getFitValue()));
         settings.setValue(kSettingsToneMapping, static_cast<int32_t>(mImageProcessor->toneMappingMode()));
+        settings.setValue(kSettingsCheckboard, mShowTransparencyCheckboard);
 
         mTooltip.reset();
         //AboutWidget::getInstance().close();
@@ -324,6 +337,13 @@ QMenu* CanvasWidget::createContextMenu()
         menu->addAction(swAction);
         menu->addSeparator();
     }
+
+    const auto actTransparency = createMenuAction("Transparency");
+    actTransparency->setCheckable(true);
+    actTransparency->setChecked(mShowTransparencyCheckboard);
+    connect(actTransparency, &QAction::triggered, this, &CanvasWidget::onActTransparency);
+    menu->addAction(actTransparency);
+    menu->addSeparator();
 
     const auto actQuit = createMenuAction("Quit");
     connect(actQuit, &QAction::triggered, this, &QWidget::close);
@@ -750,6 +770,9 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             const auto trans2 = QTransform::fromTranslate(dstCenter.x(), dstCenter.y());
             painter.setTransform(trans1 * scale * trans2);
 
+            if (mShowTransparencyCheckboard) {
+                painter.drawTiledPixmap(imageRect, mCheckboard.get());
+            }
             painter.drawPixmap(imageRect, mImageProcessor->getResult());
 
             if (mShowInfo) {
@@ -1430,6 +1453,14 @@ void CanvasWidget::onActSwizzle(bool checked, ChannelSwizzle s)
 {
     if (checked && mImageProcessor) {
         mImageProcessor->setChannelSwizzle(s);
+        update();
+    }
+}
+
+void CanvasWidget::onActTransparency(bool checked)
+{
+    if (mShowTransparencyCheckboard != checked) {
+        mShowTransparencyCheckboard = checked;
         update();
     }
 }
