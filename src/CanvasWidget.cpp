@@ -75,6 +75,7 @@ namespace
     const QString kSettingsFullscreen  = "canvas/fullscreen";
     const QString kSettingsShowInfo    = "canvas/info";
     const QString kSettingsZoomMode    = "canvas/zoom";
+    const QString kSettingsRememberZoom = "canvas/remember_zoom";
     const QString kSettingsZoomScaleValue = "canvas/zoom_scale";
     const QString kSettingsZoomFitValue   = "canvas/zoom_fit";
     const QString kSettingsFilterMode  = "canvas/filtering";
@@ -146,7 +147,13 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     mFullScreen    = settings.value(kSettingsFullscreen, false).toBool();
     mShowInfo      = settings.value(kSettingsShowInfo, false).toBool();
     mFilteringMode = toFilteringMode(settings.value(kSettingsFilterMode, static_cast<int32_t>(FilteringMode::eNone)).toInt());
-    mZoomMode      = toZoomMode(settings.value(kSettingsZoomMode, static_cast<int32_t>(ZoomMode::eFitWindow)).toInt());
+    mRememberZoom  = settings.value(kSettingsRememberZoom, false).toBool();
+    if (mRememberZoom) {
+        mZoomMode = toZoomMode(settings.value(kSettingsZoomMode, static_cast<int32_t>(ZoomMode::eFitWindow)).toInt());
+    }
+    else {
+        mZoomMode = ZoomMode::eFitWindow;
+    }
 
     QPalette palette;
     palette.setColor(QPalette::ColorRole::Window, mBackgroundColor);
@@ -199,16 +206,16 @@ CanvasWidget::~CanvasWidget()
         settings.setValue(kSettingsFullscreen, mFullScreen);
         settings.setValue(kSettingsShowInfo,   mShowInfo);
         settings.setValue(kSettingsFilterMode, static_cast<int32_t>(mFilteringMode));
-        settings.setValue(kSettingsZoomMode,   static_cast<int32_t>(mZoomMode));
+        settings.setValue(kSettingsRememberZoom, mRememberZoom);
+        if (mRememberZoom) {
+            settings.setValue(kSettingsZoomMode, static_cast<int32_t>(mZoomMode));
+        }
         settings.setValue(kSettingsZoomScaleValue, static_cast<int32_t>(mZoomController->getScaleValue()));
         settings.setValue(kSettingsZoomFitValue,   static_cast<int32_t>(mZoomController->getFitValue()));
-        settings.setValue(kSettingsToneMapping, static_cast<int32_t>(mImageProcessor->toneMappingMode()));
-        settings.setValue(kSettingsCheckboard, mShowTransparencyCheckboard);
+        settings.setValue(kSettingsToneMapping,    static_cast<int32_t>(mImageProcessor->toneMappingMode()));
+        settings.setValue(kSettingsCheckboard,     mShowTransparencyCheckboard);
 
         mTooltip.reset();
-        //AboutWidget::getInstance().close();
-        //ExifWidget::getInstance().close();
-        //ExifWidget::getInstance().deleteLater();
     }
     catch(...) {
         
@@ -276,6 +283,13 @@ QMenu* CanvasWidget::createContextMenu()
         menu->addAction(zoom[ZoomMode::eIdentity]);
         menu->addAction(zoom[ZoomMode::eFitWindow]);
         menu->addAction(zoom[ZoomMode::eFixed]);
+
+        const auto rememberZoomAct = createMenuAction(QString::fromUtf8("Freeze zoom mode"));
+        rememberZoomAct->setCheckable(true);
+        rememberZoomAct->setChecked(mRememberZoom);
+        connect(rememberZoomAct, &QAction::triggered, this, &CanvasWidget::onActRememberZoom);
+        menu->addAction(rememberZoomAct);
+
         menu->addSeparator();
     }
 
@@ -561,6 +575,15 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
         if (mImage && !mImage->isNull()) {
             const auto fitRect = fitWidth(mImage->width(), mImage->height());
 
+            if (!mRememberZoom && !mTransitionIsReload) {
+                if (width() >= mImage->width() && height() >= mImage->height()) {
+                    mZoomMode = ZoomMode::eIdentity;
+                }
+                else {
+                    mZoomMode = ZoomMode::eFitWindow;
+                }
+            }
+
             switch (mZoomMode) {
             case ZoomMode::eIdentity:
                 mZoomController->rebase(mImage->width(), fitRect.width());
@@ -615,6 +638,7 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
         show();
     }
     mTransitionRequested = false;
+    mTransitionIsReload  = false;
     mErrorText->hide();
     update();
 }
@@ -917,6 +941,7 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         if (!mTransitionRequested) {
             emit eventReloadImage();
             mTransitionRequested = true;
+            mTransitionIsReload = true;
         }
         break;
 
@@ -1409,6 +1434,18 @@ void CanvasWidget::onActZoomMode(bool checked, ZoomMode z)
         default:
         case ZoomMode::eFixed:
             break;
+        }
+    }
+}
+
+void CanvasWidget::onActRememberZoom(bool checked)
+{
+    if (checked != mRememberZoom) {
+        mRememberZoom = checked;
+        QSettings settings;
+        settings.setValue(kSettingsRememberZoom, mRememberZoom);
+        if (mRememberZoom) {
+            settings.setValue(kSettingsZoomMode, static_cast<int32_t>(mZoomMode));
         }
     }
 }

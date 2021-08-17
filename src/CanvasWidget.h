@@ -100,6 +100,7 @@ public slots:
     void onActRotation(bool checked, Rotation r);
     void onActFlip(bool checked, FlipType f);
     void onActZoomMode(bool checked, ZoomMode z);
+    void onActRememberZoom(bool checked);
     void onActToneMapping(bool checked, FIE_ToneMapping m);
     void onActGammaType(bool checked, GammaType g);
     void onActSwizzle(bool checked, ChannelSwizzle s);
@@ -176,6 +177,7 @@ private:
     std::unique_ptr<ImageProcessor> mImageProcessor;
 
     bool mTransitionRequested = true;
+    bool mTransitionIsReload = false;
 
     bool mFullScreen = false;
 
@@ -198,6 +200,7 @@ private:
 
     std::unique_ptr<ZoomController> mZoomController;
     ZoomMode mZoomMode;
+    bool mRememberZoom = false;
 
     bool mBrowsing = false;
 
