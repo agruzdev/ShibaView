@@ -102,7 +102,7 @@ const QPixmap & ImageProcessor::getResult()
                         gammaCorrected.reset(FreeImage_Clone(frame.bmp));
                         target = gammaCorrected.get();
                     }
-                    FreeImage_AdjustGamma(target, mGammaValue);
+                    FreeImage_AdjustGamma(target, 1.0 / mGammaValue);
                 }
             }
 

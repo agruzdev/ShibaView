@@ -481,11 +481,11 @@ CanvasWidget::ActionsArray<GammaType> CanvasWidget::initGammaTypeActions()
     actions[GammaType::eLinear]->setCheckable(true);
     actions[GammaType::eLinear]->setActionGroup(group);
 
-    actions[GammaType::eGamma22] = createMenuAction("Gamma 2.2");
+    actions[GammaType::eGamma22] = createMenuAction("Gamma 1 / 2.2");
     actions[GammaType::eGamma22]->setCheckable(true);
     actions[GammaType::eGamma22]->setActionGroup(group);
 
-    actions[GammaType::eDegamma22] = createMenuAction("Gamma 1/2.2");
+    actions[GammaType::eDegamma22] = createMenuAction("Gamma 2.2");
     actions[GammaType::eDegamma22]->setCheckable(true);
     actions[GammaType::eDegamma22]->setActionGroup(group);
 
@@ -1485,10 +1485,10 @@ void CanvasWidget::onActGammaType(bool checked, GammaType g)
         case GammaType::eLinear:
             break;
         case GammaType::eGamma22:
-            value = 2.2;
+            value = 1.0 / 2.2;
             break;
         case GammaType::eDegamma22:
-            value = 1.0 / 2.2;
+            value = 2.2;
             break;
         }
         if (mImageProcessor) {
