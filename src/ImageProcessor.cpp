@@ -190,6 +190,12 @@ bool ImageProcessor::getPixel(uint32_t y, uint32_t x, Pixel* p) const
     const auto pImg = mSrcImage.lock();
     bool success = false;
     if (pImg && p && y < height() && x < width()) {
+        if (mFlips[FlipType::eHorizontal]) {
+            x = width() - 1 - x;
+        }
+        if (mFlips[FlipType::eVertical]) {
+            y = height() - 1 - y;
+        }
         uint32_t srcY = y;
         uint32_t srcX = x;
         switch(mRotation) {
