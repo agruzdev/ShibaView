@@ -46,17 +46,27 @@ ZoomController::~ZoomController() = default;
 
 void ZoomController::setFitValue(int32_t value)
 {
-    mFitValue = value;
+    if (mFitValue == value) {
+        return;
+    }
 
-    const double fittedScale = (std::log(mFitValue) - std::log(mBaseValue)) / std::log(kZoomKoef);
+    const double fittedScale = (std::log(value) - std::log(mBaseValue)) / std::log(kZoomKoef);
     const double eps = 1.0 / mBaseValue;
+
+    const int32_t oldFloor = mFitScaleFloor;
+    const int32_t oldCeil  = mFitScaleCeil;
 
     mFitScaleFloor = static_cast<int32_t>(std::floor(fittedScale - eps));
     mFitScaleCeil  = static_cast<int32_t>(std::ceil(fittedScale + eps));
 
     mFitFactor  = static_cast<float>(fittedScale);
 
-    mAtFitValue = (mFitScaleFloor <= mScale) && (mScale <= mFitScaleCeil);
+    if (mAtFitValue) {
+        if (mFitScaleFloor != oldFloor || mFitScaleCeil != oldCeil) {
+            mAtFitValue = false;
+        }
+    }
+    mFitValue = value;
 }
 
 void ZoomController::rebase(int32_t baseValue, int32_t fitValue)
