@@ -576,7 +576,7 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
             const auto fitRect = fitWidth(mImage->width(), mImage->height());
 
             if (!mRememberZoom && !mTransitionIsReload) {
-                if (width() >= mImage->width() && height() >= mImage->height()) {
+                if (width() >= static_cast<int64_t>(mImage->width()) && height() >= static_cast<int64_t>(mImage->height())) {
                     mZoomMode = ZoomMode::eIdentity;
                 }
                 else {
