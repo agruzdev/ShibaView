@@ -213,16 +213,17 @@ namespace
                     const float maxBrighness = GetBrightness(*maxVal);
                     const float minBrighness = GetBrightness(*minVal);
                     if (maxBrighness > 0 && maxBrighness > minBrighness) {
-                        const float div = 1.0f / (maxBrighness - minBrighness);
+                        const float black = minBrighness / maxBrighness;
+                        const float div = 1.0f / (1.0f - black);
                         dst = FreeImage_Allocate(w, h, 32);
                         cvtBitmap<tagRGBQUAD, tagFIRGBAF>(dst, src, [&](tagRGBQUAD* dstPixel, const tagFIRGBAF* srcPixel) {
-                            auto yuv = RgbToYuv(srcPixel->red, srcPixel->green, srcPixel->blue);
-                            yuv[0] = (yuv[0] - minBrighness) * div;
+                            auto yuv = RgbToYuv(srcPixel->red / maxBrighness, srcPixel->green / maxBrighness, srcPixel->blue / maxBrighness);
+                            yuv[0] = (yuv[0] - black) * div;
                             auto rgb = YuvToRgb(yuv);
                             dstPixel->rgbRed      = static_cast<BYTE>(std::clamp(rgb[0], 0.0f, 1.0f) * 255.0f);
                             dstPixel->rgbGreen    = static_cast<BYTE>(std::clamp(rgb[1], 0.0f, 1.0f) * 255.0f);
                             dstPixel->rgbBlue     = static_cast<BYTE>(std::clamp(rgb[2], 0.0f, 1.0f) * 255.0f);
-                            dstPixel->rgbReserved = static_cast<BYTE>(srcPixel->alpha * 255.0f);
+                            dstPixel->rgbReserved = static_cast<BYTE>(std::clamp(srcPixel->alpha, 0.0f, 1.0f) * 255.0f);
                         });
                     }
                 }
@@ -236,11 +237,12 @@ namespace
                     const float maxBrighness = GetBrightness(*maxVal);
                     const float minBrighness = GetBrightness(*minVal);
                     if (maxBrighness > 0 && maxBrighness > minBrighness) {
-                        const float div = 1.0f / (maxBrighness - minBrighness);
+                        const float black = minBrighness / maxBrighness;
+                        const float div = 1.0f / (1.0f - black);
                         dst = FreeImage_Allocate(w, h, 24);
                         cvtBitmap<tagRGBTRIPLE, tagFIRGBF>(dst, src, [&](tagRGBTRIPLE* dstPixel, const tagFIRGBF* srcPixel) {
-                            auto yuv = RgbToYuv(srcPixel->red, srcPixel->green, srcPixel->blue);
-                            yuv[0] = (yuv[0] - minBrighness) * div;
+                            auto yuv = RgbToYuv(srcPixel->red / maxBrighness, srcPixel->green / maxBrighness, srcPixel->blue / maxBrighness);
+                            yuv[0] = (yuv[0] - black) * div;
                             auto rgb = YuvToRgb(yuv);
                             dstPixel->rgbtRed   = static_cast<BYTE>(std::clamp(rgb[0], 0.0f, 1.0f) * 255.0f);
                             dstPixel->rgbtGreen = static_cast<BYTE>(std::clamp(rgb[1], 0.0f, 1.0f) * 255.0f);

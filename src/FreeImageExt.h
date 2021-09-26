@@ -90,8 +90,8 @@ enum FIE_ToneMapping
     FIETMO_DRAGO03    = ::FITMO_DRAGO03,
     FIETMO_REINHARD05 = ::FITMO_REINHARD05,
     FIETMO_FATTAL02   = ::FITMO_FATTAL02,
-    FIETMO_NONE,
-    FIETMO_LINEAR,
+    FIETMO_NONE,        ///< Clamp
+    FIETMO_LINEAR,      ///< Linear scale if possible, otherwise division by peak brightness with Y channel adjustment
 };
 
 FIBITMAP* FreeImageExt_ToneMapping(FIBITMAP* src, FIE_ToneMapping mode);
