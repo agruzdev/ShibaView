@@ -82,8 +82,8 @@ Controls::Controls()
     loadKey(ControlAction::eOverlay, "Show overlay", Qt::Key_Tab);
     loadKey(ControlAction::eOpenFile, "Open file dialog", Qt::ControlModifier | Qt::Key_O);
     loadKey(ControlAction::eReload, "Reload the current image", Qt::ControlModifier | Qt::Key_R);
-    loadKey(ControlAction::ePreviousImage, "Previous image", Qt::Key_Left);
-    loadKey(ControlAction::eNextImage, "Next image", Qt::Key_Right);
+    loadKey(ControlAction::ePreviousImage, "Previous image", Qt::Key_Left, Qt::KeypadModifier | Qt::Key_Left);
+    loadKey(ControlAction::eNextImage, "Next image", Qt::Key_Right, Qt::KeypadModifier | Qt::Key_Right);
     loadKey(ControlAction::eFirstImage, "First image", Qt::Key_Home);
     loadKey(ControlAction::eLastImage, "Last image", Qt::Key_End);
     loadKey(ControlAction::eZoomIn, "Zoom in", Qt::Key_Plus, Qt::KeypadModifier | Qt::Key_Plus);
