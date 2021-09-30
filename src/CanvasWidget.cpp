@@ -955,7 +955,7 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         break;
 
     case ControlAction::eSaveFile:
-        if (!mTransitionRequested) {
+        if (!mTransitionRequested && !mEnableAnimation) {
             if (mImage && mImage->notNull() && mImageProcessor) {
                 QString error;
                 try {
@@ -1057,7 +1057,7 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
             }
             else {
                 mEnableAnimation = true;
-                mAnimIndex = -1;
+                mAnimIndex = kNoneIndex;
                 update();
             }
         }
