@@ -120,7 +120,7 @@ try
     }
     else {
         QSettings settings;
-        input = QFileDialog::getOpenFileName(nullptr, "Open File", settings.value(kSettingsLoadDir, "/").toString(), ViewerApplication::getFileFilter());
+        input = QFileDialog::getOpenFileName(nullptr, "Open File", settings.value(kSettingsLoadDir, "/").toString(), Global::getSupportedExtensionsFilterString());
         if (!input.isEmpty()) {
             settings.setValue(kSettingsLoadDir, QFileInfo(input).dir().absolutePath());
         }

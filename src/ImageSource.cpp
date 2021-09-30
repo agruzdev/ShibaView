@@ -18,6 +18,7 @@
 
 #include "ImageSource.h"
 
+#include <stdexcept>
 #include <QDebug>
 
 #include "BitmapSource.h"
@@ -61,4 +62,27 @@ std::shared_ptr<ImageSource> ImageSource::Load(const QString & filename) Q_DECL_
         }
     }
     return source;
+}
+
+void ImageSource::Save(FIBITMAP* bmp, const QString& filename) 
+{
+#ifdef _WIN32
+    const auto uniName = filename.toStdWString();
+    const auto fif = FreeImage_GetFIFFromFilenameU(uniName.c_str());
+#else
+    const auto utfName = filename.toUtf8().toStdString();
+    const auto fif = FreeImage_GetFIFFromFilename(utfName.c_str());
+#endif
+    if (fif == FIF_UNKNOWN) {
+        throw std::runtime_error("Unknown file format");
+    }
+
+#ifdef _WIN32
+    const auto success = FreeImage_SaveU(fif, bmp, uniName.c_str());
+#else
+    const auto success = FreeImage_Save(fif, bmp, utfName.c_str());
+#endif
+    if (!success) {
+        throw std::runtime_error("Failed to write file");
+    }
 }

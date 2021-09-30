@@ -39,6 +39,26 @@ namespace
         ".svg",
         ".flo"
     };
+
+    QStringList cvtExtensionsToFilters(const QStringList& exts)
+    {
+        QStringList filters;
+        filters.reserve(exts.size());
+        for (const auto& ext : exts) {
+            filters.push_back("*" + ext);
+        }
+        return filters;
+    }
+}
+
+QStringList Global::getSupportedExtensionFilters()
+{
+    return cvtExtensionsToFilters(getSupportedExtensions());
+}
+
+QString Global::getSupportedExtensionsFilterString()
+{
+    return "Images (" + getSupportedExtensionFilters().join(" ") + ")";
 }
 
 const QString Global::kApplicationName = "ShibaView";

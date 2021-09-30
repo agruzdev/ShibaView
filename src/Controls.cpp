@@ -65,7 +65,7 @@ Controls::Controls()
             }
         }
         mActionDescriptions.emplace_back(action, comment, decodedValues);
-        if (!fileExists) {
+        if (loadedValues.isEmpty()) {
             QStringList valuesToStore;
             valuesToStore.append(defaultKey.toString(QKeySequence::PortableText));
             if (!defaultKey2.isEmpty()) {
@@ -81,6 +81,7 @@ Controls::Controls()
     loadKey(ControlAction::eImageInfo, "Show EXIF data", Qt::Key_F2);
     loadKey(ControlAction::eOverlay, "Show overlay", Qt::Key_Tab);
     loadKey(ControlAction::eOpenFile, "Open file dialog", Qt::ControlModifier | Qt::Key_O);
+    loadKey(ControlAction::eSaveFile, "Save file dialog", Qt::ControlModifier | Qt::Key_S);
     loadKey(ControlAction::eReload, "Reload the current image", Qt::ControlModifier | Qt::Key_R);
     loadKey(ControlAction::ePreviousImage, "Previous image", Qt::Key_Left, Qt::KeypadModifier | Qt::Key_Left);
     loadKey(ControlAction::eNextImage, "Next image", Qt::Key_Right, Qt::KeypadModifier | Qt::Key_Right);

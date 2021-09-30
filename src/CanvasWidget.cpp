@@ -25,8 +25,10 @@
 #include <QApplication>
 #include <QActionGroup>
 #include <QColor>
+#include <QFileDialog>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QMessageBox>
 #include <QPainter>
 #include <QSettings>
 #include <QScreen>
@@ -808,7 +810,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             if (mShowTransparencyCheckboard) {
                 painter.drawTiledPixmap(imageRect, mCheckboard.get());
             }
-            painter.drawPixmap(imageRect, mImageProcessor->getResult());
+            painter.drawPixmap(imageRect, mImageProcessor->getResultPixmap());
 
             if (mShowInfo) {
                 if (!mInfoIsValid) {
@@ -949,6 +951,31 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         if (!mTransitionRequested) {
             emit eventOpenImage();
             mTransitionRequested = true;
+        }
+        break;
+
+    case ControlAction::eSaveFile:
+        if (!mTransitionRequested) {
+            if (mImage && mImage->notNull() && mImageProcessor) {
+                QString error;
+                try {
+                    QDir imageDir;
+                    if (!mImage->info().path.isEmpty()) {
+                        imageDir = QFileInfo(mImage->info().path).dir();
+                    }
+                    const QString filename = QFileDialog::getSaveFileName(this, tr("Save file"), imageDir.filePath("Untitled.png"), tr("Images (*.png *.jpg *.bmp)"));
+                    if (!filename.isEmpty()) {
+                        const auto& bitmap = mImageProcessor->getResultBitmap();
+                        ImageSource::Save(bitmap.get(), filename);
+                    }
+                }
+                catch(std::exception& err) {
+                    error = QString::fromUtf8(err.what());
+                }
+                if (!error.isEmpty()) {
+                    QMessageBox::critical(this, "Error!", tr("Failed to save file. Reason: ") + QString(error));
+                }
+            }
         }
         break;
 

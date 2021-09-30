@@ -46,9 +46,6 @@ public:
 
     void open(const QString & path);
 
-    static
-    QString getFileFilter();
-
 signals:
     void eventLoadImage(const QString & path);
     void eventCancelTransition();

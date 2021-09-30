@@ -64,6 +64,8 @@ enum class ChannelSwizzle
 };
 
 
+using UniqueBitmap = std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)>;
+
 class ImageProcessor
     : public ImageListener
 {
@@ -171,16 +173,26 @@ public:
     /**
      * Processed frame, ready to draw
      */
-    const QPixmap & getResult();
+    const QPixmap& getResultPixmap();
+
+    /**
+     * Processed frame, ready to draw
+     */
+    const UniqueBitmap& getResultBitmap();
 
 private:
     void onInvalidated(Image* emitter) override;
 
+    // Returns handle to FIBITMAP either original or modified
+    FIBITMAP* process(const ImageFrame& frame);
+
 private:
     QWeakPointer<Image> mSrcImage;
+    UniqueBitmap mProcessBuffer;
     QPixmap mDstPixmap;
 
     bool mIsValid = false;
+    bool mIsBuffered = false;
 
     Rotation mRotation = Rotation::eDegree0;
 

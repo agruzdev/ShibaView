@@ -31,6 +31,7 @@ enum class ControlAction
     eImageInfo,
     eOverlay,
     eOpenFile,
+    eSaveFile,
     eReload,
     ePreviousImage,
     eNextImage,
@@ -66,6 +67,8 @@ QString toQString(ControlAction a)
         return "Overlay";
     case ControlAction::eOpenFile:
         return "OpenFile";
+    case ControlAction::eSaveFile:
+        return "SaveFile";
     case ControlAction::eReload:
         return "Reload";
     case ControlAction::ePreviousImage:

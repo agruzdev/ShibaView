@@ -40,6 +40,10 @@ public:
 
     static const QStringList& getSupportedExtensions() noexcept;
 
+    static QStringList getSupportedExtensionFilters();
+
+    static QString getSupportedExtensionsFilterString();
+
 private:
     Global() = delete;
 };

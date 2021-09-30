@@ -96,6 +96,9 @@ public:
     static
     std::shared_ptr<ImageSource> Load(const QString& filename) Q_DECL_NOEXCEPT;
 
+    static
+    void Save(FIBITMAP* bmp, const QString& filename);
+
 protected:
     ImageSource() = default;
 

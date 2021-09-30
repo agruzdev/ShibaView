@@ -46,103 +46,140 @@ namespace
     }
 }
 
-ImageProcessor::ImageProcessor() = default;
+ImageProcessor::ImageProcessor()
+    : mProcessBuffer(nullptr, &::FreeImage_Unload)
+{ }
 
 ImageProcessor::~ImageProcessor() = default;
 
-const QPixmap & ImageProcessor::getResult()
+FIBITMAP* ImageProcessor::process(const ImageFrame& frame)
 {
-    const auto pImg = mSrcImage.lock();
-    if (pImg) {
-        const ImageFrame & frame = pImg->getFrame();
-        if (!mDstPixmap || !mIsValid) {
-            FIBITMAP* target = frame.bmp;
+    FIBITMAP* target = frame.bmp;
 
-            std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> rotated(nullptr, &::FreeImage_Unload);
-            if (mRotation != Rotation::eDegree0) {
-                rotated.reset(FreeImage_Rotate(frame.bmp, static_cast<double>(toDegree(mRotation))));
-                if (rotated) {
-                    target = rotated.get();
-                }
+    // 1. Tonemap
+    auto imgType = FreeImage_GetImageType(target);
+    if (imgType == FIT_RGBF || imgType == FIT_RGBAF || imgType == FIT_FLOAT || imgType == FIT_DOUBLE) {
+        UniqueBitmap tonemapped(FreeImageExt_ToneMapping(target, mToneMapping), &::FreeImage_Unload);
+        if (tonemapped) {
+            mProcessBuffer = std::move(tonemapped);
+            target = mProcessBuffer.get();
+        }
+    }
+
+    // 2. Rotate
+    if (mRotation != Rotation::eDegree0) {
+        UniqueBitmap rotated(FreeImage_Rotate(target, static_cast<double>(toDegree(mRotation))), &::FreeImage_Unload);
+        if (rotated) {
+            mProcessBuffer = std::move(rotated);
+            target = mProcessBuffer.get();
+        }
+    }
+
+    // 3. Flip
+    if (mFlips[FlipType::eHorizontal]) {
+        if (target == frame.bmp) {
+            mProcessBuffer.reset(FreeImage_Clone(frame.bmp));
+            target = mProcessBuffer.get();
+        }
+        FreeImage_FlipHorizontal(target);
+    }
+    if (mFlips[FlipType::eVertical]) {
+        if (target == frame.bmp) {
+            mProcessBuffer.reset(FreeImage_Clone(frame.bmp));
+            target = mProcessBuffer.get();
+        }
+        FreeImage_FlipVertical(target);
+    }
+
+    // 4. Gamma
+    if (mGammaValue != 1.0) {
+        imgType = FreeImage_GetImageType(target);
+        if (imgType == FIT_BITMAP) {
+            if (target == frame.bmp) {
+                mProcessBuffer.reset(FreeImage_Clone(frame.bmp));
+                target = mProcessBuffer.get();
             }
+            FreeImage_AdjustGamma(target, 1.0 / mGammaValue);
+        }
+    }
 
-            // flips
-            std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> flipped(nullptr, &::FreeImage_Unload);
-            if (mFlips[FlipType::eHorizontal]) {
-                if (target == frame.bmp) {
-                    flipped.reset(FreeImage_Clone(frame.bmp));
-                    target = flipped.get();
-                }
-                FreeImage_FlipHorizontal(target);
+    // 5. Swizzle
+    if (mSwizzleType != ChannelSwizzle::eRGB) {
+        UniqueBitmap swizzled(nullptr, &::FreeImage_Unload);
+        switch(mSwizzleType) {
+        case ChannelSwizzle::eBGR:
+            if (target == frame.bmp) {
+                mProcessBuffer.reset(FreeImage_Clone(frame.bmp));
+                target = mProcessBuffer.get();
             }
-            if (mFlips[FlipType::eVertical]) {
-                if (target == frame.bmp) {
-                    flipped.reset(FreeImage_Clone(frame.bmp));
-                    target = flipped.get();
-                }
-                FreeImage_FlipVertical(target);
+            SwapRedBlue32(target);
+            break;
+
+        case ChannelSwizzle::eRed:
+            swizzled.reset(FreeImage_GetChannel(target, FICC_RED));
+            break;
+
+        case ChannelSwizzle::eBlue:
+            swizzled.reset(FreeImage_GetChannel(target, FICC_BLUE));
+            break;
+
+        case ChannelSwizzle::eGreen:
+            swizzled.reset(FreeImage_GetChannel(target, FICC_GREEN));
+            break;
+
+        case ChannelSwizzle::eAlpha:
+            swizzled.reset(FreeImage_GetChannel(target, FICC_ALPHA));
+            break;
+
+        default:
+            break;
+        }
+        if (swizzled) {
+            mProcessBuffer = std::move(swizzled);
+            target = mProcessBuffer.get();
+        }
+    }
+
+    mIsBuffered = (target == mProcessBuffer.get());
+
+    return target;
+}
+
+const QPixmap& ImageProcessor::getResultPixmap()
+{
+    if (!mIsValid) {
+        const auto pImg = mSrcImage.lock();
+        if (pImg) {
+            const ImageFrame& frame = pImg->getFrame();
+            if (frame.bmp != nullptr) {
+                mDstPixmap = QPixmap::fromImage(makeQImageView(process(frame)));
+                mIsValid = true;
             }
-
-            std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> tonemapped(nullptr, &::FreeImage_Unload);
-            {
-                const auto imgType = FreeImage_GetImageType(target);
-                if (imgType == FIT_RGBF || imgType == FIT_RGBAF || imgType == FIT_FLOAT || imgType == FIT_DOUBLE) {
-                    tonemapped.reset(FreeImageExt_ToneMapping(target, mToneMapping));
-                    if (tonemapped) {
-                        target = tonemapped.get();
-                    }
-                }
-            }
-
-            std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> gammaCorrected(nullptr, &::FreeImage_Unload);
-            if (mGammaValue != 1.0) {
-                const auto imgType = FreeImage_GetImageType(target);
-                if (imgType == FIT_BITMAP) {
-                    if (target == frame.bmp) {
-                        gammaCorrected.reset(FreeImage_Clone(frame.bmp));
-                        target = gammaCorrected.get();
-                    }
-                    FreeImage_AdjustGamma(target, 1.0 / mGammaValue);
-                }
-            }
-
-            std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> swizzled(nullptr, &::FreeImage_Unload);
-            if (mSwizzleType != ChannelSwizzle::eRGB) {
-                switch(mSwizzleType) {
-                case ChannelSwizzle::eBGR:
-                    swizzled.reset(FreeImage_Clone(target));
-                    SwapRedBlue32(swizzled.get());
-                    break;
-
-                case ChannelSwizzle::eRed:
-                    swizzled.reset(FreeImage_GetChannel(target, FICC_RED));
-                    break;
-
-                case ChannelSwizzle::eBlue:
-                    swizzled.reset(FreeImage_GetChannel(target, FICC_BLUE));
-                    break;
-
-                case ChannelSwizzle::eGreen:
-                    swizzled.reset(FreeImage_GetChannel(target, FICC_GREEN));
-                    break;
-
-                case ChannelSwizzle::eAlpha:
-                    swizzled.reset(FreeImage_GetChannel(target, FICC_ALPHA));
-                    break;
-
-                default:
-                    break;
-                }
-                if (swizzled) {
-                    target = swizzled.get();
-                }
-            }
-
-            mDstPixmap = QPixmap::fromImage(makeQImageView(target));
-            mIsValid = true;
         }
     }
     return mDstPixmap;
+}
+
+const UniqueBitmap& ImageProcessor::getResultBitmap()
+{
+    if (mIsValid && mIsBuffered) {
+        return mProcessBuffer;
+    }
+    else {
+        const auto pImg = mSrcImage.lock();
+        if (pImg) {
+            const ImageFrame& frame = pImg->getFrame();
+            if (frame.bmp) {
+                const auto bmp = process(frame);
+                if (!mIsBuffered) {
+                    mProcessBuffer.reset(FreeImage_Clone(bmp));
+                    mIsBuffered = true;
+                }
+                mIsValid = true;
+            }
+        }
+    }
+    return mProcessBuffer;
 }
 
 void ImageProcessor::attachSource(QWeakPointer<Image> image)
@@ -165,6 +202,7 @@ void ImageProcessor::detachSource()
             pImg->removeListener(this);
         }
     }
+    mProcessBuffer.reset();
     mIsValid = false;
 }
 

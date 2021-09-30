@@ -30,23 +30,6 @@
 #include "ImageLoader.h"
 #include "FreeImageExt.h"
 
-namespace
-{
-    QStringList cvtExtensionsToFilters(const QStringList& exts)
-    {
-        QStringList filters;
-        filters.reserve(exts.size());
-        for (const auto& ext : exts) {
-            filters.push_back("*" + ext);
-        }
-        return filters;
-    }
-}
-
-QString ViewerApplication::getFileFilter()
-{
-    return "Images (" + cvtExtensionsToFilters(Global::getSupportedExtensions()).join(" ") + ")";
-}
 
 ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
 {
@@ -99,7 +82,7 @@ void ViewerApplication::scanDirectory()
     else {
         QCollator collator;
         collator.setNumericMode(true);
-        mFilesInDirectory = mDirectory.entryList(cvtExtensionsToFilters(Global::getSupportedExtensions()));
+        mFilesInDirectory = mDirectory.entryList(Global::getSupportedExtensionFilters());
         std::sort(mFilesInDirectory.begin(), mFilesInDirectory.end(), collator);
 
         mCurrentIdx = 0;
@@ -227,7 +210,7 @@ void ViewerApplication::onReloadImage()
 
 void ViewerApplication::onOpenImage()
 {
-    QString input = QFileDialog::getOpenFileName(nullptr, "Open File", mDirectory.absolutePath(), ViewerApplication::getFileFilter());
+    QString input = QFileDialog::getOpenFileName(nullptr, "Open File", mDirectory.absolutePath(), Global::getSupportedExtensionsFilterString());
     if (!input.isEmpty()) {
         open(input);
     }
