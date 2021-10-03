@@ -959,11 +959,12 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
             if (mImage && mImage->notNull() && mImageProcessor) {
                 QString error;
                 try {
-                    QDir imageDir;
+                    QString savePath = "./Untitled.png";
                     if (!mImage->info().path.isEmpty()) {
-                        imageDir = QFileInfo(mImage->info().path).dir();
+                        QFileInfo currentPathInfo(mImage->info().path);
+                        savePath = currentPathInfo.dir().filePath(currentPathInfo.completeBaseName() + ".png");
                     }
-                    const QString filename = QFileDialog::getSaveFileName(this, tr("Save file"), imageDir.filePath("Untitled.png"), tr("Images (*.png *.jpg *.bmp)"));
+                    const QString filename = QFileDialog::getSaveFileName(this, tr("Save file"), savePath, tr("Images (*.png *.jpg *.bmp)"));
                     if (!filename.isEmpty()) {
                         const auto& bitmap = mImageProcessor->getResultBitmap();
                         ImageSource::Save(bitmap.get(), filename);
