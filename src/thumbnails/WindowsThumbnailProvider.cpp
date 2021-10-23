@@ -35,6 +35,10 @@
 
 #define ENABLE_LOG (0)
 
+int filterException(int /*code*/, PEXCEPTION_POINTERS /*ex*/) {
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
 class WindowsThumbnailProvider
     : public IInitializeWithFile
     , public IThumbnailProvider
@@ -118,21 +122,39 @@ public:
         return S_OK;
     }
 
-    // IThumbnailProvider
     IFACEMETHODIMP GetThumbnail(UINT cx, HBITMAP *phbmp, WTS_ALPHATYPE *pdwAlpha)
+    {
+        __try {
+            return GetThumbnail_(cx, phbmp, pdwAlpha);
+        }
+        __except(filterException(GetExceptionCode(), GetExceptionInformation())) {
+        }
+        return S_FALSE;
+    }
+
+    // IThumbnailProvider
+    IFACEMETHODIMP GetThumbnail_(UINT cx, HBITMAP *phbmp, WTS_ALPHATYPE *pdwAlpha)
     {
         try {
 #if ENABLE_LOG
-            mLog << L"GetThumbnail() is called" << std::endl;
+            mLog << L"GetThumbnail() is called " << mFilePath << std::endl;
 #endif
             auto bitmapSource = ImageSource::Load(QString::fromStdWString(mFilePath));
             if (!bitmapSource || bitmapSource->pagesCount() == 0) {
                 throw std::runtime_error("Failed to open file");
             }
+#if ENABLE_LOG
+            mLog << L"File is opened " << mFilePath << std::endl;
+#endif
             auto page = bitmapSource->lockPage(0);
             if (!page) {
                 throw std::runtime_error("Failed to read file");
             }
+
+
+#if ENABLE_LOG
+            mLog << L"Page is locked " << mFilePath << std::endl;
+#endif
 
             std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> thumbnailGenerated(nullptr, &::FreeImage_Unload);
             FIBITMAP *thumbnail = FreeImage_GetThumbnail(page->getBitmap());
@@ -148,6 +170,10 @@ public:
             if (!thumbnail) {
                 throw std::runtime_error("Failed to acquire a thumbnail");
             }
+
+#if ENABLE_LOG
+            mLog << L"Got thumbnail " << mFilePath << std::endl;
+#endif
 
             bool unloadInternalFrame = false;
             ImageFrame internalFrame = Player::cvtToInternalType(thumbnail, unloadInternalFrame);
@@ -165,6 +191,10 @@ public:
                 tonemappedFrame = internalFrame.bmp;
             }
 
+#if ENABLE_LOG
+            mLog << L"Tonemmaped thumbnail " << mFilePath << std::endl;
+#endif
+
             const uint32_t bmpHeight = FreeImage_GetHeight(tonemappedFrame);
             const uint32_t bmpWidth  = FreeImage_GetWidth(tonemappedFrame);
             const size_t   bmpStride = bmpWidth * 4;
@@ -181,6 +211,14 @@ public:
 
             BYTE *pBits = nullptr;
             std::unique_ptr<std::remove_pointer_t<HBITMAP>, decltype(&::DeleteObject)> bmp(CreateDIBSection(nullptr, &bmi, DIB_RGB_COLORS, reinterpret_cast<void**>(&pBits), nullptr, 0), &::DeleteObject);
+            if (!pBits) {
+                throw std::runtime_error("Failed to CreateDIBSection()");
+            }
+
+
+#if ENABLE_LOG
+            mLog << L"Allocated HBITMAP " << mFilePath << std::endl;
+#endif
 
             WTS_ALPHATYPE resultAlpha = WTSAT_RGB;
 
@@ -237,6 +275,10 @@ public:
             default:
                 throw std::logic_error("Internal image is 1, 8, 24 or 32 bit");
             }
+
+#if ENABLE_LOG
+            mLog << L"Copied HBITMAP " << mFilePath << std::endl;
+#endif
 
             if (unloadInternalFrame) {
                 FreeImage_Unload(internalFrame.bmp);
