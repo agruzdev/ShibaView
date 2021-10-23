@@ -65,44 +65,51 @@ void initPluginSVG(Plugin *plugin, int format_id)
     };
 
     plugin->load_proc = [](FreeImageIO* io, fi_handle handle, int /*page*/, int /*flags*/, void* /*data*/) -> FIBITMAP* {
+        try {
+            const auto xmlBuffer = loadXmlBuffer(io, handle);
+            if (!xmlBuffer) {
+                qDebug() << "Failed to read xml buffer";
+                return nullptr;
+            }
 
-        const auto xmlBuffer = loadXmlBuffer(io, handle);
-        if (!xmlBuffer) {
-            qDebug() << "Failed to read xml buffer";
-            return nullptr;
+            QXmlStreamReader xmlReader(*xmlBuffer);
+            if (xmlReader.hasError()) {
+                qDebug() << xmlReader.error();
+                return nullptr;
+            }
+
+            QSvgRenderer svgRenderer(&xmlReader);
+            if (!svgRenderer.isValid()) {
+                qDebug() << "QSvgRenderer is not valid";
+                return nullptr;
+            }
+
+            QSize svgSize = svgRenderer.defaultSize();
+            if (svgSize.isEmpty()) {
+                svgSize = QSize(1024, 1024);
+            }
+
+            std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> bmp(FreeImage_Allocate(svgSize.width(), svgSize.height(), 32), &::FreeImage_Unload);
+            QImage rgbaView(FreeImage_GetBits(bmp.get()), FreeImage_GetWidth(bmp.get()), FreeImage_GetHeight(bmp.get()), FreeImage_GetPitch(bmp.get()), QImage::Format::Format_RGBA8888);
+
+            QPainter painter(&rgbaView);
+
+            const auto center = QRectF(0, 0, svgSize.width(), svgSize.height()).center();
+            const auto trans1 = QTransform::fromTranslate(-center.x(), -center.y());
+            const auto scale  = QTransform::fromScale(1.0, -1.0);
+            const auto trans2 = QTransform::fromTranslate(center.x(), center.y());
+            painter.setTransform(trans1 * scale * trans2);
+
+            svgRenderer.render(&painter);
+
+            return bmp.release();
         }
-
-        QXmlStreamReader xmlReader(*xmlBuffer);
-        if (xmlReader.hasError()) {
-            qDebug() << xmlReader.error();
-            return nullptr;
+        catch (std::exception& err) {
+            qDebug() << "Failed to render svg";
         }
-
-        QSvgRenderer svgRenderer(&xmlReader);
-        if (!svgRenderer.isValid()) {
-            qDebug() << "QSvgRenderer is not valid";
-            return nullptr;
+        catch (...) {
         }
-
-        QSize svgSize = svgRenderer.defaultSize();
-        if (svgSize.isEmpty()) {
-            svgSize = QSize(1024, 1024);
-        }
-
-        std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> bmp(FreeImage_Allocate(svgSize.width(), svgSize.height(), 32), &::FreeImage_Unload);
-        QImage rgbaView(FreeImage_GetBits(bmp.get()), FreeImage_GetWidth(bmp.get()), FreeImage_GetHeight(bmp.get()), FreeImage_GetPitch(bmp.get()), QImage::Format::Format_RGBA8888);
-
-        QPainter painter(&rgbaView);
-
-        const auto center = QRect(0, 0, svgSize.width(), svgSize.height()).center();
-        const auto trans1 = QTransform::fromTranslate(-center.x(), -center.y());
-        const auto scale  = QTransform::fromScale(1.0, -1.0);
-        const auto trans2 = QTransform::fromTranslate(center.x(), center.y());
-        painter.setTransform(trans1 * scale * trans2);
-
-        svgRenderer.render(&painter);
-
-        return bmp.release();
+        return nullptr;
     };
 
     plugin->save_proc = [](FreeImageIO* /*io*/, FIBITMAP* /*dib*/, fi_handle /*handle*/, int /*page*/, int /*flags*/, void* /*data*/) -> BOOL {
