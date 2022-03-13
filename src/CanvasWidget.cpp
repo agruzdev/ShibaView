@@ -83,6 +83,7 @@ namespace
     const QString kSettingsFilterMode  = "canvas/filtering";
     const QString kSettingsToneMapping = "canvas/tonemapping";
     const QString kSettingsCheckboard  = "canvas/checkboard";
+    const QString kSettingsFullPath    = "canvas/fullpath";
 
     Q_CONSTEXPR int kTextPaddingLeft = 15;
     Q_CONSTEXPR int kTextPaddingTop  = 30;
@@ -179,6 +180,9 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
 
     connect(this, &QWidget::customContextMenuRequested, this, &CanvasWidget::onShowContextMenu);
 
+    mImageDescription = std::make_unique<ImageDescription>();
+    mImageDescription->setDisplayPath(settings.value(kSettingsFullPath, false).toBool());
+
     mImageProcessor = std::make_unique<ImageProcessor>();
     mImageProcessor->setToneMappingMode(static_cast<FIE_ToneMapping>(settings.value(kSettingsToneMapping, static_cast<int32_t>(FIE_ToneMapping::FIETMO_NONE)).toInt()));
 
@@ -216,6 +220,10 @@ CanvasWidget::~CanvasWidget()
         settings.setValue(kSettingsZoomFitValue,   static_cast<int32_t>(mZoomController->getFitValue()));
         settings.setValue(kSettingsToneMapping,    static_cast<int32_t>(mImageProcessor->toneMappingMode()));
         settings.setValue(kSettingsCheckboard,     mShowTransparencyCheckboard);
+
+        if (mImageDescription) {
+            settings.setValue(kSettingsFullPath, static_cast<int32_t>(mImageDescription->displayPath()));
+        }
 
         mTooltip.reset();
     }
@@ -570,9 +578,6 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
 
     mImage = std::move(image);
     if(mImage) {
-        if(!mImageDescription) {
-            mImageDescription = std::make_unique<ImageDescription>();
-        }
         mImageDescription->setImageInfo(mImage->info());
         if (mImage && !mImage->isNull()) {
             const auto fitRect = fitWidth(mImage->width(), mImage->height());
@@ -1081,6 +1086,18 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         if (mImage && mImage->notNull() && mImage->pagesCount() > 1 && !mEnableAnimation) {
             try {
                 mImage->prev();
+                update();
+            }
+            catch(...)
+            { }
+        }
+        break;
+
+    case ControlAction::eDisplayPath:
+        if (mImageDescription && mShowInfo) {
+            try {
+                mImageDescription->setDisplayPath(!mImageDescription->displayPath());
+                mInfoIsValid = false;
                 update();
             }
             catch(...)

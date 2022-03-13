@@ -21,7 +21,7 @@
 
 namespace
 {
-
+    constexpr size_t kMaxPathLength = 128;
 
     inline
     QString toPercent(float z)
@@ -33,7 +33,13 @@ namespace
 QVector<QString> ImageDescription::toLines() const
 {
     QVector<QString> res;
-    res.push_back("File name: " + mFileInfo.name);
+    const QString& name = mDisplayPath ? mFileInfo.path : mFileInfo.name;
+    if (name.length() < kMaxPathLength) {
+        res.push_back("File name: " + name);
+    }
+    else {
+        res.push_back("File name: ..." + name.right(kMaxPathLength));
+    }
     if (mChangedFlag) {
         res.back().append("*");
     }

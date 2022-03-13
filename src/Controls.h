@@ -19,6 +19,7 @@
 #ifndef CONTROLS_H
 #define CONTROLS_H
 
+#include <cassert>
 #include <QApplication>
 #include <QSettings>
 #include <QKeyEvent>
@@ -48,6 +49,7 @@ enum class ControlAction
     eRotation180,
     eRotation270,
     eColorPicker,
+    eDisplayPath,
     eQuit,
 
     length_
@@ -101,7 +103,10 @@ QString toQString(ControlAction a)
         return "Rotation270";
     case ControlAction::eColorPicker:
         return "ColorPicker";
+    case ControlAction::eDisplayPath:
+        return "DisplayPath";
     default:
+        assert(false);
         return "None";
     }
 }
