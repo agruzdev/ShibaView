@@ -627,6 +627,8 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
 
             mImageProcessor->attachSource(mImage);
             mImageDescription->setFormat(mImage->getFrame().page->describeFormat());
+
+            mImageDescription->setToneMapping(mImageProcessor->toneMappingMode());
         }
 
         setWindowTitle(mImage->info().path + " - " + QApplication::applicationName());
