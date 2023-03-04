@@ -1,7 +1,7 @@
 /**
  * @file
  *
- * Copyright 2018-2021 Alexey Gruzdev
+ * Copyright 2018-2023 Alexey Gruzdev
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ AboutWidget::AboutWidget()
 
     QVector<QString> textLines;
     textLines.push_back("Version: " + QString::number(Global::kVersionMajor) + "." + QString::number(Global::kVersionMinor));
-    textLines.push_back("Copyright 2018-2021 " + Global::kOrganizationName);
+    textLines.push_back("Copyright 2018-2023 " + Global::kOrganizationName);
     textLines.push_back("");
     textLines.push_back("Using:");
     textLines.push_back("  Qt " + QString(qVersion()));
