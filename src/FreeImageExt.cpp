@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cmath>
 #include <tuple>
 #include "PluginFLO.h"
 #include "PluginSVG.h"
@@ -95,9 +96,24 @@ namespace
         return dst;
     }
 
+    template <typename Ty_>
+    struct NanAwareLess
+    {
+        bool operator()(const Ty_& currVal, const Ty_& prevMin) const {
+            return std::isnan(prevMin) || currVal < prevMin;
+        }
+    };
 
-    template <typename ElemType_, typename Less_ = std::less<>>
-    std::tuple<ElemType_*, ElemType_*> findMinMax(FIBITMAP* src, Less_ less = Less_{})
+    template <typename Ty_>
+    struct NanAwareGreater
+    {
+        bool operator()(const Ty_& currVal, const Ty_& prevMax) const {
+            return std::isnan(prevMax) || currVal > prevMax;
+        }
+    };
+
+    template <typename ElemType_, typename Less_ = NanAwareLess<ElemType_>, typename Greater_ = NanAwareGreater<ElemType_>>
+    std::tuple<ElemType_*, ElemType_*> findMinMax(FIBITMAP* src, Less_ less = Less_{}, Greater_ greater = Greater_{})
     {
         if (!src) {
             return std::tuple<ElemType_*, ElemType_*>(nullptr, nullptr);
@@ -115,7 +131,7 @@ namespace
                 if (less(*srcLine, *minIt)) {
                     minIt = srcLine;
                 }
-                if (less(*maxIt, *srcLine)) {
+                if (greater(*srcLine, *maxIt)) {
                     maxIt = srcLine;
                 }
             }
@@ -143,24 +159,46 @@ namespace
     }
 
     inline
-    bool LessBrightness(const tagRGBTRIPLE& p1, const tagRGBTRIPLE& p2)
+    uint32_t GetBrightness(const tagRGBTRIPLE& p)
     {
-        const uint32_t b1 = 114 * p1.rgbtBlue + 587 * p1.rgbtGreen + 299 * p1.rgbtRed;
-        const uint32_t b2 = 114 * p2.rgbtBlue + 587 * p2.rgbtGreen + 299 * p2.rgbtRed;
-        return b1 < b2;
+        return 114 * p.rgbtBlue + 587 * p.rgbtGreen + 299 * p.rgbtRed;
     }
 
-    inline
-    bool LessBrightness(const tagFIRGBF& p1, const tagFIRGBF& p2)
+    struct LessBrightness
     {
-        return GetBrightness(p1) < GetBrightness(p2);
-    }
+        bool operator()(const tagRGBTRIPLE& currVal, const tagRGBTRIPLE& prevMin) const
+        {
+            return GetBrightness(currVal) < GetBrightness(prevMin);
+        }
 
-    inline
-    bool LessBrightness(const tagFIRGBAF& p1, const tagFIRGBAF& p2)
+        bool operator()(const tagFIRGBF& currVal, const tagFIRGBF& prevMin) const
+        {
+            return NanAwareLess<float>{}(GetBrightness(currVal), GetBrightness(prevMin));
+        }
+
+        bool operator()(const tagFIRGBAF& currVal, const tagFIRGBAF& prevMin) const
+        {
+            return NanAwareLess<float>{}(GetBrightness(currVal), GetBrightness(prevMin));
+        }
+    };
+
+    struct GreaterBrightness
     {
-        return GetBrightness(p1) < GetBrightness(p2);
-    }
+        bool operator()(const tagRGBTRIPLE& currVal, const tagRGBTRIPLE& prevMax) const
+        {
+            return GetBrightness(currVal) > GetBrightness(prevMax);
+        }
+
+        bool operator()(const tagFIRGBF& currVal, const tagFIRGBF& prevMax) const
+        {
+            return NanAwareGreater<float>{}(GetBrightness(currVal), GetBrightness(prevMax));
+        }
+
+        bool operator()(const tagFIRGBAF& currVal, const tagFIRGBAF& prevMax) const
+        {
+            return NanAwareGreater<float>{}(GetBrightness(currVal), GetBrightness(prevMax));
+        }
+    };
 
     template <typename Ty_>
     inline
@@ -208,7 +246,7 @@ namespace
             case FIT_RGBAF: {
                 tagFIRGBAF* minVal = nullptr;
                 tagFIRGBAF* maxVal = nullptr;
-                std::tie(minVal, maxVal) = findMinMax<tagFIRGBAF>(src, static_cast<bool(*)(const tagFIRGBAF&, const tagFIRGBAF&)>(&LessBrightness));
+                std::tie(minVal, maxVal) = findMinMax<tagFIRGBAF, LessBrightness, GreaterBrightness>(src);
                 if (minVal != maxVal) {
                     const float maxBrighness = GetBrightness(*maxVal);
                     const float minBrighness = GetBrightness(*minVal);
@@ -232,7 +270,7 @@ namespace
             case FIT_RGBF : {
                 tagFIRGBF* minVal = nullptr;
                 tagFIRGBF* maxVal = nullptr;
-                std::tie(minVal, maxVal) = findMinMax<tagFIRGBF>(src, static_cast<bool(*)(const tagFIRGBF&, const tagFIRGBF&)>(&LessBrightness));
+                std::tie(minVal, maxVal) = findMinMax<tagFIRGBF, LessBrightness, GreaterBrightness>(src);
                 if (minVal != maxVal) {
                     const float maxBrighness = GetBrightness(*maxVal);
                     const float minBrighness = GetBrightness(*minVal);
