@@ -210,7 +210,7 @@ void ViewerApplication::onReloadImage()
 
 void ViewerApplication::onOpenImage()
 {
-    QString input = QFileDialog::getOpenFileName(nullptr, "Open File", mDirectory.absolutePath(), Global::getSupportedExtensionsFilterString());
+    QString input = QFileDialog::getOpenFileName(nullptr, "Open File", mDirectory.absolutePath(), Global::getSupportedExtensionsFilterString() + ";;All files (*.*)");
     if (!input.isEmpty()) {
         open(input);
     }
