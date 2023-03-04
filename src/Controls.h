@@ -34,6 +34,7 @@ enum class ControlAction
     eOpenFile,
     eSaveFile,
     eReload,
+    eCopyFrame,
     ePreviousImage,
     eNextImage,
     eFirstImage,
@@ -73,6 +74,8 @@ QString toQString(ControlAction a)
         return "SaveFile";
     case ControlAction::eReload:
         return "Reload";
+    case ControlAction::eCopyFrame:
+        return "CopyFrame";
     case ControlAction::ePreviousImage:
         return "PreviousImage";
     case ControlAction::eNextImage:

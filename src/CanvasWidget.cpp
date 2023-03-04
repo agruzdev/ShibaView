@@ -24,6 +24,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QActionGroup>
+#include <QClipboard>
 #include <QColor>
 #include <QFileDialog>
 #include <QKeyEvent>
@@ -982,6 +983,28 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
                 }
                 if (!error.isEmpty()) {
                     QMessageBox::critical(this, "Error!", tr("Failed to save file. Reason: ") + QString(error));
+                }
+            }
+        }
+        break;
+
+    case ControlAction::eCopyFrame:
+        if (!mTransitionRequested && !mEnableAnimation) {
+            if (mImage && mImage->notNull() && mImageProcessor) {
+                QString error;
+                try {
+                    if (QClipboard* clipboard = QApplication::clipboard()) {
+                        clipboard->setPixmap(mImageProcessor->getResultPixmap().transformed(QTransform::fromScale(1.0, -1.0)));
+                    }
+                    else {
+                        throw std::runtime_error("Clipboard is not available.");
+                    }
+                }
+                catch (std::exception& err) {
+                    error = QString::fromUtf8(err.what());
+                }
+                if (!error.isEmpty()) {
+                    QMessageBox::critical(this, "Error!", tr("Failed to copy frame. Reason: ") + QString(error));
                 }
             }
         }

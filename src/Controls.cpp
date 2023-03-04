@@ -82,7 +82,8 @@ Controls::Controls()
     loadKey(ControlAction::eOverlay, "Show overlay", Qt::Key_Tab);
     loadKey(ControlAction::eOpenFile, "Open file dialog", Qt::ControlModifier | Qt::Key_O);
     loadKey(ControlAction::eSaveFile, "Save file dialog", Qt::ControlModifier | Qt::Key_S);
-    loadKey(ControlAction::eReload, "Reload the current image", Qt::ControlModifier | Qt::Key_R);
+    loadKey(ControlAction::eReload, "Reload current image", Qt::ControlModifier | Qt::Key_R);
+    loadKey(ControlAction::eCopyFrame, "Copy current frame to clipboard", Qt::ControlModifier | Qt::Key_C);
     loadKey(ControlAction::ePreviousImage, "Previous image", Qt::Key_Left, Qt::KeypadModifier | Qt::Key_Left);
     loadKey(ControlAction::eNextImage, "Next image", Qt::Key_Right, Qt::KeypadModifier | Qt::Key_Right);
     loadKey(ControlAction::eFirstImage, "First image", Qt::Key_Home);
