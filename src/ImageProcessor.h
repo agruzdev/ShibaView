@@ -64,8 +64,6 @@ enum class ChannelSwizzle
 };
 
 
-using UniqueBitmap = std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)>;
-
 class ImageProcessor
     : public ImageListener
 {

@@ -378,6 +378,8 @@ ImageFrame Player::cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload)
         else if (8 == bpp) {
             const auto colorType = FreeImage_GetColorType(src);
             if (FIC_PALETTE == colorType) {
+                //FreeImage_Save(FIF_TIFF, src, "test.tiff");
+
                 frame.flags = FrameFlags::eRGB;
                 frame.bmp = FreeImage_ConvertTo32Bits(src);
                 dstNeedUnload = true;
@@ -420,4 +422,43 @@ ImageFrame Player::cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload)
         break;
     }
     return frame;
+}
+
+
+UniqueBitmap Player::getOrMakeThumbnail(FIBITMAP* src, uint32_t maxSize)
+{
+    UniqueBitmap result(nullptr, &FreeImage_Unload);
+    if (src) {
+        if (FIBITMAP* storedThumbnail = FreeImage_GetThumbnail(src)) {
+            const unsigned w = FreeImage_GetWidth(storedThumbnail);
+            const unsigned h = FreeImage_GetHeight(storedThumbnail);
+            if (w > maxSize || h > maxSize) {
+                const unsigned size = std::max(w, h);
+                result.reset(FreeImage_Rescale(storedThumbnail, w * maxSize / size, h * maxSize / size, FILTER_BICUBIC));
+            }
+        }
+        else {
+            bool needToUnload = false;
+            auto internalFrame = cvtToInternalType(src, needToUnload);
+            if (internalFrame.bmp) {
+                FIBITMAP* ldrFrame = internalFrame.bmp;
+                if ((internalFrame.flags & FrameFlags::eHRD) != FrameFlags::eNone) {
+                    ldrFrame = FreeImageExt_ToneMapping(internalFrame.bmp, FIETMO_LINEAR);
+                }
+                if (ldrFrame) {
+                    const unsigned w = FreeImage_GetWidth(ldrFrame);
+                    const unsigned h = FreeImage_GetHeight(ldrFrame);
+                    const unsigned size = std::max(w, h);
+                    result.reset(FreeImage_Rescale(ldrFrame, w * maxSize / size, h * maxSize / size, FILTER_BICUBIC));
+                }
+                if (ldrFrame != internalFrame.bmp) {
+                    FreeImage_Unload(ldrFrame);
+                }
+                if (needToUnload) {
+                    FreeImage_Unload(internalFrame.bmp);
+                }
+            }
+        }
+    }
+    return result;
 }

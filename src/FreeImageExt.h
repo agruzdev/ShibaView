@@ -126,6 +126,9 @@ const char* FreeImageExt_DescribeImageType(FIBITMAP* dib);
 
 
 #ifdef __cplusplus
+
+using UniqueBitmap = std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)>;
+
 template <typename Ty_>
 inline
 const Ty_& FreeImageExt_GetTagValue(FITAG* tag)

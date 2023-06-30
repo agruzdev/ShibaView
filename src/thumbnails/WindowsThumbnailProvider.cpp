@@ -151,54 +151,21 @@ public:
                 throw std::runtime_error("Failed to read file");
             }
 
-
 #if ENABLE_LOG
             mLog << L"Page is locked " << mFilePath << std::endl;
 #endif
-
-            std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> thumbnailGenerated(nullptr, &::FreeImage_Unload);
-            FIBITMAP *thumbnail = FreeImage_GetThumbnail(page->getBitmap());
+            UniqueBitmap thumbnail = Player::getOrMakeThumbnail(page->getBitmap(), cx);
             if (!thumbnail) {
-                thumbnailGenerated.reset(FreeImage_MakeThumbnail(page->getBitmap(), cx, true));
-                thumbnail = thumbnailGenerated.get();
-            }
-            else if (FreeImage_GetHeight(thumbnail) > cx || FreeImage_GetWidth(thumbnail) > cx) {
-                thumbnailGenerated.reset(FreeImage_MakeThumbnail(thumbnail, cx, true));
-                thumbnail = thumbnailGenerated.get();
-            }
-
-            if (!thumbnail) {
-                throw std::runtime_error("Failed to acquire a thumbnail");
+                throw std::runtime_error("Failed to make a thumbnail");
             }
 
 #if ENABLE_LOG
             mLog << L"Got thumbnail " << mFilePath << std::endl;
 #endif
 
-            bool unloadInternalFrame = false;
-            ImageFrame internalFrame = Player::cvtToInternalType(thumbnail, unloadInternalFrame);
-            if(!internalFrame.bmp) {
-                throw std::runtime_error("Failed to convert thumbnail");
-            }
-
-            std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> tonemappedFramePtr(nullptr, &::FreeImage_Unload);
-            FIBITMAP* tonemappedFrame;
-            if ((internalFrame.flags & FrameFlags::eHRD) != FrameFlags::eNone) {
-                tonemappedFramePtr.reset(FreeImageExt_ToneMapping(internalFrame.bmp, FIETMO_LINEAR));
-                tonemappedFrame = tonemappedFramePtr.get();
-            }
-            else {
-                tonemappedFrame = internalFrame.bmp;
-            }
-
-#if ENABLE_LOG
-            mLog << L"Tonemmaped thumbnail " << mFilePath << std::endl;
-#endif
-
-            const uint32_t bmpHeight = FreeImage_GetHeight(tonemappedFrame);
-            const uint32_t bmpWidth  = FreeImage_GetWidth(tonemappedFrame);
-            const size_t   bmpStride = bmpWidth * 4;
-
+            const uint32_t bmpHeight = FreeImage_GetHeight(thumbnail.get());
+            const uint32_t bmpWidth  = FreeImage_GetWidth(thumbnail.get());
+            const size_t   bmpStride = static_cast<size_t>(bmpWidth) * 4u;
 
             BITMAPINFO bmi{};
             bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
@@ -208,13 +175,11 @@ public:
             bmi.bmiHeader.biBitCount = 32;
             bmi.bmiHeader.biCompression = BI_RGB;
 
-
             BYTE *pBits = nullptr;
             std::unique_ptr<std::remove_pointer_t<HBITMAP>, decltype(&::DeleteObject)> bmp(CreateDIBSection(nullptr, &bmi, DIB_RGB_COLORS, reinterpret_cast<void**>(&pBits), nullptr, 0), &::DeleteObject);
             if (!pBits) {
                 throw std::runtime_error("Failed to CreateDIBSection()");
             }
-
 
 #if ENABLE_LOG
             mLog << L"Allocated HBITMAP " << mFilePath << std::endl;
@@ -222,13 +187,13 @@ public:
 
             WTS_ALPHATYPE resultAlpha = WTSAT_RGB;
 
-            switch (FreeImage_GetBPP(tonemappedFrame)) {
+            switch (FreeImage_GetBPP(thumbnail.get())) {
             case 1:
                 for (uint32_t y = 0; y < bmpHeight; ++y) {
                     const auto dstLine = reinterpret_cast<RGBQUAD*>(pBits + y * bmpStride);
                     for (uint32_t x = 0; x < bmpWidth; ++x) {
                         BYTE val = 0;
-                        FreeImage_GetPixelIndex(tonemappedFrame, x, y, &val);
+                        FreeImage_GetPixelIndex(thumbnail.get(), x, y, &val);
                         val = val ? 255 : 0;
                         dstLine[x].rgbRed   = val;
                         dstLine[x].rgbGreen = val;
@@ -238,7 +203,7 @@ public:
                 break;
             case 8:
                 for (uint32_t y = 0; y < bmpHeight; ++y) {
-                    const auto srcLine = reinterpret_cast<const BYTE*>(FreeImage_GetScanLine(tonemappedFrame, y));
+                    const auto srcLine = reinterpret_cast<const BYTE*>(FreeImage_GetScanLine(thumbnail.get(), y));
                     const auto dstLine = reinterpret_cast<RGBQUAD*>(pBits + y * bmpStride);
                     for (uint32_t x = 0; x < bmpWidth; ++x) {
                         const BYTE val = srcLine[x];
@@ -250,7 +215,7 @@ public:
                 break;
             case 24:
                 for (uint32_t y = 0; y < bmpHeight; ++y) {
-                    const auto srcLine = reinterpret_cast<const FIE_RGBTRIPLE*>(FreeImage_GetScanLine(tonemappedFrame, y));
+                    const auto srcLine = reinterpret_cast<const FIE_RGBTRIPLE*>(FreeImage_GetScanLine(thumbnail.get(), y));
                     const auto dstLine = reinterpret_cast<RGBQUAD*>(pBits + y * bmpStride);
                     for (uint32_t x = 0; x < bmpWidth; ++x) {
                         dstLine[x].rgbRed   = srcLine[x].rgbtRed;
@@ -261,7 +226,7 @@ public:
                 break;
             case 32:
                 for (uint32_t y = 0; y < bmpHeight; ++y) {
-                    const auto srcLine = reinterpret_cast<const FIE_RGBQUAD*>(FreeImage_GetScanLine(tonemappedFrame, y));
+                    const auto srcLine = reinterpret_cast<const FIE_RGBQUAD*>(FreeImage_GetScanLine(thumbnail.get(), y));
                     const auto dstLine = reinterpret_cast<RGBQUAD*>(pBits + y * bmpStride);
                     for (uint32_t x = 0; x < bmpWidth; ++x) {
                         dstLine[x].rgbRed       = srcLine[x].rgbRed;
@@ -279,11 +244,6 @@ public:
 #if ENABLE_LOG
             mLog << L"Copied HBITMAP " << mFilePath << std::endl;
 #endif
-
-            if (unloadInternalFrame) {
-                FreeImage_Unload(internalFrame.bmp);
-                internalFrame.bmp = nullptr;
-            }
 
             if (phbmp) {
 #if ENABLE_LOG

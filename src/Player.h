@@ -102,6 +102,9 @@ public:
     static
     ImageFrame cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload);
 
+    static
+    UniqueBitmap getOrMakeThumbnail(FIBITMAP* src, uint32_t maxSize);
+
 private:
     struct ConvertionContext;
 

@@ -30,6 +30,7 @@
 #include <QFileInfo>
 #include "Global.h"
 #include "ViewerApplication.h"
+#include "Player.h"
 
 
 namespace
@@ -129,6 +130,15 @@ try
     if (input.isEmpty()) {
         return 0;
     }
+
+#if 0
+    // debug thumbnail
+    auto bitmapSource = ImageSource::Load(input);
+    auto page0 = bitmapSource->lockPage(0);
+    auto bmp = Player::getOrMakeThumbnail(page0->getBitmap(), 64);
+    FreeImage_Save(FIF_PNG, bmp.get(), "thumbnail.png");
+    return 0;
+#endif
 
     ViewerApplication viewer(t);
     viewer.open(input);
