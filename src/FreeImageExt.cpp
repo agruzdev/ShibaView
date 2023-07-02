@@ -529,6 +529,12 @@ const char* FreeImageExt_DescribeImageType(FIBITMAP* dib)
         case FIT_RGB16:
             return "RGB16";
 
+        case FIT_RGBA32:
+            return "RGBA32";
+
+        case FIT_RGB32:
+            return "RGB32";
+
         case FIT_UINT16:
             return "Greyscale 16bit";
 

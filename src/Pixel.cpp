@@ -46,6 +46,14 @@ bool Pixel::getBitmapPixel(FIBITMAP* src, uint32_t y, uint32_t x, Pixel* pixel)
         pixel->repr = pixelToString3<FIRGB16>(rawPixel);
         break;
 
+    case FIT_RGBA32:
+        pixel->repr = pixelToString4<FIRGBA32>(rawPixel);
+        break;
+
+    case FIT_RGB32:
+        pixel->repr = pixelToString3<FIRGB32>(rawPixel);
+        break;
+
     case FIT_UINT16:
         pixel->repr = pixelToString1<uint16_t>(rawPixel);
         break;

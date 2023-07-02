@@ -330,14 +330,14 @@ ImageFrame Player::cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload)
         break;
 
     case FIT_RGBA16:
-        assert(bpp == 64);
+    case FIT_RGBA32:
         frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
         frame.bmp = FreeImage_ConvertToRGBAF(src);
         dstNeedUnload = true;
         break;
 
     case FIT_RGB16:
-        assert(bpp == 48);
+    case FIT_RGB32:
         frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
         frame.bmp = FreeImage_ConvertToRGBF(src);
         dstNeedUnload = true;
