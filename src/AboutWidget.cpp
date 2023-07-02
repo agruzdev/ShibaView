@@ -22,10 +22,13 @@
 #include <QColor>
 #include <QString>
 #include <QKeyEvent>
+#include <QLibrary>
 #include "Controls.h"
 #include "Global.h"
 #include "TextWidget.h"
 #include "FreeImage.h"
+#include "FreeImageLib.h"
+
 
 namespace
 {
@@ -36,6 +39,15 @@ namespace
     };
 
     WidgetStaticContext gAboutWidgetStaticContext{};
+
+
+    QString makeFreeImageVersion()
+    {
+        if (auto versionFunction = FreeImageLib::getInstance().findSymbol("FreeImageRe_GetVersion")) {
+            return "FreeImageRe v" + QString(reinterpret_cast<const char*(*)(void)>(versionFunction)()) + " (" + QString(FreeImage_GetVersion()) + ")";
+        }
+        return "FreeImage v" + QString(FreeImage_GetVersion());
+    }
 }
 
 AboutWidget& AboutWidget::getInstance()
@@ -63,8 +75,8 @@ AboutWidget::AboutWidget()
     textLines.push_back("Copyright 2018-2023 " + Global::kOrganizationName);
     textLines.push_back("");
     textLines.push_back("Using:");
-    textLines.push_back("  Qt " + QString(qVersion()));
-    textLines.push_back("  FreeImage " + QString(FreeImage_GetVersion()));
+    textLines.push_back("  Qt v" + QString(qVersion()));
+    textLines.push_back("  " + makeFreeImageVersion());
     textLines.push_back("");
     textLines.push_back("");
     textLines.push_back("Controls:");

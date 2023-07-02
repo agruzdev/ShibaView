@@ -99,6 +99,8 @@ set(app_sources
     ./src/ExifWidget.cpp
     ./src/FreeImageExt.h
     ./src/FreeImageExt.cpp
+    ./src/FreeImageLib.h
+    ./src/FreeImageLib.cpp
     ./src/Global.h
     ./src/Global.cpp
     ./src/Image.h
@@ -155,6 +157,9 @@ endif()
 target_compile_features(ShibaView PRIVATE cxx_std_14)
 
 target_link_libraries(ShibaView Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Svg ${FreeImage_LIBRARY})
+if (UNIX)
+    target_link_libraries(ShibaView dl)
+endif()
 
 set_property(TARGET ShibaView PROPERTY AUTORCC_OPTIONS "--no-compress")
 
