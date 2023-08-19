@@ -24,6 +24,7 @@
 
 #include "ImageSource.h"
 #include "FreeImageExt.h"
+#include "PluginFLO.h"
 
 namespace
 {
@@ -362,6 +363,13 @@ ImageFrame Player::cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload)
         frame.flags = FrameFlags::eHRD;
         frame.bmp = src;
         dstNeedUnload = false;
+        break;
+
+    case FIT_COMPLEXF:
+    case FIT_COMPLEX:
+        frame.flags = FrameFlags::eNone;
+        frame.bmp = cvtFloToRgb(src);
+        dstNeedUnload = true;
         break;
 
     case FIT_BITMAP:

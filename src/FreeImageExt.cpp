@@ -100,6 +100,12 @@ const char* FreeImageExt_DescribeImageType(FIBITMAP* dib)
         case FIT_DOUBLE:
             return "Greyscale Float64";
 
+        case FIT_COMPLEXF:
+            return "Complex Float32";
+
+        case FIT_COMPLEX:
+            return "Complex Float64";
+
         case FIT_BITMAP:
             switch(FreeImage_GetBPP(dib)) {
 

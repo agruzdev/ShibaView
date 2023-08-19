@@ -31,6 +31,10 @@ ImagePage::~ImagePage()
 
 QString ImagePage::doDescribeFormat() const
 {
+    const std::string customDescription = FreeImageExt_GetMetadataValue<std::string>(FIMD_CUSTOM, mBitmap, "ImageType", "");
+    if (!customDescription.empty()) {
+        return QString::fromUtf8(customDescription);
+    }
     return FreeImageExt_DescribeImageType(mBitmap);
 }
 

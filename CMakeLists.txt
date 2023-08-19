@@ -110,8 +110,6 @@ set(app_sources
     ./src/ImageLoader.cpp
     ./src/ImagePage.h
     ./src/ImagePage.cpp
-    ./src/ImagePageFLO.h
-    ./src/ImagePageFLO.cpp
     ./src/ImageProcessor.h
     ./src/ImageProcessor.cpp
     ./src/ImageSource.h
@@ -195,8 +193,6 @@ if(WIN32)
         ./src/Global.cpp
         ./src/ImagePage.h
         ./src/ImagePage.cpp
-        ./src/ImagePageFLO.h
-        ./src/ImagePageFLO.cpp
         ./src/ImageSource.h
         ./src/ImageSource.cpp
         ./src/MultiBitmapsource.h

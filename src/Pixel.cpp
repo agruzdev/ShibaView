@@ -78,6 +78,14 @@ bool Pixel::getBitmapPixel(FIBITMAP* src, uint32_t y, uint32_t x, Pixel* pixel)
         pixel->repr = pixelToString1<double>(rawPixel);
         break;
 
+    case FIT_COMPLEXF:
+        pixel->repr = pixelToString2<FICOMPLEXF>(rawPixel);
+        break;
+
+    case FIT_COMPLEX:
+        pixel->repr = pixelToString2<FICOMPLEX>(rawPixel);
+        break;
+
     case FIT_BITMAP: {
             if (FIC_PALETTE == FreeImage_GetColorType(src)) {
                 const FIRGBA8* palette = FreeImage_GetPalette(src);

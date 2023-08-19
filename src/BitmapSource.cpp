@@ -19,7 +19,6 @@
 #include "BitmapSource.h"
 #include <stdexcept>
 #include "FreeImageExt.h"
-#include "ImagePageFLO.h"
 
 BitmapSource::BitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif)
     : mImageFormat(fif)
@@ -48,12 +47,7 @@ uint32_t BitmapSource::doPagesCount() const
 
 const ImagePage* BitmapSource::doDecodePage(uint32_t /*pageIdx*/)
 {
-    switch(mImageFormat) {
-    case FIEF_FLO:
-        return new ImagePageFLO(mBitmap, mImageFormat);
-    default:
-        return new ImagePage(mBitmap, mImageFormat);
-    }
+    return new ImagePage(mBitmap, mImageFormat);
 }
 
 void BitmapSource::doReleasePage(const ImagePage* page)

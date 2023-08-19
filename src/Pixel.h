@@ -73,6 +73,14 @@ QString pixelToString3(const uint8_t* raw)
 
 template <typename PTy_>
 inline
+QString pixelToString2(const uint8_t* raw)
+{
+    const auto p = static_cast<const PTy_*>(static_cast<const void*>(raw));
+    return QString("%1, %2").arg(numberToQString(p->r)).arg(numberToQString(p->i));
+}
+
+template <typename PTy_>
+inline
 QString pixelToString1(const uint8_t* raw)
 {
     const auto p = static_cast<const PTy_*>(static_cast<const void*>(raw));
