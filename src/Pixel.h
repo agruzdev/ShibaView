@@ -57,47 +57,23 @@ QString numberToQString<double>(double v)
 
 template <typename PTy_>
 inline
-QString pixelToString4(const BYTE* raw)
+QString pixelToString4(const uint8_t* raw)
 {
     const auto p = static_cast<const PTy_*>(static_cast<const void*>(raw));
     return QString("%1, %2, %3, %4").arg(numberToQString(p->red)).arg(numberToQString(p->green)).arg(numberToQString(p->blue)).arg(numberToQString(p->alpha));
 }
 
-template <>
-inline
-QString pixelToString4<RGBQUAD>(const BYTE* raw)
-{
-    const auto p = static_cast<const RGBQUAD*>(static_cast<const void*>(raw));
-    return QString("%1, %2, %3, %4").arg(numberToQString(p->rgbRed)).arg(numberToQString(p->rgbGreen)).arg(numberToQString(p->rgbBlue)).arg(numberToQString(p->rgbReserved));
-}
-
 template <typename PTy_>
 inline
-QString pixelToString3(const BYTE* raw)
+QString pixelToString3(const uint8_t* raw)
 {
     const auto p = static_cast<const PTy_*>(static_cast<const void*>(raw));
     return QString("%1, %2, %3").arg(numberToQString(p->red)).arg(numberToQString(p->green)).arg(numberToQString(p->blue));
 }
 
-template <>
-inline
-QString pixelToString3<RGBTRIPLE>(const BYTE* raw)
-{
-    const auto p = static_cast<const RGBTRIPLE*>(static_cast<const void*>(raw));
-    return QString("%1, %2, %3").arg(numberToQString(p->rgbtRed)).arg(numberToQString(p->rgbtGreen)).arg(numberToQString(p->rgbtBlue));
-}
-
-template <>
-inline
-QString pixelToString3<RGBQUAD>(const BYTE* raw)
-{
-    const auto p = static_cast<const RGBTRIPLE*>(static_cast<const void*>(raw));
-    return QString("%1, %2, %3").arg(numberToQString(p->rgbtRed)).arg(numberToQString(p->rgbtGreen)).arg(numberToQString(p->rgbtBlue));
-}
-
 template <typename PTy_>
 inline
-QString pixelToString1(const BYTE* raw)
+QString pixelToString1(const uint8_t* raw)
 {
     const auto p = static_cast<const PTy_*>(static_cast<const void*>(raw));
     return numberToQString(*p);

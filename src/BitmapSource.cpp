@@ -29,7 +29,7 @@ BitmapSource::BitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif)
     mBitmap = FreeImage_LoadU(mImageFormat, uniName.c_str(), JPEG_EXIFROTATE);
 #else
     const auto utfName = filename.toUtf8().toStdString();
-    mBitmap = FreeImage_Load(fif, utfName.c_str(), JPEG_EXIFROTATE);
+    mBitmap = FreeImage_Load(mImageFormat, utfName.c_str(), JPEG_EXIFROTATE);
 #endif
     if (nullptr == mBitmap) {
         throw std::runtime_error("BitmapSource[BitmapSource]: Failed to load file.");

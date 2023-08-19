@@ -27,7 +27,6 @@
 #include "Global.h"
 #include "TextWidget.h"
 #include "FreeImage.h"
-#include "FreeImageLib.h"
 
 
 namespace
@@ -39,15 +38,6 @@ namespace
     };
 
     WidgetStaticContext gAboutWidgetStaticContext{};
-
-
-    QString makeFreeImageVersion()
-    {
-        if (auto versionFunction = FreeImageLib::getInstance().findSymbol("FreeImageRe_GetVersion")) {
-            return "FreeImageRe v" + QString(reinterpret_cast<const char*(*)(void)>(versionFunction)()) + " (" + QString(FreeImage_GetVersion()) + ")";
-        }
-        return "FreeImage v" + QString(FreeImage_GetVersion());
-    }
 }
 
 AboutWidget& AboutWidget::getInstance()
@@ -76,7 +66,7 @@ AboutWidget::AboutWidget()
     textLines.push_back("");
     textLines.push_back("Using:");
     textLines.push_back("  Qt v" + QString(qVersion()));
-    textLines.push_back("  " + makeFreeImageVersion());
+    textLines.push_back("  FreeImageRe v" + QString(FreeImageRe_GetVersion()) + " (" + QString::number(FREEIMAGE_MAJOR_VERSION) + "." + QString::number(FREEIMAGE_MINOR_VERSION) + ")");
     textLines.push_back("");
     textLines.push_back("");
     textLines.push_back("Controls:");

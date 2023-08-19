@@ -46,11 +46,11 @@ MultibitmapSource::MultibitmapSource(const QString & filename, FREE_IMAGE_FORMAT
         fread(mBuffer->data.data(), sizeof(unsigned char), mBuffer->data.size(), file);
         fclose(file);
 
-        if(mBuffer->data.size() > std::numeric_limits<DWORD>::max()) {
+        if(mBuffer->data.size() > std::numeric_limits<uint32_t>::max()) {
             throw std::runtime_error("MultibitmapSource[MultibitmapSource]: Input file is too big!");
         }
 
-        mBuffer->stream = FreeImage_OpenMemory(mBuffer->data.data(), static_cast<DWORD>(mBuffer->data.size()));
+        mBuffer->stream = FreeImage_OpenMemory(mBuffer->data.data(), static_cast<uint32_t>(mBuffer->data.size()));
         if (mBuffer->stream) {
             mMultibitmap = FreeImage_LoadMultiBitmapFromMemory(mImageFormat, mBuffer->stream, JPEG_EXIFROTATE);
         }

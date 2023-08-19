@@ -215,24 +215,24 @@ public:
                 break;
             case 24:
                 for (uint32_t y = 0; y < bmpHeight; ++y) {
-                    const auto srcLine = reinterpret_cast<const FIE_RGBTRIPLE*>(FreeImage_GetScanLine(thumbnail.get(), y));
+                    const auto srcLine = reinterpret_cast<const FIRGB8*>(FreeImage_GetScanLine(thumbnail.get(), y));
                     const auto dstLine = reinterpret_cast<RGBQUAD*>(pBits + y * bmpStride);
                     for (uint32_t x = 0; x < bmpWidth; ++x) {
-                        dstLine[x].rgbRed   = srcLine[x].rgbtRed;
-                        dstLine[x].rgbGreen = srcLine[x].rgbtGreen;
-                        dstLine[x].rgbBlue  = srcLine[x].rgbtBlue;
+                        dstLine[x].rgbRed   = srcLine[x].red;
+                        dstLine[x].rgbGreen = srcLine[x].green;
+                        dstLine[x].rgbBlue  = srcLine[x].blue;
                     }
                 }
                 break;
             case 32:
                 for (uint32_t y = 0; y < bmpHeight; ++y) {
-                    const auto srcLine = reinterpret_cast<const FIE_RGBQUAD*>(FreeImage_GetScanLine(thumbnail.get(), y));
+                    const auto srcLine = reinterpret_cast<const FIRGBA8*>(FreeImage_GetScanLine(thumbnail.get(), y));
                     const auto dstLine = reinterpret_cast<RGBQUAD*>(pBits + y * bmpStride);
                     for (uint32_t x = 0; x < bmpWidth; ++x) {
-                        dstLine[x].rgbRed       = srcLine[x].rgbRed;
-                        dstLine[x].rgbGreen     = srcLine[x].rgbGreen;
-                        dstLine[x].rgbBlue      = srcLine[x].rgbBlue;
-                        dstLine[x].rgbReserved  = srcLine[x].rgbReserved;
+                        dstLine[x].rgbRed       = srcLine[x].red;
+                        dstLine[x].rgbGreen     = srcLine[x].green;
+                        dstLine[x].rgbBlue      = srcLine[x].blue;
+                        dstLine[x].rgbReserved  = srcLine[x].alpha;
                     }
                 }
                 resultAlpha = WTSAT_ARGB;

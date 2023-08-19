@@ -28,7 +28,7 @@ bool Pixel::getBitmapPixel(FIBITMAP* src, uint32_t y, uint32_t x, Pixel* pixel)
     }
     bool success = true;
     const uint32_t bpp = FreeImage_GetBPP(src);
-    const BYTE* rawPixel = FreeImage_GetScanLine(src, static_cast<int>(y)) + x * bpp / 8;
+    const uint8_t* rawPixel = FreeImage_GetScanLine(src, static_cast<int>(y)) + x * bpp / 8;
     switch (FreeImage_GetImageType(src)) {
     case FIT_RGBAF:
         pixel->repr = pixelToString4<FIRGBAF>(rawPixel);
@@ -80,38 +80,38 @@ bool Pixel::getBitmapPixel(FIBITMAP* src, uint32_t y, uint32_t x, Pixel* pixel)
 
     case FIT_BITMAP: {
             if (FIC_PALETTE == FreeImage_GetColorType(src)) {
-                const RGBQUAD* palette = FreeImage_GetPalette(src);
+                const FIRGBA8* palette = FreeImage_GetPalette(src);
                 if(!palette) {
                     success = false;
                     break;
                 }
-                BYTE index = 0;
+                uint8_t index = 0;
                 if (!FreeImage_GetPixelIndex(src, x, y, &index)) {
                     success = false;
                     break;
                 }
-                RGBQUAD rgba = palette[index];
+                FIRGBA8 rgba = palette[index];
                 if (FreeImage_IsTransparent(src)) {
-                    const BYTE* transparency = FreeImage_GetTransparencyTable(src);
+                    const uint8_t* transparency = FreeImage_GetTransparencyTable(src);
                     const int alphaIndex = FreeImage_GetTransparentIndex(src);
                     if(!transparency || alphaIndex < 0) {
                         success = false;
                         break;
                     }
-                    rgba.rgbReserved = transparency[alphaIndex];
-                    pixel->repr = pixelToString4<RGBQUAD>(static_cast<const BYTE*>(static_cast<const void*>(&rgba)));
+                    rgba.alpha = transparency[alphaIndex];
+                    pixel->repr = pixelToString4<FIRGBA8>(static_cast<const uint8_t*>(static_cast<const void*>(&rgba)));
                 }
                 else {
-                    pixel->repr = pixelToString3<RGBQUAD>(static_cast<const BYTE*>(static_cast<const void*>(&rgba)));
+                    pixel->repr = pixelToString3<FIRGBA8>(static_cast<const uint8_t*>(static_cast<const void*>(&rgba)));
                 }
             }
             else {
                 switch(bpp) {
                     case 32:
-                        pixel->repr = pixelToString4<RGBQUAD>(rawPixel);
+                        pixel->repr = pixelToString4<FIRGBA8>(rawPixel);
                         break;
                     case 24:
-                        pixel->repr = pixelToString3<RGBTRIPLE>(rawPixel);
+                        pixel->repr = pixelToString3<FIRGB8>(rawPixel);
                         break;
                     case 16:
                         pixel->repr = pixelToString1<uint16_t>(rawPixel);

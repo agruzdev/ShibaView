@@ -51,7 +51,7 @@ QVector<QString> ImageDescription::toLines() const
     }
     res.push_back("File size: " + QString::number(mFileInfo.bytes / 1024.0f, 'f', 1) + "KB");
     res.push_back("Format: " + mFormat);
-    if (mToneMapping != FIE_ToneMapping::FIETMO_NONE) {
+    if (mToneMapping != FREE_IMAGE_TMO::FITMO_CLAMP) {
         res.back().append(" (TM: " + QString::fromUtf8(FreeImageExt_TMtoString(mToneMapping)) + ")");
     }
     if (mGammaValue != 1.0) {

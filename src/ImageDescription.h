@@ -40,7 +40,7 @@ public:
         mFormat = std::move(fmt);
     }
 
-    void setToneMapping(FIE_ToneMapping mode)
+    void setToneMapping(FREE_IMAGE_TMO mode)
     {
         mToneMapping = mode;
     }
@@ -82,7 +82,7 @@ private:
     ImageInfo mFileInfo;
     QString mFormat;
     float mZoomFactor = 1.0f;
-    FIE_ToneMapping mToneMapping = FIE_ToneMapping::FIETMO_NONE;
+    FREE_IMAGE_TMO mToneMapping = FITMO_CLAMP;
     double mGammaValue = 1.0;
     bool mChangedFlag = false;
     size_t mImageIndex = 0;

@@ -99,8 +99,6 @@ set(app_sources
     ./src/ExifWidget.cpp
     ./src/FreeImageExt.h
     ./src/FreeImageExt.cpp
-    ./src/FreeImageLib.h
-    ./src/FreeImageLib.cpp
     ./src/Global.h
     ./src/Global.cpp
     ./src/Image.h

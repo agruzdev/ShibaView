@@ -53,12 +53,12 @@ QString ImagePageFLO::doDescribeFormat() const
 
 bool ImagePageFLO::doGetPixel(uint32_t y, uint32_t x, Pixel* pixel) const
 {
-    const DWORD width  = FreeImage_GetWidth(mFlowImage) / 2;
-    const DWORD height = FreeImage_GetHeight(mFlowImage);
+    const unsigned width  = FreeImage_GetWidth(mFlowImage) / 2;
+    const unsigned height = FreeImage_GetHeight(mFlowImage);
 
     if (y < height && x < width) {
         const auto flowLine = reinterpret_cast<const float*>(FreeImage_GetScanLine(mFlowImage, y));
-        const DWORD x2 = x << 1;
+        const unsigned x2 = x << 1;
         pixel->repr = QString("%1, %2").arg(numberToQString(flowLine[x2])).arg(numberToQString(flowLine[x2 + 1]));
         return true;
     }

@@ -185,7 +185,7 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     mImageDescription->setDisplayPath(settings.value(kSettingsFullPath, false).toBool());
 
     mImageProcessor = std::make_unique<ImageProcessor>();
-    mImageProcessor->setToneMappingMode(static_cast<FIE_ToneMapping>(settings.value(kSettingsToneMapping, static_cast<int32_t>(FIE_ToneMapping::FIETMO_NONE)).toInt()));
+    mImageProcessor->setToneMappingMode(static_cast<FREE_IMAGE_TMO>(settings.value(kSettingsToneMapping, static_cast<int32_t>(FITMO_CLAMP)).toInt()));
 
     mZoomController = std::make_unique<ZoomController>(16, settings.value(kSettingsZoomFitValue, 128).toInt(), settings.value(kSettingsZoomScaleValue, 0).toInt());
 
@@ -312,13 +312,13 @@ QMenu* CanvasWidget::createContextMenu()
         if (mImage && mImage->notNull() && testFlag(mImage->getFrame().flags, FrameFlags::eHRD)) {
             auto& tmActions = mActToneMapping.get();
             // Manual order is important
-            tmMenu->addAction(tmActions[FIETMO_NONE]);
-            tmMenu->addAction(tmActions[FIETMO_LINEAR]);
-            tmMenu->addAction(tmActions[FIETMO_DRAGO03]);
-            tmMenu->addAction(tmActions[FIETMO_REINHARD05]);
-            tmMenu->addAction(tmActions[FIETMO_FATTAL02]);
+            tmMenu->addAction(tmActions[FITMO_CLAMP]);
+            tmMenu->addAction(tmActions[FITMO_LINEAR]);
+            tmMenu->addAction(tmActions[FITMO_DRAGO03]);
+            tmMenu->addAction(tmActions[FITMO_REINHARD05]);
+            tmMenu->addAction(tmActions[FITMO_FATTAL02]);
             for (int32_t i = 0; i < tmActions.size(); ++i) {
-                tmActions[i]->setChecked(static_cast<FIE_ToneMapping>(i) == mImageProcessor->toneMappingMode());
+                tmActions[i]->setChecked(static_cast<FREE_IMAGE_TMO>(i) == mImageProcessor->toneMappingMode());
             }
             tmAction->setEnabled(true);
         }
@@ -454,31 +454,31 @@ CanvasWidget::TMActionsArray CanvasWidget::initToneMappingActions()
     const auto groupTM = new QActionGroup(this);
     TMActionsArray actions = {};
 
-    actions[FIETMO_NONE] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FIETMO_NONE)));
-    actions[FIETMO_NONE]->setCheckable(true);
-    actions[FIETMO_NONE]->setActionGroup(groupTM);
+    actions[FITMO_CLAMP] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FITMO_CLAMP)));
+    actions[FITMO_CLAMP]->setCheckable(true);
+    actions[FITMO_CLAMP]->setActionGroup(groupTM);
 
-    actions[FIETMO_LINEAR] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FIETMO_LINEAR)));
-    actions[FIETMO_LINEAR]->setCheckable(true);
-    actions[FIETMO_LINEAR]->setActionGroup(groupTM);
+    actions[FITMO_LINEAR] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FITMO_LINEAR)));
+    actions[FITMO_LINEAR]->setCheckable(true);
+    actions[FITMO_LINEAR]->setActionGroup(groupTM);
 
-    actions[FIETMO_DRAGO03] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FIETMO_DRAGO03)));
-    actions[FIETMO_DRAGO03]->setCheckable(true);
-    actions[FIETMO_DRAGO03]->setActionGroup(groupTM);
+    actions[FITMO_DRAGO03] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FITMO_DRAGO03)));
+    actions[FITMO_DRAGO03]->setCheckable(true);
+    actions[FITMO_DRAGO03]->setActionGroup(groupTM);
 
-    actions[FIETMO_REINHARD05] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FIETMO_REINHARD05)));
-    actions[FIETMO_REINHARD05]->setCheckable(true);
-    actions[FIETMO_REINHARD05]->setActionGroup(groupTM);
+    actions[FITMO_REINHARD05] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FITMO_REINHARD05)));
+    actions[FITMO_REINHARD05]->setCheckable(true);
+    actions[FITMO_REINHARD05]->setActionGroup(groupTM);
 
-    actions[FIETMO_FATTAL02] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FIETMO_FATTAL02)));
-    actions[FIETMO_FATTAL02]->setCheckable(true);
-    actions[FIETMO_FATTAL02]->setActionGroup(groupTM);
+    actions[FITMO_FATTAL02] = createMenuAction(QString::fromUtf8(FreeImageExt_TMtoString(FITMO_FATTAL02)));
+    actions[FITMO_FATTAL02]->setCheckable(true);
+    actions[FITMO_FATTAL02]->setActionGroup(groupTM);
 
-    connect(actions[FIETMO_NONE],       &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_NONE      ));
-    connect(actions[FIETMO_LINEAR],     &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_LINEAR    ));
-    connect(actions[FIETMO_DRAGO03],    &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_DRAGO03   ));
-    connect(actions[FIETMO_REINHARD05], &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_REINHARD05));
-    connect(actions[FIETMO_FATTAL02],   &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FIETMO_FATTAL02  ));
+    connect(actions[FITMO_CLAMP],      &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FITMO_CLAMP     ));
+    connect(actions[FITMO_LINEAR],     &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FITMO_LINEAR    ));
+    connect(actions[FITMO_DRAGO03],    &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FITMO_DRAGO03   ));
+    connect(actions[FITMO_REINHARD05], &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FITMO_REINHARD05));
+    connect(actions[FITMO_FATTAL02],   &QAction::triggered, std::bind(&CanvasWidget::onActToneMapping, this, std::placeholders::_1, FITMO_FATTAL02  ));
 
     return actions;
 }
@@ -1533,7 +1533,7 @@ void CanvasWidget::onAnimationTick(uint64_t imgId)
     }
 }
 
-void CanvasWidget::onActToneMapping(bool checked, FIE_ToneMapping m)
+void CanvasWidget::onActToneMapping(bool checked, FREE_IMAGE_TMO m)
 {
     if (checked && mImage && !mImage->isNull() && testFlag(mImage->getFrame().flags, FrameFlags::eHRD)) {
         mImageProcessor->setToneMappingMode(m);

@@ -112,11 +112,11 @@ void initPluginSVG(Plugin *plugin, int format_id)
         return nullptr;
     };
 
-    plugin->save_proc = [](FreeImageIO* /*io*/, FIBITMAP* /*dib*/, fi_handle /*handle*/, int /*page*/, int /*flags*/, void* /*data*/) -> BOOL {
+    plugin->save_proc = [](FreeImageIO* /*io*/, FIBITMAP* /*dib*/, fi_handle /*handle*/, int /*page*/, int /*flags*/, void* /*data*/) -> FIBOOL {
         return FALSE;
     };
 
-    plugin->validate_proc = [](FreeImageIO* io, fi_handle handle) -> BOOL {
+    plugin->validate_proc = [](FreeImageIO* io, fi_handle handle) -> FIBOOL {
         // ToDo (a.gruzdev): Is it possible to not read the entire file?
 #if 0
         const auto xmlBuffer = loadXmlBuffer(io, handle);

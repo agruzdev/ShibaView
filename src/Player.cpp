@@ -131,7 +131,7 @@ std::unique_ptr<Player::ConvertionContext> Player::loadNextFrame(ImageSource* so
     if (source->storesDiffernece()) {
         FIBITMAP* canvas = FreeImage_Clone(prev->frame.bmp);
         const auto& nextAnim = next->page->getAnimation();
-        const auto drawSuccess = FreeImageExt_Draw(canvas, next->frame.bmp, FIEAF_SrcAlpha, nextAnim.offsetX, nextAnim.offsetY);
+        const auto drawSuccess = FreeImage_DrawBitmap(canvas, next->frame.bmp, FIAO_SrcAlpha, nextAnim.offsetX, nextAnim.offsetY);
 
         if (next->needsUnload) {
             FreeImage_Unload(next->frame.bmp);
@@ -347,7 +347,7 @@ ImageFrame Player::cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload)
     case FIT_INT16:
     case FIT_UINT32:
     case FIT_INT32:
-        frame.bmp = FreeImageExt_ConvertToFloat(src);
+        frame.bmp = FreeImage_ConvertToFloat(src);
         frame.flags = FrameFlags::eHRD;
         dstNeedUnload = true;
         break;
@@ -443,7 +443,7 @@ UniqueBitmap Player::getOrMakeThumbnail(FIBITMAP* src, uint32_t maxSize)
             if (internalFrame.bmp) {
                 FIBITMAP* ldrFrame = internalFrame.bmp;
                 if ((internalFrame.flags & FrameFlags::eHRD) != FrameFlags::eNone) {
-                    ldrFrame = FreeImageExt_ToneMapping(internalFrame.bmp, FIETMO_LINEAR);
+                    ldrFrame = FreeImage_ToneMapping(internalFrame.bmp, FITMO_LINEAR);
                 }
                 if (ldrFrame) {
                     const unsigned w = FreeImage_GetWidth(ldrFrame);

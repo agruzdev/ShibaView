@@ -79,7 +79,7 @@ class CanvasWidget final
     template <typename Enum_, size_t Length_ = static_cast<size_t>(Enum_::length_)>
     using ActionsArray = EnumArray<QWidgetAction*, Enum_, Length_>;
 
-    using TMActionsArray = ActionsArray<FIE_ToneMapping, 5>;
+    using TMActionsArray = ActionsArray<FREE_IMAGE_TMO, 5>;
 
 public:
     CanvasWidget(std::chrono::steady_clock::time_point t);
@@ -101,7 +101,7 @@ public slots:
     void onActFlip(bool checked, FlipType f);
     void onActZoomMode(bool checked, ZoomMode z);
     void onActRememberZoom(bool checked);
-    void onActToneMapping(bool checked, FIE_ToneMapping m);
+    void onActToneMapping(bool checked, FREE_IMAGE_TMO m);
     void onActGammaType(bool checked, GammaType g);
     void onActSwizzle(bool checked, ChannelSwizzle s);
     void onActTransparency(bool checked);

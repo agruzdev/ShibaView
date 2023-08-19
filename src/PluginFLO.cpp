@@ -56,7 +56,7 @@ namespace
             return instance;
         }
 
-        FIE_RGBTRIPLE computeColor(float fx, float fy) const
+        FIRGB8 computeColor(float fx, float fy) const
         {
             const float rad = std::sqrt(fx * fx + fy * fy);
             const float a = std::atan2(-fy, -fx) / M_PI;
@@ -64,7 +64,7 @@ namespace
             const int k0 = static_cast<int>(fk);
             const int k1 = (k0 + 1) % kMaxColors;
             float f = fk - k0;
-            BYTE pix[3] = {};
+            uint8_t pix[3] = {};
             for (int b = 0; b < 3; b++) {
                 const float col0 = mColors[k0][b] / 255.0;
                 const float col1 = mColors[k1][b] / 255.0;
@@ -77,10 +77,10 @@ namespace
                 }
                 pix[2 - b] = (int)(255.0 * col);
             }
-            FIE_RGBTRIPLE rgb;
-            rgb.rgbtRed = pix[2];
-            rgb.rgbtGreen = pix[1];
-            rgb.rgbtBlue = pix[0];
+            FIRGB8 rgb;
+            rgb.red   = pix[2];
+            rgb.green = pix[1];
+            rgb.blue  = pix[0];
             return rgb;
         }
 
@@ -91,48 +91,48 @@ namespace
             // these are chosen based on perceptual similarity
             // (e.g. one can distinguish more shades between red and yellow 
             //  than between yellow and green)
-            constexpr DWORD RY = 15;
-            constexpr DWORD YG = 6;
-            constexpr DWORD GC = 4;
-            constexpr DWORD CB = 11;
-            constexpr DWORD BM = 13;
-            constexpr DWORD MR = 6;
+            constexpr uint32_t RY = 15;
+            constexpr uint32_t YG = 6;
+            constexpr uint32_t GC = 4;
+            constexpr uint32_t CB = 11;
+            constexpr uint32_t BM = 13;
+            constexpr uint32_t MR = 6;
             static_assert(RY + YG + GC + CB + BM + MR == kMaxColors, "Invalid colors number");
 
             size_t k = 0;
-            for (DWORD i = 0; i < RY; i++) {
+            for (uint32_t i = 0; i < RY; i++) {
                 setColor(255, 255 * i / RY, 0, k++);
             }
-            for (DWORD i = 0; i < YG; i++) {
+            for (uint32_t i = 0; i < YG; i++) {
                 setColor(255 - 255 * i / YG, 255, 0, k++);
             }
-            for (DWORD i = 0; i < GC; i++) {
+            for (uint32_t i = 0; i < GC; i++) {
                 setColor(0, 255, 255 * i / GC, k++);
             }
-            for (DWORD i = 0; i < CB; i++) {
+            for (uint32_t i = 0; i < CB; i++) {
                 setColor(0, 255 - 255 * i / CB, 255, k++);
             }
-            for (DWORD i = 0; i < BM; i++) {
+            for (uint32_t i = 0; i < BM; i++) {
                 setColor(255 * i / BM, 0, 255, k++);
             }
-            for (DWORD i = 0; i < MR; i++) {
+            for (uint32_t i = 0; i < MR; i++) {
                 setColor(255, 0, 255 - 255 * i / MR, k++);
             }
         }
 
-        void setColor(DWORD r, DWORD g, DWORD b, size_t k)
+        void setColor(uint32_t r, uint32_t g, uint32_t b, size_t k)
         {
             assert(0 <= r && r <= 255);
             assert(0 <= g && g <= 255);
             assert(0 <= b && b <= 255);
-            mColors[k][0] = static_cast<BYTE>(r);
-            mColors[k][1] = static_cast<BYTE>(g);
-            mColors[k][2] = static_cast<BYTE>(b);
+            mColors[k][0] = static_cast<uint8_t>(r);
+            mColors[k][1] = static_cast<uint8_t>(g);
+            mColors[k][2] = static_cast<uint8_t>(b);
         }
 
         ~ColorWheel() = default;
 
-        std::array<BYTE[3], kMaxColors> mColors;
+        std::array<uint8_t[3], kMaxColors> mColors;
     };
 
     bool isUnknownFlow(float u, float v)
@@ -164,8 +164,8 @@ void initPluginFLO(Plugin *plugin, int format_id)
     plugin->load_proc = [](FreeImageIO* io, fi_handle handle, int /*page*/, int /*flags*/, void* /*data*/) -> FIBITMAP* {
 
         float tag = 0.0f;
-        DWORD width = 0;
-        DWORD height = 0;
+        uint32_t width = 0;
+        uint32_t height = 0;
 
         if (io->read_proc(&tag, sizeof(tag), 1, handle) != 1 ||
                 io->read_proc(&width, sizeof(width), 1, handle) != 1 ||
@@ -199,14 +199,14 @@ void initPluginFLO(Plugin *plugin, int format_id)
 
         std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> flowImage(FreeImage_AllocateT(FIT_FLOAT, flowLineSize, height, 32), &::FreeImage_Unload);
 
-        for (DWORD y = 0; y < height; y++) {
+        for (uint32_t y = 0; y < height; y++) {
             float* flowLine = reinterpret_cast<float*>(FreeImage_GetScanLine(flowImage.get(), height - 1 - y));
             if (io->read_proc(flowLine, sizeof(float), flowLineSize, handle) != flowLineSize) {
                 qDebug() << "PluginFLO[Load]: file is too short";
                 return nullptr;
             }
-            for (DWORD x = 0; x < width; ++x) {
-                const DWORD x2 = x << 1;
+            for (uint32_t x = 0; x < width; ++x) {
+                const uint32_t x2 = x << 1;
                 const float fx = flowLine[x2];
                 const float fy = flowLine[x2 + 1];
                 if (!isUnknownFlow(fx, fy)) {
@@ -232,11 +232,11 @@ void initPluginFLO(Plugin *plugin, int format_id)
         return flowImage.release();
     };
 
-    plugin->save_proc = [](FreeImageIO* /*io*/, FIBITMAP* /*dib*/, fi_handle /*handle*/, int /*page*/, int /*flags*/, void* /*data*/) -> BOOL {
+    plugin->save_proc = [](FreeImageIO* /*io*/, FIBITMAP* /*dib*/, fi_handle /*handle*/, int /*page*/, int /*flags*/, void* /*data*/) -> FIBOOL {
         return FALSE;
     };
 
-    plugin->validate_proc = [](FreeImageIO* io, fi_handle handle) -> BOOL {
+    plugin->validate_proc = [](FreeImageIO* io, fi_handle handle) -> FIBOOL {
 
         float tag = 0.0f;
         if (io->read_proc(&tag, sizeof(tag), 1, handle) != 1) {
@@ -253,8 +253,8 @@ FIBITMAP* cvtFloToRgb(FIBITMAP* flo)
     if (!flo) {
         return nullptr;
     }
-    const DWORD width  = FreeImage_GetWidth(flo) / 2;
-    const DWORD height = FreeImage_GetHeight(flo);
+    const uint32_t width  = FreeImage_GetWidth(flo) / 2;
+    const uint32_t height = FreeImage_GetHeight(flo);
 
     if (width * height <= 0) {
         return nullptr;
@@ -264,18 +264,18 @@ FIBITMAP* cvtFloToRgb(FIBITMAP* flo)
 
     std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> rgb(FreeImage_Allocate(width, height, 24), &::FreeImage_Unload);
 
-    for (DWORD y = 0; y < height; y++) {
+    for (uint32_t y = 0; y < height; y++) {
         const auto flowLine = reinterpret_cast<const float*>(FreeImage_GetScanLine(flo, y));
-        const auto rgbLine  = reinterpret_cast<FIE_RGBTRIPLE*>(FreeImage_GetScanLine(rgb.get(), y));
-        for (DWORD x = 0; x < width; ++x) {
-            const DWORD x2 = x << 1;
+        const auto rgbLine  = reinterpret_cast<FIRGB8*>(FreeImage_GetScanLine(rgb.get(), y));
+        for (uint32_t x = 0; x < width; ++x) {
+            const uint32_t x2 = x << 1;
             const float fx = flowLine[x2];
             const float fy = flowLine[x2 + 1];
             if (!isUnknownFlow(fx, fy)) {
                 rgbLine[x] = ColorWheel::getInstance().computeColor(fx / maxrad, fy / maxrad);
             }
             else {
-                std::memset(rgbLine + x, 0, sizeof(FIE_RGBTRIPLE));
+                std::memset(rgbLine + x, 0, sizeof(FIRGB8));
             }
         }
     }

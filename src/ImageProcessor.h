@@ -111,12 +111,12 @@ public:
         }
     }
 
-    FIE_ToneMapping toneMappingMode() const
+    FREE_IMAGE_TMO toneMappingMode() const
     {
         return mToneMapping;
     }
 
-    void setToneMappingMode(FIE_ToneMapping mode)
+    void setToneMappingMode(FREE_IMAGE_TMO mode)
     {
         if(mToneMapping != mode) {
             mToneMapping = mode;
@@ -196,7 +196,7 @@ private:
 
     EnumArray<bool, FlipType> mFlips = { false };
 
-    FIE_ToneMapping mToneMapping = FIE_ToneMapping::FIETMO_NONE;
+    FREE_IMAGE_TMO mToneMapping = FITMO_CLAMP;
 
     double mGammaValue = 1.0;
 

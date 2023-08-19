@@ -17,7 +17,6 @@
  */
 
 #include "ImageProcessor.h"
-#include "Utilities.h"
 #include <stdexcept>
 
 namespace
@@ -59,7 +58,7 @@ FIBITMAP* ImageProcessor::process(const ImageFrame& frame)
     // 1. Tonemap
     auto imgType = FreeImage_GetImageType(target);
     if (imgType == FIT_RGBF || imgType == FIT_RGBAF || imgType == FIT_FLOAT || imgType == FIT_DOUBLE) {
-        UniqueBitmap tonemapped(FreeImageExt_ToneMapping(target, mToneMapping), &::FreeImage_Unload);
+        UniqueBitmap tonemapped(FreeImage_ToneMapping(target, mToneMapping), &::FreeImage_Unload);
         if (tonemapped) {
             mProcessBuffer = std::move(tonemapped);
             target = mProcessBuffer.get();
