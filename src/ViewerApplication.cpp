@@ -33,7 +33,9 @@
 
 ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
 {
-    FreeImageExt_Initialise();
+    if (!FreeImageExt_Initialise()) {
+        throw std::runtime_error("ViewerApplication[ctor]: Failed to initialize FreeImage plugins");
+    }
 
     mCanvasWidget.reset(new CanvasWidget(t));
 

@@ -28,10 +28,19 @@
 
 
 
-void FreeImageExt_Initialise()
+bool FreeImageExt_Initialise(bool skipSvg)
 {
-    FreeImage_RegisterLocalPlugin(&initPluginFLO);
-    FreeImage_RegisterLocalPlugin(&initPluginSVG);
+    if (!FreeImage_IsPluginEnabled(static_cast<FREE_IMAGE_FORMAT>(FIEF_FLO))) {
+        if (FIEF_FLO != FreeImage_RegisterLocalPlugin(&initPluginFLO)) {
+            return false;
+        }
+    }
+    if (!skipSvg && !FreeImage_IsPluginEnabled(static_cast<FREE_IMAGE_FORMAT>(FIEF_SVG))) {
+        if (FIEF_SVG != FreeImage_RegisterLocalPlugin(&initPluginSVG)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 

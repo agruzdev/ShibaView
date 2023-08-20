@@ -42,7 +42,7 @@ enum FIE_ImageFormat
 /**
  * Must be called after FreeImage_Initialise()
  */
-void FreeImageExt_Initialise();
+bool FreeImageExt_Initialise(bool skipSvg = false);
 
 
 /**
