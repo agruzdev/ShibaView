@@ -18,15 +18,152 @@
 
 #include "ImagePage.h"
 #include <cassert>
+#include <stdexcept>
+#include "PluginFLO.h"
 
-ImagePage::ImagePage(FIBITMAP* bmp, FREE_IMAGE_FORMAT fif)
-    : mBitmap(bmp), mImageFormat(fif)
+namespace
 {
-    assert(mBitmap != nullptr);
+
+    ImageFrame cvtToInternalType(FIBITMAP* src, bool& dstNeedUnload)
+    {
+        assert(src != nullptr);
+        ImageFrame frame{};
+        const uint32_t bpp = FreeImage_GetBPP(src);
+        switch (FreeImage_GetImageType(src)) {
+        case FIT_RGBAF:
+            frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
+            frame.bmp = src;
+            dstNeedUnload = false;
+            break;
+
+        case FIT_RGBF:
+            frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
+            frame.bmp = src;
+            dstNeedUnload = false;
+            break;
+
+        case FIT_RGBA16:
+        case FIT_RGBA32:
+            frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
+            frame.bmp = FreeImage_ConvertToRGBAF(src);
+            dstNeedUnload = true;
+            break;
+
+        case FIT_RGB16:
+        case FIT_RGB32:
+            frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
+            frame.bmp = FreeImage_ConvertToRGBF(src);
+            dstNeedUnload = true;
+            break;
+
+        case FIT_UINT16:
+        case FIT_INT16:
+        case FIT_UINT32:
+        case FIT_INT32:
+            frame.bmp = FreeImage_ConvertToFloat(src);
+            frame.flags = FrameFlags::eHRD;
+            dstNeedUnload = true;
+            break;
+
+        case FIT_FLOAT:
+            frame.flags = FrameFlags::eHRD;
+            frame.bmp = src;
+            dstNeedUnload = false;
+            break;
+
+        case FIT_DOUBLE:
+            frame.flags = FrameFlags::eHRD;
+            frame.bmp = src;
+            dstNeedUnload = false;
+            break;
+
+        case FIT_COMPLEXF:
+        case FIT_COMPLEX:
+            frame.flags = FrameFlags::eNone;
+            frame.bmp = cvtFloToRgb(src);
+            dstNeedUnload = true;
+            break;
+
+        case FIT_BITMAP:
+            if (32 == bpp) {
+                frame.flags = FrameFlags::eRGB;
+                frame.bmp = src;
+                dstNeedUnload = false;
+            }
+            else if (24 == bpp) {
+                frame.flags = FrameFlags::eRGB;
+                frame.bmp = src;
+                dstNeedUnload = false;
+            }
+            else if (8 == bpp) {
+                const auto colorType = FreeImage_GetColorType(src);
+                if (FIC_PALETTE == colorType) {
+                    //FreeImage_Save(FIF_TIFF, src, "test.tiff");
+
+                    frame.flags = FrameFlags::eRGB;
+                    frame.bmp = FreeImage_ConvertTo32Bits(src);
+                    dstNeedUnload = true;
+                }
+                else if (FIC_MINISWHITE == colorType) {
+                    frame.bmp = FreeImage_Clone(src);
+                    FreeImage_Invert(frame.bmp);
+                    dstNeedUnload = true;
+                }
+                else {
+                    frame.bmp = src;
+                    dstNeedUnload = false;
+                }
+            }
+            else if (4 == bpp) {
+                frame.bmp = FreeImage_ConvertTo32Bits(src);
+                frame.flags = FrameFlags::eRGB;
+                dstNeedUnload = true;
+            }
+            else if (1 == bpp) {
+                const auto colorType = FreeImage_GetColorType(src);
+                if (FIC_PALETTE == colorType) {
+                    frame.flags = FrameFlags::eRGB;
+                    frame.bmp = FreeImage_ConvertTo32Bits(src);
+                    dstNeedUnload = true;
+                }
+                else if (FIC_MINISWHITE == colorType) {
+                    frame.bmp = FreeImage_Clone(src);
+                    FreeImage_Invert(frame.bmp);
+                    dstNeedUnload = true;
+                }
+                else {
+                    frame.bmp = src;
+                    dstNeedUnload = false;
+                }
+            }
+            break;
+
+        default:
+            break;
+        }
+        return frame;
+    }
+
+} // namespace
+
+ImagePage::ImagePage(FIBITMAP* bmp, uint32_t index)
+    : mBitmap(bmp)
+{
+    if (!mBitmap) {
+        throw std::runtime_error("ImagePage[ctor]: Page bitmap is null.");
+    }
+    mConvertedFrame = cvtToInternalType(mBitmap, mFrameNeedsUnload);
+    mConvertedFrame.index = index;
+    if (!mConvertedFrame.bmp) {
+        throw std::runtime_error("ImagePage[ctor]: Failed to convert a frame.");
+    }
 }
 
 ImagePage::~ImagePage()
 {
+    if (mFrameNeedsUnload && mConvertedFrame.bmp) {
+        FreeImage_Unload(mConvertedFrame.bmp);
+    }
 }
 
 QString ImagePage::doDescribeFormat() const
@@ -46,4 +183,42 @@ bool ImagePage::doGetPixel(uint32_t y, uint32_t x, Pixel* pixel) const
 Exif ImagePage::doGetExif() const
 {
     return Exif::load(mBitmap);
+}
+
+size_t ImagePage::getMemorySize() const
+{
+    return FreeImage_GetMemorySize(mBitmap) + FreeImage_GetMemorySize(mConvertedFrame.bmp);
+}
+
+UniqueBitmap ImagePage::getOrMakeThumbnail(uint32_t maxSize) const
+{
+    UniqueBitmap result(nullptr, &FreeImage_Unload);
+    if (FIBITMAP* storedThumbnail = FreeImage_GetThumbnail(mBitmap)) {
+        const unsigned w = FreeImage_GetWidth(storedThumbnail);
+        const unsigned h = FreeImage_GetHeight(storedThumbnail);
+        if (w > maxSize || h > maxSize) {
+            const unsigned size = std::max(w, h);
+            result.reset(FreeImage_Rescale(storedThumbnail, w * maxSize / size, h * maxSize / size, FILTER_BICUBIC));
+        }
+        else {
+            result.reset(FreeImage_Clone(storedThumbnail));
+        }
+    }
+    else if (mConvertedFrame.bmp) {
+        FIBITMAP* ldrFrame = mConvertedFrame.bmp;
+        if ((mConvertedFrame.flags & FrameFlags::eHRD) != FrameFlags::eNone) {
+            ldrFrame = FreeImage_ToneMapping(mConvertedFrame.bmp, FITMO_LINEAR);
+        }
+        if (ldrFrame) {
+            const unsigned w = FreeImage_GetWidth(ldrFrame);
+            const unsigned h = FreeImage_GetHeight(ldrFrame);
+            const unsigned size = std::max(w, h);
+            result.reset(FreeImage_Rescale(ldrFrame, w * maxSize / size, h * maxSize / size, FILTER_BICUBIC));
+        }
+        if (ldrFrame == mConvertedFrame.bmp) {
+            ldrFrame = FreeImage_Clone(mConvertedFrame.bmp);
+        }
+        result.reset(ldrFrame);
+    }
+    return result;
 }

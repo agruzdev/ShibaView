@@ -154,7 +154,7 @@ public:
 #if ENABLE_LOG
             mLog << L"Page is locked " << mFilePath << std::endl;
 #endif
-            UniqueBitmap thumbnail = Player::getOrMakeThumbnail(page->getBitmap(), cx);
+            UniqueBitmap thumbnail = page->getOrMakeThumbnail(cx);
             if (!thumbnail) {
                 throw std::runtime_error("Failed to make a thumbnail");
             }

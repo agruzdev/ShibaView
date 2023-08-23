@@ -30,6 +30,7 @@
 #include "FreeImage.h"
 
 class Image;
+class ImagePage;
 
 class ImageListener
 {
@@ -54,13 +55,12 @@ public:
 
     Image& operator=(Image&&) = delete;
 
-    const ImageFrame & getFrame() const
+    const ImageFrame& currentFrame() const
     {
-        assert(mImagePlayer);
-        return mImagePlayer->getCurrentFrame();
+        return currentPage().getFrame();
     }
 
-    const ImageInfo & info() const
+    const ImageInfo& info() const
     {
         return mInfo;
     }
@@ -100,8 +100,19 @@ public:
         return mImagePlayer ? mImagePlayer->framesNumber() : 0;
     }
 
+    /**
+     * Current page access
+     */
+    const ImagePage& currentPage() const;
+
+    /**
+     * Scroll to next page
+     */
     void next();
 
+    /**
+     * Scroll to previous page
+     */
     void prev();
 
     uint64_t id() const

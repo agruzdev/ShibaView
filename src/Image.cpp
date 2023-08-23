@@ -45,12 +45,12 @@ Image::Image(QString name, QString filename) noexcept
 
     // Load bitmap. Keep empty on fail.
     try {
-        auto source = ImageSource::Load(filename);
-        if (!source || 0 == source->pagesCount()) {
+        const auto imageSource = ImageSource::Load(filename);
+        if (!imageSource || 0 == imageSource->pagesCount()) {
             throw std::runtime_error("Failed to open image: " + filename.toStdString());
         }
 
-        mImagePlayer= std::make_unique<Player>(std::move(source));
+        mImagePlayer = std::make_unique<Player>(std::move(imageSource));
     }
     catch(std::exception & e) {
         qWarning() << QString(e.what());
@@ -92,7 +92,7 @@ void Image::removeListener(ImageListener* listener)
 uint32_t Image::channels() const
 {
     if (mImagePlayer) {
-        return FreeImage_GetChannelsNumber(getFrame().bmp);
+        return FreeImage_GetChannelsNumber(currentFrame().bmp);
     }
     return 0;
 }
@@ -111,4 +111,12 @@ void Image::prev()
     for (auto listener : mListeners) {
         listener->onInvalidated(this);
     }
+}
+
+const ImagePage& Image::currentPage() const
+{
+    if (!mImagePlayer) {
+        throw std::runtime_error("Image[currentPage]: No pages available");
+    }
+    return mImagePlayer->getCurrentPage();
 }

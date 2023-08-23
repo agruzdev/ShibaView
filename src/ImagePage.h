@@ -46,10 +46,47 @@ struct AnimationInfo
     DisposalType disposal = DisposalType::eUnspecified;
 };
 
+enum class FrameFlags
+    : uint32_t
+{
+    eNone = 0,
+    eRGB = 1,
+    eHRD = 2,
+};
+
+inline
+FrameFlags operator|(FrameFlags f1, FrameFlags f2)
+{
+    return static_cast<FrameFlags>(static_cast<std::underlying_type_t<FrameFlags>>(f1) | static_cast<std::underlying_type_t<FrameFlags>>(f2));
+}
+
+inline
+FrameFlags operator&(FrameFlags f1, FrameFlags f2)
+{
+    return static_cast<FrameFlags>(static_cast<std::underlying_type_t<FrameFlags>>(f1) & static_cast<std::underlying_type_t<FrameFlags>>(f2));
+}
+
+inline
+bool testFlag(FrameFlags flags, FrameFlags test)
+{
+    return 0 != (static_cast<std::underlying_type_t<FrameFlags>>(flags) & static_cast<std::underlying_type_t<FrameFlags>>(test));
+}
+
+static Q_CONSTEXPR uint32_t kNoneIndex = std::numeric_limits<uint32_t>::max();
+
+struct ImageFrame
+{
+    FIBITMAP* bmp = nullptr;
+    uint32_t index = kNoneIndex;
+    FrameFlags flags = FrameFlags::eNone;
+    AnimationInfo animation{ };
+};
+
+
 class ImagePage
 {
 public:
-    ImagePage(FIBITMAP* bmp, FREE_IMAGE_FORMAT fif);
+    ImagePage(FIBITMAP* bmp, uint32_t index);
 
     ImagePage(const ImagePage&) = delete;
 
@@ -71,14 +108,9 @@ public:
         return mBitmap;
     }
 
-    const AnimationInfo& getAnimation() const
-    {
-        return mAnimation;
-    }
-
     void setAnimation(AnimationInfo anim)
     {
-        mAnimation = std::move(anim);
+        mConvertedFrame.animation = std::move(anim);
     }
 
     bool getPixel(uint32_t y, uint32_t x, Pixel* pixel) const
@@ -94,6 +126,15 @@ public:
         return *mExif;
     }
 
+    const ImageFrame& getFrame() const
+    {
+        return mConvertedFrame;
+    }
+
+    size_t getMemorySize() const;
+
+    UniqueBitmap getOrMakeThumbnail(uint32_t maxSize) const;
+
 protected:
     virtual QString doDescribeFormat() const;
 
@@ -103,8 +144,8 @@ protected:
 
 private:
     FIBITMAP* mBitmap;
-    FREE_IMAGE_FORMAT mImageFormat;
-    AnimationInfo mAnimation;
+    ImageFrame mConvertedFrame{};
+    bool mFrameNeedsUnload = false;
     mutable std::unique_ptr<Exif> mExif;
 };
 

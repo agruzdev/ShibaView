@@ -149,7 +149,7 @@ const QPixmap& ImageProcessor::getResultPixmap()
     if (!mIsValid) {
         const auto pImg = mSrcImage.lock();
         if (pImg) {
-            const ImageFrame& frame = pImg->getFrame();
+            const ImageFrame& frame = pImg->currentFrame();
             if (frame.bmp != nullptr) {
                 mDstPixmap = QPixmap::fromImage(makeQImageView(process(frame)));
                 mIsValid = true;
@@ -167,7 +167,7 @@ const UniqueBitmap& ImageProcessor::getResultBitmap()
     else {
         const auto pImg = mSrcImage.lock();
         if (pImg) {
-            const ImageFrame& frame = pImg->getFrame();
+            const ImageFrame& frame = pImg->currentFrame();
             if (frame.bmp) {
                 const auto bmp = process(frame);
                 if (!mIsBuffered) {

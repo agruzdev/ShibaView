@@ -309,7 +309,7 @@ QMenu* CanvasWidget::createContextMenu()
         // ToDo (.gruzdev): Temporal arrow fix
         const auto tmAction = createMenuAction(QString::fromUtf8("Tone mapping " "\xE2\x80\xA3"));
         QMenu* tmMenu = new QMenu(menu);
-        if (mImage && mImage->notNull() && testFlag(mImage->getFrame().flags, FrameFlags::eHRD)) {
+        if (mImage && mImage->notNull() && testFlag(mImage->currentFrame().flags, FrameFlags::eHRD)) {
             auto& tmActions = mActToneMapping.get();
             // Manual order is important
             tmMenu->addAction(tmActions[FITMO_CLAMP]);
@@ -346,7 +346,7 @@ QMenu* CanvasWidget::createContextMenu()
         const auto swAction = createMenuAction(QString::fromUtf8("Channels " "\xE2\x80\xA3"));
         swAction->setEnabled(false);
         QMenu* swMenu = new QMenu(menu);
-        if (mImage && mImage->notNull() && mImageProcessor && testFlag(mImage->getFrame().flags, FrameFlags::eRGB)) {
+        if (mImage && mImage->notNull() && mImageProcessor && testFlag(mImage->currentFrame().flags, FrameFlags::eRGB)) {
             const auto channelsNumber = mImage->channels();
             if (channelsNumber > 1) {
                 auto& swActions = mActSwizzle.get();
@@ -632,7 +632,7 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
             }
 
             mImageProcessor->attachSource(mImage);
-            mImageDescription->setFormat(mImage->getFrame().page->describeFormat());
+            mImageDescription->setFormat(mImage->currentPage().describeFormat());
 
             mImageDescription->setToneMapping(mImageProcessor->toneMappingMode());
         }
@@ -804,7 +804,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
                 painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, true);
             }
 
-            const ImageFrame & frame = mImage->getFrame();
+            const ImageFrame& frame = mImage->currentFrame();
 
             const auto imageRect = calculateImageRegion();
             const auto dstCenter = QRectF(imageRect).center();
@@ -842,7 +842,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
             if (mEnableAnimation) {
                 if (frame.index != mAnimIndex) {
-                    new UniqueTick(mImage->id(), frame.duration, this, &CanvasWidget::onAnimationTick, this);
+                    new UniqueTick(mImage->id(), frame.animation.duration, this, &CanvasWidget::onAnimationTick, this);
                 }
                 mAnimIndex = frame.index;
             }
@@ -1369,7 +1369,7 @@ void CanvasWidget::invalidateExif()
     ExifWidget& exifWidget = ExifWidget::getInstance();
     if (exifWidget.isActive()) {
         if (mImage && mImage->notNull()) {
-            exifWidget.setExif(mImage->getFrame().page->getExif());
+            exifWidget.setExif(mImage->currentPage().getExif());
         }
         else {
             exifWidget.setEmpty();
@@ -1535,7 +1535,7 @@ void CanvasWidget::onAnimationTick(uint64_t imgId)
 
 void CanvasWidget::onActToneMapping(bool checked, FREE_IMAGE_TMO m)
 {
-    if (checked && mImage && !mImage->isNull() && testFlag(mImage->getFrame().flags, FrameFlags::eHRD)) {
+    if (checked && mImage && !mImage->isNull() && testFlag(mImage->currentFrame().flags, FrameFlags::eHRD)) {
         mImageProcessor->setToneMappingMode(m);
         if (mImageDescription) {
             mImageDescription->setToneMapping(m);

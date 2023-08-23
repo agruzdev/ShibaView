@@ -23,38 +23,25 @@
 #include <vector>
 
 #include "ImageSource.h"
+#include "Pixel.h"
+#include "ImagePage.h"
 #include "FreeImageExt.h"
-#include "PluginFLO.h"
 
 namespace
 {
-    constexpr size_t kMaxCacheBytes = 128 * 1024 * 1024;
+    constexpr size_t kMaxCacheBytes = 256 * 1024 * 1024;
 }
 
-struct Player::ConvertionContext
+
+struct Player::CacheEntry
 {
     ImageSource::ImagePagePtr page;
-    ImageFrame frame{};
-    bool needsUnload = false;
+    UniqueBitmap blendedImage;
 
-    ConvertionContext(ImageSource::ImagePagePtr page)
+    CacheEntry(ImageSource::ImagePagePtr page)
         : page(std::move(page))
+        , blendedImage(nullptr, &::FreeImage_Unload)
     { }
-
-    ConvertionContext(const ConvertionContext&) = delete;
-
-    ConvertionContext(ConvertionContext&&) = delete;
-
-    ~ConvertionContext()
-    {
-        if (needsUnload && frame.bmp) {
-            FreeImage_Unload(frame.bmp);
-        }
-    }
-
-    ConvertionContext& operator=(const ConvertionContext&) = delete;
-
-    ConvertionContext& operator=(ConvertionContext&&) = delete;
 };
 
 
@@ -68,7 +55,7 @@ Player::Player(std::shared_ptr<ImageSource> src)
     const auto framesNum = src->pagesCount();
     if (framesNum > 0) {
         try {
-            mFramesCache.push_back(loadZeroFrame(src.get()));
+            mFramesCache.emplace_back(loadZeroFrame(src.get()));
             mCacheIndex = 0;
         }
         catch(...) {
@@ -76,7 +63,7 @@ Player::Player(std::shared_ptr<ImageSource> src)
             throw;
         }
 
-        const size_t frameSize = FreeImage_GetMemorySize(mFramesCache[0]->frame.bmp);
+        const size_t frameSize = mFramesCache[0]->page->getMemorySize();
         mMaxCacheSize = std::max(static_cast<size_t>(1), kMaxCacheBytes / frameSize);
     }
 
@@ -89,106 +76,70 @@ Player::~Player()
     mSource.reset();
 }
 
-std::unique_ptr<Player::ConvertionContext> Player::loadZeroFrame(ImageSource* source)
+std::unique_ptr<Player::CacheEntry> Player::loadZeroFrame(ImageSource* source)
 {
-    const uint32_t pagesNum = source->pagesCount();
-    assert(pagesNum > 0);
-
-    auto finfo = std::make_unique<ConvertionContext>(source->lockPage(0));
-    if (!finfo->page) {
-        throw std::runtime_error("Player[loadZeroFrame]: Failed to read image source.");
+    auto entry = std::make_unique<CacheEntry>(source->lockPage(0));
+    if (!entry->page) {
+        throw std::runtime_error("Player[loadZeroFrame]: Failed to decode zero page.");
     }
-
-    finfo->frame = cvtToInternalType(finfo->page->getBitmap(), finfo->needsUnload);
-    if (!finfo->frame.bmp) {
-        throw std::runtime_error("Player[loadZeroFrame]: Failed to convert a frame.");
-    }
-
-    finfo->frame.page = finfo->page.get();
-    finfo->frame.index = 0;
-    if (pagesNum > 1) {
-        finfo->frame.duration = finfo->page->getAnimation().duration;
-    }
-
-    return finfo;
+    return entry;
 }
 
-std::unique_ptr<Player::ConvertionContext> Player::loadNextFrame(ImageSource* source, const ConvertionContext* prev)
+std::unique_ptr<Player::CacheEntry> Player::loadNextFrame(ImageSource* source, const CacheEntry& prev)
 {
-    assert(prev != nullptr);
-    const uint32_t prevIdx = prev->frame.index;
+    assert(prev.page != nullptr);
+    const uint32_t prevIdx = prev.page->getFrame().index;
     const uint32_t nextIdx = (prevIdx + 1) % mSource->pagesCount();
 
-    auto next = std::make_unique<ConvertionContext>(source->lockPage(nextIdx));
-    if (!next->page) {
+    auto nextEntry = std::make_unique<CacheEntry>(source->lockPage(nextIdx));
+    if (!nextEntry->page) {
         throw std::runtime_error("Player[loadNextFrame]: Failed to decode the next page.");
     }
 
-    next->frame = cvtToInternalType(next->page->getBitmap(), next->needsUnload);
-    if (!next->frame.bmp) {
-        throw std::runtime_error("Player[loadNextFrame]: Failed to convert the next frame.");
-    }
- 
-    if (source->storesDiffernece()) {
-        FIBITMAP* canvas = FreeImage_Clone(prev->frame.bmp);
-        const auto& nextAnim = next->page->getAnimation();
-        const auto drawSuccess = FreeImage_DrawBitmap(canvas, next->frame.bmp, FIAO_SrcAlpha, nextAnim.offsetX, nextAnim.offsetY);
-
-        if (next->needsUnload) {
-            FreeImage_Unload(next->frame.bmp);
-        }
-        next->frame.bmp = canvas;
-        next->needsUnload = true;
+    if (source->storesDifference()) {
+        UniqueBitmap canvas(FreeImage_Clone(prev.blendedImage.get()), &::FreeImage_Unload);
+        const auto& nextAnim = nextEntry->page->getFrame().animation;
+        const auto drawSuccess = FreeImage_DrawBitmap(canvas.get(), nextEntry->page->getFrame().bmp, FIAO_SrcAlpha, nextAnim.offsetX, nextAnim.offsetY);
 
         if (!drawSuccess) {
             throw std::runtime_error("Player[loadNextFrame]: Failed to combine frames.");
         }
+
+        nextEntry->blendedImage = std::move(canvas);
     }
 
-    next->frame.page     = next->page.get();
-    next->frame.index    = nextIdx;
-    next->frame.duration = next->page->getAnimation().duration;
-
-    return next;
+    return nextEntry;
 }
 
 bool Player::getPixel(uint32_t y, uint32_t x, Pixel* p) const
 {
     if (mCacheIndex < mFramesCache.size()) {
-        auto& frame = mFramesCache[mCacheIndex];
-        if (mSource->storesDiffernece()) {
+        const auto& entry = mFramesCache[mCacheIndex];
+        if (mSource->storesDifference() && entry->blendedImage) {
             // Impossible to fetch original color without blending
-            if (frame->frame.bmp) {
-                return Pixel::getBitmapPixel(frame->frame.bmp, y, x, p);
-            }
+            return Pixel::getBitmapPixel(entry->blendedImage.get(), y, x, p);
         }
         else {
             // Use original page
-            if (frame->page) {
-                return frame->page->getPixel(y, x, p);
+            if (entry->page) {
+                return entry->page->getPixel(y, x, p);
             }
         }
     }
     return false;
 }
 
-ImageFrame* Player::getImpl() const
+const ImageFrame& Player::getCurrentFrame() const
 {
-    if (mCacheIndex < mFramesCache.size()) {
-        return &(mFramesCache[mCacheIndex]->frame);
-    }
-    else {
-        return nullptr;
-    }
+    return getCurrentPage().getFrame();
 }
 
-const ImageFrame & Player::getCurrentFrame() const
+const ImagePage& Player::getCurrentPage() const
 {
-    const auto* frame = getImpl();
-    if (!frame) {
-        throw std::runtime_error("Player[getCurrentFrame]: No frames available.");
+    if (mCacheIndex < mFramesCache.size()) {
+        return *(mFramesCache[mCacheIndex]->page);
     }
-    return *frame;
+    throw std::runtime_error("Player[getCurrentFrame]: No pages are available.");
 }
 
 void Player::next()
@@ -202,13 +153,13 @@ void Player::next()
             // Already cached
             ++mCacheIndex;
         }
-        else if(mFramesCache.front()->frame.index == nextIdx) {
+        else if(mFramesCache.front()->page->getFrame().index == nextIdx) {
             // Found in head
             mCacheIndex = 0;
         }
         else  {
             // Load and save in tail
-            auto next = loadNextFrame(mSource.get(), mFramesCache.at(mCacheIndex).get());
+            auto next = loadNextFrame(mSource.get(), *mFramesCache.back());
             if (next) {
                 mFramesCache.push_back(std::move(next));
                 if (mFramesCache.size() > mMaxCacheSize) {
@@ -231,21 +182,21 @@ void Player::prev()
             // Already cached
             --mCacheIndex;
         }
-        else if(mFramesCache.back()->frame.index == nextIdx) {
+        else if(mFramesCache.back()->page->getFrame().index == nextIdx) {
             // Found in head
             mCacheIndex = mFramesCache.size() - 1;
         }
         else  {
             // Find closest previous frame
-            std::unique_ptr<ConvertionContext> buffer = nullptr;
-            ConvertionContext* frame = nullptr;
-            if (nextIdx > mFramesCache.back()->frame.index) {
-                buffer = loadNextFrame(mSource.get(), mFramesCache.back().get());
+            std::unique_ptr<CacheEntry> buffer = nullptr;
+            CacheEntry* lastEntry = nullptr;
+            if (nextIdx > mFramesCache.back()->page->getFrame().index) {
+                buffer = loadNextFrame(mSource.get(), *mFramesCache.back());
             }
             else {
                 buffer = loadZeroFrame(mSource.get());
             }
-            frame = buffer.get();
+            lastEntry = buffer.get();
 
             // Load
             const uint32_t countToCache = static_cast<uint32_t>(std::max(2 * mMaxCacheSize / 3, mMaxCacheSize - mFramesCache.size()));
@@ -253,8 +204,8 @@ void Player::prev()
 
             size_t cachedCount = mFramesCache.size();
 
-            std::vector<std::unique_ptr<ConvertionContext>> newFrames;
-            if (buffer->frame.index >= cacheFromIdx) {
+            std::vector<std::unique_ptr<CacheEntry>> newFrames;
+            if (lastEntry->page->getFrame().index >= cacheFromIdx) {
                 newFrames.push_back(std::move(buffer));
                 ++cachedCount;
                 if (cachedCount > mMaxCacheSize) {
@@ -262,10 +213,10 @@ void Player::prev()
                 }
             }
 
-            while (frame->frame.index < nextIdx) {
-                buffer = loadNextFrame(mSource.get(), frame);
-                frame = buffer.get();
-                if (buffer->frame.index >= cacheFromIdx) {
+            while (lastEntry->page->getFrame().index < nextIdx) {
+                buffer = loadNextFrame(mSource.get(), *lastEntry);
+                lastEntry = buffer.get();
+                if (lastEntry->page->getFrame().index >= cacheFromIdx) {
                     newFrames.push_back(std::move(buffer));
                     ++cachedCount;
                     if (cachedCount > mMaxCacheSize) {
@@ -274,8 +225,8 @@ void Player::prev()
                 }
             }
 
-            if (newFrames.empty() || newFrames.back()->frame.index != nextIdx) {
-                throw std::logic_error("Player[prev]: Cache was corrupted. Flushing it.");
+            if (newFrames.empty() || newFrames.back()->page->getFrame().index != nextIdx) {
+                throw std::logic_error("Player[prev]: Cache was corrupted.");
             }
 
             mCacheIndex = newFrames.size() - 1;
@@ -292,181 +243,13 @@ uint32_t Player::framesNumber() const
 
 uint32_t Player::getWidth() const
 {
-    const auto* frame = getImpl();
-    if (frame) {
-        return static_cast<uint32_t>(FreeImage_GetWidth(frame->bmp));
-    }
-    else {
-        return 0;
-    }
+    return static_cast<uint32_t>(FreeImage_GetWidth(getCurrentFrame().bmp));
 }
 
 uint32_t Player::getHeight() const
 {
-    const auto* frame = getImpl();
-    if (frame) {
-        return static_cast<uint32_t>(FreeImage_GetHeight(frame->bmp));
-    }
-    else {
-        return 0;
-    }
-}
-
-ImageFrame Player::cvtToInternalType(FIBITMAP* src, bool & dstNeedUnload)
-{
-    assert(src != nullptr);
-    ImageFrame frame{};
-    const uint32_t bpp = FreeImage_GetBPP(src);
-    switch (FreeImage_GetImageType(src)) {
-    case FIT_RGBAF:
-        frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
-        frame.bmp = src;
-        dstNeedUnload = false;
-        break;
-
-    case FIT_RGBF:
-        frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
-        frame.bmp = src;
-        dstNeedUnload = false;
-        break;
-
-    case FIT_RGBA16:
-    case FIT_RGBA32:
-        frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
-        frame.bmp = FreeImage_ConvertToRGBAF(src);
-        dstNeedUnload = true;
-        break;
-
-    case FIT_RGB16:
-    case FIT_RGB32:
-        frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
-        frame.bmp = FreeImage_ConvertToRGBF(src);
-        dstNeedUnload = true;
-        break;
-
-    case FIT_UINT16:
-    case FIT_INT16:
-    case FIT_UINT32:
-    case FIT_INT32:
-        frame.bmp = FreeImage_ConvertToFloat(src);
-        frame.flags = FrameFlags::eHRD;
-        dstNeedUnload = true;
-        break;
-
-    case FIT_FLOAT:
-        frame.flags = FrameFlags::eHRD;
-        frame.bmp = src;
-        dstNeedUnload = false;
-        break;
-
-    case FIT_DOUBLE:
-        frame.flags = FrameFlags::eHRD;
-        frame.bmp = src;
-        dstNeedUnload = false;
-        break;
-
-    case FIT_COMPLEXF:
-    case FIT_COMPLEX:
-        frame.flags = FrameFlags::eNone;
-        frame.bmp = cvtFloToRgb(src);
-        dstNeedUnload = true;
-        break;
-
-    case FIT_BITMAP:
-        if (32 == bpp) {
-            frame.flags = FrameFlags::eRGB;
-            frame.bmp = src;
-            dstNeedUnload = false;
-        }
-        else if (24 == bpp) {
-            frame.flags = FrameFlags::eRGB;
-            frame.bmp = src;
-            dstNeedUnload = false;
-        }
-        else if (8 == bpp) {
-            const auto colorType = FreeImage_GetColorType(src);
-            if (FIC_PALETTE == colorType) {
-                //FreeImage_Save(FIF_TIFF, src, "test.tiff");
-
-                frame.flags = FrameFlags::eRGB;
-                frame.bmp = FreeImage_ConvertTo32Bits(src);
-                dstNeedUnload = true;
-            }
-            else if (FIC_MINISWHITE == colorType) {
-                frame.bmp = FreeImage_Clone(src);
-                FreeImage_Invert(frame.bmp);
-                dstNeedUnload = true;
-            }
-            else {
-                frame.bmp = src;
-                dstNeedUnload = false;
-            }
-        }
-        else if(4 == bpp) {
-            frame.bmp = FreeImage_ConvertTo32Bits(src);
-            frame.flags = FrameFlags::eRGB;
-            dstNeedUnload = true;
-        }
-        else if(1 == bpp) {
-            const auto colorType = FreeImage_GetColorType(src);
-            if (FIC_PALETTE == colorType) {
-                frame.flags = FrameFlags::eRGB;
-                frame.bmp = FreeImage_ConvertTo32Bits(src);
-                dstNeedUnload = true;
-            }
-            else if (FIC_MINISWHITE == colorType) {
-                frame.bmp = FreeImage_Clone(src);
-                FreeImage_Invert(frame.bmp);
-                dstNeedUnload = true;
-            }
-            else {
-                frame.bmp = src;
-                dstNeedUnload = false;
-            }
-        }
-        break;
-
-    default:
-        break;
-    }
-    return frame;
+    return static_cast<uint32_t>(FreeImage_GetHeight(getCurrentFrame().bmp));
 }
 
 
-UniqueBitmap Player::getOrMakeThumbnail(FIBITMAP* src, uint32_t maxSize)
-{
-    UniqueBitmap result(nullptr, &FreeImage_Unload);
-    if (src) {
-        if (FIBITMAP* storedThumbnail = FreeImage_GetThumbnail(src)) {
-            const unsigned w = FreeImage_GetWidth(storedThumbnail);
-            const unsigned h = FreeImage_GetHeight(storedThumbnail);
-            if (w > maxSize || h > maxSize) {
-                const unsigned size = std::max(w, h);
-                result.reset(FreeImage_Rescale(storedThumbnail, w * maxSize / size, h * maxSize / size, FILTER_BICUBIC));
-            }
-        }
-        else {
-            bool needToUnload = false;
-            auto internalFrame = cvtToInternalType(src, needToUnload);
-            if (internalFrame.bmp) {
-                FIBITMAP* ldrFrame = internalFrame.bmp;
-                if ((internalFrame.flags & FrameFlags::eHRD) != FrameFlags::eNone) {
-                    ldrFrame = FreeImage_ToneMapping(internalFrame.bmp, FITMO_LINEAR);
-                }
-                if (ldrFrame) {
-                    const unsigned w = FreeImage_GetWidth(ldrFrame);
-                    const unsigned h = FreeImage_GetHeight(ldrFrame);
-                    const unsigned size = std::max(w, h);
-                    result.reset(FreeImage_Rescale(ldrFrame, w * maxSize / size, h * maxSize / size, FILTER_BICUBIC));
-                }
-                if (ldrFrame != internalFrame.bmp) {
-                    FreeImage_Unload(ldrFrame);
-                }
-                if (needToUnload) {
-                    FreeImage_Unload(internalFrame.bmp);
-                }
-            }
-        }
-    }
-    return result;
-}
+

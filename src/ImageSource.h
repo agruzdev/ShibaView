@@ -81,7 +81,7 @@ public:
         return doPagesCount();
     }
 
-    bool storesDiffernece() const
+    bool storesDifference() const
     {
         return doStoresDifference();
     }
