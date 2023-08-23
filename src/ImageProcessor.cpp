@@ -17,7 +17,9 @@
  */
 
 #include "ImageProcessor.h"
+
 #include <stdexcept>
+#include "ImagePage.h"
 
 namespace
 {

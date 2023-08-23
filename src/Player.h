@@ -26,6 +26,7 @@
 
 class ImageSource;
 class ImagePage;
+class ImageFrame;
 class Pixel;
 
 class Player

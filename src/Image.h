@@ -55,10 +55,7 @@ public:
 
     Image& operator=(Image&&) = delete;
 
-    const ImageFrame& currentFrame() const
-    {
-        return currentPage().getFrame();
-    }
+    const ImageFrame& currentFrame() const;
 
     const ImageInfo& info() const
     {
