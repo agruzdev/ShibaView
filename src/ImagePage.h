@@ -77,7 +77,7 @@ static Q_CONSTEXPR uint32_t kNoneIndex = std::numeric_limits<uint32_t>::max();
 struct ImageFrame
 {
     FIBITMAP* bmp = nullptr;
-    uint32_t index = kNoneIndex;
+    //uint32_t index = kNoneIndex;
     FrameFlags flags = FrameFlags::eNone;
     AnimationInfo animation{ };
 };
@@ -103,9 +103,14 @@ public:
         return doDescribeFormat();
     }
 
-    FIBITMAP* getBitmap() const
+    FIBITMAP* getSourceBitmap() const
     {
         return mBitmap;
+    }
+
+    uint32_t index() const
+    {
+        return mIndex;
     }
 
     void setAnimation(AnimationInfo anim)
@@ -144,6 +149,7 @@ protected:
 
 private:
     FIBITMAP* mBitmap;
+    uint32_t mIndex;
     ImageFrame mConvertedFrame{};
     bool mFrameNeedsUnload = false;
     mutable std::unique_ptr<Exif> mExif;

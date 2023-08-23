@@ -25,7 +25,9 @@ namespace
 {
     QImage makeQImageView(FIBITMAP* bmp)
     {
-        assert(bmp != nullptr);
+        if (!bmp) {
+            throw std::runtime_error("ImageProcessor[makeQImageView]: Null bitmap");
+        }
         QImage imageView;
         switch (FreeImage_GetBPP(bmp)) {
         case 1:
@@ -53,9 +55,13 @@ ImageProcessor::ImageProcessor()
 
 ImageProcessor::~ImageProcessor() = default;
 
-FIBITMAP* ImageProcessor::process(const ImageFrame& frame)
+FIBITMAP* ImageProcessor::process(const Image& img)
 {
-    FIBITMAP* target = frame.bmp;
+    FIBITMAP* originalBitmap = img.getBlendedBitmap();
+    if (!originalBitmap) {
+        throw std::logic_error("Image returned empty bitmap");
+    }
+    FIBITMAP* target = originalBitmap;
 
     // 1. Tonemap
     auto imgType = FreeImage_GetImageType(target);
@@ -78,15 +84,15 @@ FIBITMAP* ImageProcessor::process(const ImageFrame& frame)
 
     // 3. Flip
     if (mFlips[FlipType::eHorizontal]) {
-        if (target == frame.bmp) {
-            mProcessBuffer.reset(FreeImage_Clone(frame.bmp));
+        if (target == originalBitmap) {
+            mProcessBuffer.reset(FreeImage_Clone(originalBitmap));
             target = mProcessBuffer.get();
         }
         FreeImage_FlipHorizontal(target);
     }
     if (mFlips[FlipType::eVertical]) {
-        if (target == frame.bmp) {
-            mProcessBuffer.reset(FreeImage_Clone(frame.bmp));
+        if (target == originalBitmap) {
+            mProcessBuffer.reset(FreeImage_Clone(originalBitmap));
             target = mProcessBuffer.get();
         }
         FreeImage_FlipVertical(target);
@@ -96,8 +102,8 @@ FIBITMAP* ImageProcessor::process(const ImageFrame& frame)
     if (mGammaValue != 1.0) {
         imgType = FreeImage_GetImageType(target);
         if (imgType == FIT_BITMAP) {
-            if (target == frame.bmp) {
-                mProcessBuffer.reset(FreeImage_Clone(frame.bmp));
+            if (target == originalBitmap) {
+                mProcessBuffer.reset(FreeImage_Clone(originalBitmap));
                 target = mProcessBuffer.get();
             }
             FreeImage_AdjustGamma(target, 1.0 / mGammaValue);
@@ -109,8 +115,8 @@ FIBITMAP* ImageProcessor::process(const ImageFrame& frame)
         UniqueBitmap swizzled(nullptr, &::FreeImage_Unload);
         switch(mSwizzleType) {
         case ChannelSwizzle::eBGR:
-            if (target == frame.bmp) {
-                mProcessBuffer.reset(FreeImage_Clone(frame.bmp));
+            if (target == originalBitmap) {
+                mProcessBuffer.reset(FreeImage_Clone(originalBitmap));
                 target = mProcessBuffer.get();
             }
             SwapRedBlue32(target);
@@ -150,12 +156,9 @@ const QPixmap& ImageProcessor::getResultPixmap()
 {
     if (!mIsValid) {
         const auto pImg = mSrcImage.lock();
-        if (pImg) {
-            const ImageFrame& frame = pImg->currentFrame();
-            if (frame.bmp != nullptr) {
-                mDstPixmap = QPixmap::fromImage(makeQImageView(process(frame)));
-                mIsValid = true;
-            }
+        if (pImg && pImg->notNull()) {
+            mDstPixmap = QPixmap::fromImage(makeQImageView(process(*pImg)));
+            mIsValid = true;
         }
     }
     return mDstPixmap;
@@ -168,16 +171,13 @@ const UniqueBitmap& ImageProcessor::getResultBitmap()
     }
     else {
         const auto pImg = mSrcImage.lock();
-        if (pImg) {
-            const ImageFrame& frame = pImg->currentFrame();
-            if (frame.bmp) {
-                const auto bmp = process(frame);
-                if (!mIsBuffered) {
-                    mProcessBuffer.reset(FreeImage_Clone(bmp));
-                    mIsBuffered = true;
-                }
-                mIsValid = true;
+        if (pImg && pImg->notNull()) {
+            const auto bmp = process(*pImg);
+            if (!mIsBuffered) {
+                mProcessBuffer.reset(FreeImage_Clone(bmp));
+                mIsBuffered = true;
             }
+            mIsValid = true;
         }
     }
     return mProcessBuffer;

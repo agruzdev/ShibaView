@@ -92,6 +92,11 @@ public:
         return (mImagePlayer != nullptr);
     }
 
+    FIBITMAP* getBlendedBitmap() const
+    {
+        return mImagePlayer->getBlendedBitmap();
+    }
+
     uint32_t pagesCount() const
     {
         return mImagePlayer ? mImagePlayer->framesNumber() : 0;

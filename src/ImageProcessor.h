@@ -182,7 +182,7 @@ private:
     void onInvalidated(Image* emitter) override;
 
     // Returns handle to FIBITMAP either original or modified
-    FIBITMAP* process(const ImageFrame& frame);
+    FIBITMAP* process(const Image& img);
 
 private:
     QWeakPointer<Image> mSrcImage;

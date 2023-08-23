@@ -79,12 +79,12 @@ uint32_t MultibitmapSource::doPagesCount() const
 
 const ImagePage* MultibitmapSource::doDecodePage(uint32_t pageIdx)
 {
-    auto page = std::make_unique<ImagePage>(FreeImage_LockPage(mMultibitmap, static_cast<int>(pageIdx)), mImageFormat);
+    auto page = std::make_unique<ImagePage>(FreeImage_LockPage(mMultibitmap, static_cast<int>(pageIdx)), pageIdx);
     AnimationInfo anim{};
-    anim.offsetX  = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getBitmap(), "FrameLeft", 0);
-    anim.offsetY  = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getBitmap(), "FrameTop",  0);
-    anim.duration = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getBitmap(), "FrameTime", 0);
-    anim.disposal = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getBitmap(), "DisposalMethod", DisposalType::eLeave);
+    anim.offsetX  = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getSourceBitmap(), "FrameLeft", 0);
+    anim.offsetY  = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getSourceBitmap(), "FrameTop",  0);
+    anim.duration = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getSourceBitmap(), "FrameTime", 0);
+    anim.disposal = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getSourceBitmap(), "DisposalMethod", DisposalType::eLeave);
     page->setAnimation(std::move(anim));
     return page.release();
 }
@@ -92,7 +92,7 @@ const ImagePage* MultibitmapSource::doDecodePage(uint32_t pageIdx)
 void MultibitmapSource::doReleasePage(const ImagePage* page)
 {
     if (page) {
-        FreeImage_UnlockPage(mMultibitmap, page->getBitmap(), false);
+        FreeImage_UnlockPage(mMultibitmap, page->getSourceBitmap(), false);
     }
     delete page;
 }

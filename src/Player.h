@@ -23,6 +23,7 @@
 #include <type_traits>
 #include <memory>
 #include <deque>
+#include "FreeImageExt.h"
 
 class ImageSource;
 class ImagePage;
@@ -47,6 +48,8 @@ public:
     const ImageFrame& getCurrentFrame() const;
 
     const ImagePage& getCurrentPage() const;
+
+    FIBITMAP* getBlendedBitmap() const;
 
     uint32_t framesNumber() const;
 

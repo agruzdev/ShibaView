@@ -45,9 +45,9 @@ uint32_t BitmapSource::doPagesCount() const
     return 1;
 }
 
-const ImagePage* BitmapSource::doDecodePage(uint32_t /*pageIdx*/)
+const ImagePage* BitmapSource::doDecodePage(uint32_t pageIdx)
 {
-    return new ImagePage(mBitmap, mImageFormat);
+    return new ImagePage(mBitmap, pageIdx);
 }
 
 void BitmapSource::doReleasePage(const ImagePage* page)

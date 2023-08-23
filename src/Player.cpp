@@ -88,7 +88,7 @@ std::unique_ptr<Player::CacheEntry> Player::loadZeroFrame(ImageSource* source)
 std::unique_ptr<Player::CacheEntry> Player::loadNextFrame(ImageSource* source, const CacheEntry& prev)
 {
     assert(prev.page != nullptr);
-    const uint32_t prevIdx = prev.page->getFrame().index;
+    const uint32_t prevIdx = prev.page->index();
     const uint32_t nextIdx = (prevIdx + 1) % mSource->pagesCount();
 
     auto nextEntry = std::make_unique<CacheEntry>(source->lockPage(nextIdx));
@@ -97,7 +97,7 @@ std::unique_ptr<Player::CacheEntry> Player::loadNextFrame(ImageSource* source, c
     }
 
     if (source->storesDifference()) {
-        UniqueBitmap canvas(FreeImage_Clone(prev.blendedImage.get()), &::FreeImage_Unload);
+        UniqueBitmap canvas(FreeImage_Clone(prev.blendedImage ? prev.blendedImage.get() : prev.page->getFrame().bmp), &::FreeImage_Unload);
         const auto& nextAnim = nextEntry->page->getFrame().animation;
         const auto drawSuccess = FreeImage_DrawBitmap(canvas.get(), nextEntry->page->getFrame().bmp, FIAO_SrcAlpha, nextAnim.offsetX, nextAnim.offsetY);
 
@@ -142,18 +142,26 @@ const ImagePage& Player::getCurrentPage() const
     throw std::runtime_error("Player[getCurrentFrame]: No pages are available.");
 }
 
+FIBITMAP* Player::getBlendedBitmap() const
+{
+    if (mCacheIndex < mFramesCache.size()) {
+        return mFramesCache[mCacheIndex]->blendedImage ? mFramesCache[mCacheIndex]->blendedImage.get() : mFramesCache[mCacheIndex]->page->getFrame().bmp;
+    }
+    throw std::runtime_error("Player[getCurrentFrame]: No pages are available.");
+}
+
 void Player::next()
 {
     if (mSource->pagesCount() > 1) {
 
-        const uint32_t prevIdx = getCurrentFrame().index;
+        const uint32_t prevIdx = getCurrentPage().index();
         const uint32_t nextIdx = (prevIdx + 1) % mSource->pagesCount();
 
         if (mCacheIndex < mFramesCache.size() - 1) {
             // Already cached
             ++mCacheIndex;
         }
-        else if(mFramesCache.front()->page->getFrame().index == nextIdx) {
+        else if(mFramesCache.front()->page->index() == nextIdx) {
             // Found in head
             mCacheIndex = 0;
         }
@@ -175,14 +183,14 @@ void Player::prev()
 {
     if (mSource->pagesCount() > 1) {
 
-        const uint32_t prevIdx = getCurrentFrame().index;
+        const uint32_t prevIdx = getCurrentPage().index();
         const uint32_t nextIdx = prevIdx == 0 ? mSource->pagesCount() - 1 : prevIdx - 1;
 
         if (mCacheIndex > 0) {
             // Already cached
             --mCacheIndex;
         }
-        else if(mFramesCache.back()->page->getFrame().index == nextIdx) {
+        else if(mFramesCache.back()->page->index() == nextIdx) {
             // Found in head
             mCacheIndex = mFramesCache.size() - 1;
         }
@@ -190,7 +198,7 @@ void Player::prev()
             // Find closest previous frame
             std::unique_ptr<CacheEntry> buffer = nullptr;
             CacheEntry* lastEntry = nullptr;
-            if (nextIdx > mFramesCache.back()->page->getFrame().index) {
+            if (nextIdx > mFramesCache.back()->page->index()) {
                 buffer = loadNextFrame(mSource.get(), *mFramesCache.back());
             }
             else {
@@ -205,7 +213,7 @@ void Player::prev()
             size_t cachedCount = mFramesCache.size();
 
             std::vector<std::unique_ptr<CacheEntry>> newFrames;
-            if (lastEntry->page->getFrame().index >= cacheFromIdx) {
+            if (lastEntry->page->index() >= cacheFromIdx) {
                 newFrames.push_back(std::move(buffer));
                 ++cachedCount;
                 if (cachedCount > mMaxCacheSize) {
@@ -213,10 +221,10 @@ void Player::prev()
                 }
             }
 
-            while (lastEntry->page->getFrame().index < nextIdx) {
+            while (lastEntry->page->index() < nextIdx) {
                 buffer = loadNextFrame(mSource.get(), *lastEntry);
                 lastEntry = buffer.get();
-                if (lastEntry->page->getFrame().index >= cacheFromIdx) {
+                if (lastEntry->page->index() >= cacheFromIdx) {
                     newFrames.push_back(std::move(buffer));
                     ++cachedCount;
                     if (cachedCount > mMaxCacheSize) {
@@ -225,7 +233,7 @@ void Player::prev()
                 }
             }
 
-            if (newFrames.empty() || newFrames.back()->page->getFrame().index != nextIdx) {
+            if (newFrames.empty() || newFrames.back()->page->index() != nextIdx) {
                 throw std::logic_error("Player[prev]: Cache was corrupted.");
             }
 

@@ -823,6 +823,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             }
             painter.drawPixmap(imageRect, mImageProcessor->getResultPixmap());
 
+            const uint32_t currIndex = mImage->currentPage().index();
             if (mShowInfo) {
                 if (!mInfoIsValid) {
                     if (mInfoText && mImageDescription) {
@@ -832,7 +833,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
                 }
                 mInfoText->show();
                 if (mPageText) {
-                    mPageText->setText("Page " + QString::number(frame.index + 1) + "/" + QString::number(mImage->pagesCount()));
+                    mPageText->setText("Page " + QString::number(currIndex + 1) + "/" + QString::number(mImage->pagesCount()));
                     mPageText->show();
                 }
             }
@@ -844,10 +845,10 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             }
 
             if (mEnableAnimation) {
-                if (frame.index != mAnimIndex) {
+                if (currIndex != mAnimIndex) {
                     new UniqueTick(mImage->id(), frame.animation.duration, this, &CanvasWidget::onAnimationTick, this);
                 }
-                mAnimIndex = frame.index;
+                mAnimIndex = currIndex;
             }
 
             success = true;

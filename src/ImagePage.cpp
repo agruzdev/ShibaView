@@ -148,12 +148,12 @@ namespace
 
 ImagePage::ImagePage(FIBITMAP* bmp, uint32_t index)
     : mBitmap(bmp)
+    , mIndex(index)
 {
     if (!mBitmap) {
         throw std::runtime_error("ImagePage[ctor]: Page bitmap is null.");
     }
     mConvertedFrame = cvtToInternalType(mBitmap, mFrameNeedsUnload);
-    mConvertedFrame.index = index;
     if (!mConvertedFrame.bmp) {
         throw std::runtime_error("ImagePage[ctor]: Failed to convert a frame.");
     }
