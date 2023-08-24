@@ -31,6 +31,7 @@
 #include "Global.h"
 #include "ViewerApplication.h"
 #include "Player.h"
+#include "ImageSource.h"
 
 
 namespace

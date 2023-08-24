@@ -221,7 +221,7 @@ UniqueBitmap ImagePage::getOrMakeThumbnail(uint32_t maxSize) const
             const unsigned w = FreeImage_GetWidth(ldrFrame);
             const unsigned h = FreeImage_GetHeight(ldrFrame);
             const unsigned size = std::max(w, h);
-            result.reset(FreeImage_Rescale(ldrFrame, w * maxSize / size, h * maxSize / size, FILTER_BICUBIC));
+            ldrFrame = FreeImage_Rescale(ldrFrame, w * maxSize / size, h * maxSize / size, FILTER_BICUBIC);
         }
         if (ldrFrame == mConvertedBitmap) {
             ldrFrame = FreeImage_Clone(mConvertedBitmap);

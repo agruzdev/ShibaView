@@ -80,5 +80,8 @@ Exif Exif::load(FIBITMAP* dib)
             } while(FreeImage_FindNextMetadata(mdhandle.get(), &tag));
         }
     }
+    if (FreeImage_GetThumbnail(dib)) {
+        exif.sections[FIMD_CUSTOM].emplace_back("StoredThumbnail", "Yes");
+    }
     return exif;
 }
