@@ -55,8 +55,6 @@ public:
 
     Image& operator=(Image&&) = delete;
 
-    const ImageFrame& currentFrame() const;
-
     const ImageInfo& info() const
     {
         return mInfo;
@@ -64,6 +62,7 @@ public:
 
     bool getPixel(uint32_t y, uint32_t x, Pixel* p) const
     {
+        assert(notNull());
         if (mImagePlayer) {
             return mImagePlayer->getPixel(y, x, p);
         }
@@ -92,13 +91,15 @@ public:
         return (mImagePlayer != nullptr);
     }
 
-    FIBITMAP* getBlendedBitmap() const
+    FIBITMAP* getBitmap() const
     {
+        assert(notNull());
         return mImagePlayer->getBlendedBitmap();
     }
 
     uint32_t pagesCount() const
     {
+        assert(notNull());
         return mImagePlayer ? mImagePlayer->framesNumber() : 0;
     }
 

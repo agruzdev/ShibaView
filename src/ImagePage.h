@@ -74,15 +74,6 @@ bool testFlag(FrameFlags flags, FrameFlags test)
 
 static Q_CONSTEXPR uint32_t kNoneIndex = std::numeric_limits<uint32_t>::max();
 
-struct ImageFrame
-{
-    FIBITMAP* bmp = nullptr;
-    //uint32_t index = kNoneIndex;
-    FrameFlags flags = FrameFlags::eNone;
-    AnimationInfo animation{ };
-};
-
-
 class ImagePage
 {
 public:
@@ -103,9 +94,20 @@ public:
         return doDescribeFormat();
     }
 
+    /**
+     * Original image source bitmap
+     */
     FIBITMAP* getSourceBitmap() const
     {
         return mBitmap;
+    }
+
+    /**
+     * Converted internal representation
+     */
+    FIBITMAP* getBitmap() const
+    {
+        return mConvertedBitmap;
     }
 
     uint32_t index() const
@@ -115,7 +117,12 @@ public:
 
     void setAnimation(AnimationInfo anim)
     {
-        mConvertedFrame.animation = std::move(anim);
+        mAnimation = std::move(anim);
+    }
+
+    const AnimationInfo& animation() const
+    {
+        return mAnimation;
     }
 
     bool getPixel(uint32_t y, uint32_t x, Pixel* pixel) const
@@ -123,18 +130,12 @@ public:
         return doGetPixel(y, x, pixel);
     }
 
-    const Exif& getExif() const
+    const FrameFlags& flags() const
     {
-        if (!mExif) {
-            mExif = std::make_unique<Exif>(doGetExif());
-        }
-        return *mExif;
+        return mFlags;
     }
 
-    const ImageFrame& getFrame() const
-    {
-        return mConvertedFrame;
-    }
+    const Exif& getExif() const;
 
     size_t getMemorySize() const;
 
@@ -150,8 +151,10 @@ protected:
 private:
     FIBITMAP* mBitmap;
     uint32_t mIndex;
-    ImageFrame mConvertedFrame{};
+    FIBITMAP* mConvertedBitmap;
     bool mFrameNeedsUnload = false;
+    FrameFlags mFlags;
+    AnimationInfo mAnimation;
     mutable std::unique_ptr<Exif> mExif;
 };
 

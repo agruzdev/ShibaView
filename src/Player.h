@@ -27,7 +27,6 @@
 
 class ImageSource;
 class ImagePage;
-class ImageFrame;
 class Pixel;
 
 class Player
@@ -44,8 +43,6 @@ public:
     Player& operator=(const Player&) = delete;
 
     Player& operator=(Player&&) = delete;
-
-    const ImageFrame& getCurrentFrame() const;
 
     const ImagePage& getCurrentPage() const;
 

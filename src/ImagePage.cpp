@@ -24,35 +24,35 @@
 namespace
 {
 
-    ImageFrame cvtToInternalType(FIBITMAP* src, bool& dstNeedUnload)
+    FIBITMAP* cvtToInternalType(FIBITMAP* src, FrameFlags& flags, bool& dstNeedUnload)
     {
         assert(src != nullptr);
-        ImageFrame frame{};
+        FIBITMAP* result = nullptr;
         const uint32_t bpp = FreeImage_GetBPP(src);
         switch (FreeImage_GetImageType(src)) {
         case FIT_RGBAF:
-            frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
-            frame.bmp = src;
+            flags = FrameFlags::eHRD | FrameFlags::eRGB;
+            result = src;
             dstNeedUnload = false;
             break;
 
         case FIT_RGBF:
-            frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
-            frame.bmp = src;
+            flags = FrameFlags::eHRD | FrameFlags::eRGB;
+            result = src;
             dstNeedUnload = false;
             break;
 
         case FIT_RGBA16:
         case FIT_RGBA32:
-            frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
-            frame.bmp = FreeImage_ConvertToRGBAF(src);
+            flags = FrameFlags::eHRD | FrameFlags::eRGB;
+            result = FreeImage_ConvertToRGBAF(src);
             dstNeedUnload = true;
             break;
 
         case FIT_RGB16:
         case FIT_RGB32:
-            frame.flags = FrameFlags::eHRD | FrameFlags::eRGB;
-            frame.bmp = FreeImage_ConvertToRGBF(src);
+            flags = FrameFlags::eHRD | FrameFlags::eRGB;
+            result = FreeImage_ConvertToRGBF(src);
             dstNeedUnload = true;
             break;
 
@@ -60,39 +60,39 @@ namespace
         case FIT_INT16:
         case FIT_UINT32:
         case FIT_INT32:
-            frame.bmp = FreeImage_ConvertToFloat(src);
-            frame.flags = FrameFlags::eHRD;
+            flags = FrameFlags::eHRD;
+            result = FreeImage_ConvertToFloat(src);
             dstNeedUnload = true;
             break;
 
         case FIT_FLOAT:
-            frame.flags = FrameFlags::eHRD;
-            frame.bmp = src;
+            flags = FrameFlags::eHRD;
+            result = src;
             dstNeedUnload = false;
             break;
 
         case FIT_DOUBLE:
-            frame.flags = FrameFlags::eHRD;
-            frame.bmp = src;
+            flags = FrameFlags::eHRD;
+            result = src;
             dstNeedUnload = false;
             break;
 
         case FIT_COMPLEXF:
         case FIT_COMPLEX:
-            frame.flags = FrameFlags::eNone;
-            frame.bmp = cvtFloToRgb(src);
+            flags = FrameFlags::eNone;
+            result = cvtFloToRgb(src);
             dstNeedUnload = true;
             break;
 
         case FIT_BITMAP:
             if (32 == bpp) {
-                frame.flags = FrameFlags::eRGB;
-                frame.bmp = src;
+                flags = FrameFlags::eRGB;
+                result = src;
                 dstNeedUnload = false;
             }
             else if (24 == bpp) {
-                frame.flags = FrameFlags::eRGB;
-                frame.bmp = src;
+                flags = FrameFlags::eRGB;
+                result = src;
                 dstNeedUnload = false;
             }
             else if (8 == bpp) {
@@ -100,39 +100,39 @@ namespace
                 if (FIC_PALETTE == colorType) {
                     //FreeImage_Save(FIF_TIFF, src, "test.tiff");
 
-                    frame.flags = FrameFlags::eRGB;
-                    frame.bmp = FreeImage_ConvertTo32Bits(src);
+                    flags = FrameFlags::eRGB;
+                    result = FreeImage_ConvertTo32Bits(src);
                     dstNeedUnload = true;
                 }
                 else if (FIC_MINISWHITE == colorType) {
-                    frame.bmp = FreeImage_Clone(src);
-                    FreeImage_Invert(frame.bmp);
+                    result = FreeImage_Clone(src);
+                    FreeImage_Invert(result);
                     dstNeedUnload = true;
                 }
                 else {
-                    frame.bmp = src;
+                    result = src;
                     dstNeedUnload = false;
                 }
             }
             else if (4 == bpp) {
-                frame.bmp = FreeImage_ConvertTo32Bits(src);
-                frame.flags = FrameFlags::eRGB;
+                flags = FrameFlags::eRGB;
+                result = FreeImage_ConvertTo32Bits(src);
                 dstNeedUnload = true;
             }
             else if (1 == bpp) {
                 const auto colorType = FreeImage_GetColorType(src);
                 if (FIC_PALETTE == colorType) {
-                    frame.flags = FrameFlags::eRGB;
-                    frame.bmp = FreeImage_ConvertTo32Bits(src);
+                    flags = FrameFlags::eRGB;
+                    result = FreeImage_ConvertTo32Bits(src);
                     dstNeedUnload = true;
                 }
                 else if (FIC_MINISWHITE == colorType) {
-                    frame.bmp = FreeImage_Clone(src);
-                    FreeImage_Invert(frame.bmp);
+                    result = FreeImage_Clone(src);
+                    FreeImage_Invert(result);
                     dstNeedUnload = true;
                 }
                 else {
-                    frame.bmp = src;
+                    result = src;
                     dstNeedUnload = false;
                 }
             }
@@ -141,7 +141,7 @@ namespace
         default:
             break;
         }
-        return frame;
+        return result;
     }
 
 } // namespace
@@ -153,16 +153,16 @@ ImagePage::ImagePage(FIBITMAP* bmp, uint32_t index)
     if (!mBitmap) {
         throw std::runtime_error("ImagePage[ctor]: Page bitmap is null.");
     }
-    mConvertedFrame = cvtToInternalType(mBitmap, mFrameNeedsUnload);
-    if (!mConvertedFrame.bmp) {
-        throw std::runtime_error("ImagePage[ctor]: Failed to convert a frame.");
+    mConvertedBitmap = cvtToInternalType(mBitmap, mFlags, mFrameNeedsUnload);
+    if (!mConvertedBitmap) {
+        throw std::runtime_error("ImagePage[ctor]: Failed to convert frame to internal representation.");
     }
 }
 
 ImagePage::~ImagePage()
 {
-    if (mFrameNeedsUnload && mConvertedFrame.bmp) {
-        FreeImage_Unload(mConvertedFrame.bmp);
+    if (mFrameNeedsUnload && mConvertedBitmap) {
+        FreeImage_Unload(mConvertedBitmap);
     }
 }
 
@@ -187,7 +187,15 @@ Exif ImagePage::doGetExif() const
 
 size_t ImagePage::getMemorySize() const
 {
-    return FreeImage_GetMemorySize(mBitmap) + FreeImage_GetMemorySize(mConvertedFrame.bmp);
+    return FreeImage_GetMemorySize(mBitmap) + FreeImage_GetMemorySize(mConvertedBitmap);
+}
+
+const Exif& ImagePage::getExif() const
+{
+    if (!mExif) {
+        mExif = std::make_unique<Exif>(doGetExif());
+    }
+    return *mExif;
 }
 
 UniqueBitmap ImagePage::getOrMakeThumbnail(uint32_t maxSize) const
@@ -204,10 +212,10 @@ UniqueBitmap ImagePage::getOrMakeThumbnail(uint32_t maxSize) const
             result.reset(FreeImage_Clone(storedThumbnail));
         }
     }
-    else if (mConvertedFrame.bmp) {
-        FIBITMAP* ldrFrame = mConvertedFrame.bmp;
-        if ((mConvertedFrame.flags & FrameFlags::eHRD) != FrameFlags::eNone) {
-            ldrFrame = FreeImage_ToneMapping(mConvertedFrame.bmp, FITMO_LINEAR);
+    else if (mConvertedBitmap) {
+        FIBITMAP* ldrFrame = mConvertedBitmap;
+        if ((mFlags & FrameFlags::eHRD) != FrameFlags::eNone) {
+            ldrFrame = FreeImage_ToneMapping(mConvertedBitmap, FITMO_LINEAR);
         }
         if (ldrFrame) {
             const unsigned w = FreeImage_GetWidth(ldrFrame);
@@ -215,8 +223,8 @@ UniqueBitmap ImagePage::getOrMakeThumbnail(uint32_t maxSize) const
             const unsigned size = std::max(w, h);
             result.reset(FreeImage_Rescale(ldrFrame, w * maxSize / size, h * maxSize / size, FILTER_BICUBIC));
         }
-        if (ldrFrame == mConvertedFrame.bmp) {
-            ldrFrame = FreeImage_Clone(mConvertedFrame.bmp);
+        if (ldrFrame == mConvertedBitmap) {
+            ldrFrame = FreeImage_Clone(mConvertedBitmap);
         }
         result.reset(ldrFrame);
     }

@@ -97,9 +97,9 @@ std::unique_ptr<Player::CacheEntry> Player::loadNextFrame(ImageSource* source, c
     }
 
     if (source->storesDifference()) {
-        UniqueBitmap canvas(FreeImage_Clone(prev.blendedImage ? prev.blendedImage.get() : prev.page->getFrame().bmp), &::FreeImage_Unload);
-        const auto& nextAnim = nextEntry->page->getFrame().animation;
-        const auto drawSuccess = FreeImage_DrawBitmap(canvas.get(), nextEntry->page->getFrame().bmp, FIAO_SrcAlpha, nextAnim.offsetX, nextAnim.offsetY);
+        UniqueBitmap canvas(FreeImage_Clone(prev.blendedImage ? prev.blendedImage.get() : prev.page->getBitmap()), &::FreeImage_Unload);
+        const auto& nextAnim = nextEntry->page->animation();
+        const auto drawSuccess = FreeImage_DrawBitmap(canvas.get(), nextEntry->page->getBitmap(), FIAO_SrcAlpha, nextAnim.offsetX, nextAnim.offsetY);
 
         if (!drawSuccess) {
             throw std::runtime_error("Player[loadNextFrame]: Failed to combine frames.");
@@ -129,11 +129,6 @@ bool Player::getPixel(uint32_t y, uint32_t x, Pixel* p) const
     return false;
 }
 
-const ImageFrame& Player::getCurrentFrame() const
-{
-    return getCurrentPage().getFrame();
-}
-
 const ImagePage& Player::getCurrentPage() const
 {
     if (mCacheIndex < mFramesCache.size()) {
@@ -145,7 +140,7 @@ const ImagePage& Player::getCurrentPage() const
 FIBITMAP* Player::getBlendedBitmap() const
 {
     if (mCacheIndex < mFramesCache.size()) {
-        return mFramesCache[mCacheIndex]->blendedImage ? mFramesCache[mCacheIndex]->blendedImage.get() : mFramesCache[mCacheIndex]->page->getFrame().bmp;
+        return mFramesCache[mCacheIndex]->blendedImage ? mFramesCache[mCacheIndex]->blendedImage.get() : mFramesCache[mCacheIndex]->page->getBitmap();
     }
     throw std::runtime_error("Player[getCurrentFrame]: No pages are available.");
 }
@@ -251,12 +246,12 @@ uint32_t Player::framesNumber() const
 
 uint32_t Player::getWidth() const
 {
-    return static_cast<uint32_t>(FreeImage_GetWidth(getCurrentFrame().bmp));
+    return static_cast<uint32_t>(FreeImage_GetWidth(getCurrentPage().getBitmap()));
 }
 
 uint32_t Player::getHeight() const
 {
-    return static_cast<uint32_t>(FreeImage_GetHeight(getCurrentFrame().bmp));
+    return static_cast<uint32_t>(FreeImage_GetHeight(getCurrentPage().getBitmap()));
 }
 
 

@@ -89,15 +89,10 @@ void Image::removeListener(ImageListener* listener)
     }
 }
 
-const ImageFrame& Image::currentFrame() const
-{
-    return currentPage().getFrame();
-}
-
 uint32_t Image::channels() const
 {
     if (mImagePlayer) {
-        return FreeImage_GetChannelsNumber(currentFrame().bmp);
+        return FreeImage_GetChannelsNumber(currentPage().getBitmap());
     }
     return 0;
 }

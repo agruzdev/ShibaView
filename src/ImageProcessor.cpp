@@ -57,7 +57,7 @@ ImageProcessor::~ImageProcessor() = default;
 
 FIBITMAP* ImageProcessor::process(const Image& img)
 {
-    FIBITMAP* originalBitmap = img.getBlendedBitmap();
+    FIBITMAP* originalBitmap = img.getBitmap();
     if (!originalBitmap) {
         throw std::logic_error("Image returned empty bitmap");
     }

@@ -374,8 +374,11 @@ protected:
           <y:UML clipContent="true" constraint="" hasDetailsColor="false" omitDetails="false" stereotype="" use3DEffect="false">
             <y:AttributeLabel xml:space="preserve">private:
     FIBITMAP* mBitmap;
-    ImageFrame mConvertedFrame{};
+    uint32_t mIndex;
+    FIBITMAP* mConvertedBitmap;
     bool mFrameNeedsUnload = false;
+    FrameFlags mFlags;
+    AnimationInfo mAnimation;
     mutable std::unique_ptr&lt;Exif&gt; mExif;</y:AttributeLabel>
             <y:MethodLabel xml:space="preserve">public:
     ImagePage(FIBITMAP* bmp, uint32_t index);
@@ -384,29 +387,25 @@ protected:
 
     QString describeFormat() const
 
+    FIBITMAP* getSourceBitmap() const
+
     FIBITMAP* getBitmap() const
 
-    const AnimationInfo&amp; getAnimation() const
+    uint32_t index() const
 
     void setAnimation(AnimationInfo anim)
 
+    const AnimationInfo&amp; animation() const
+
     bool getPixel(uint32_t y, uint32_t x, Pixel* pixel) const
 
-    const ImageFrame&amp; getFrame() const
+    const FrameFlags&amp; flags() const
 
-    const Exif&amp; getExif() const
+    const Exif&amp; getExif() const;
 
     size_t getMemorySize() const;
 
-    UniqueBitmap getOrMakeThumbnail(uint32_t maxSize) const;
-
-protected:
-    virtual QString doDescribeFormat() const;
-
-    virtual Exif doGetExif() const;
-
-    virtual bool doGetPixel(uint32_t y, uint32_t x, Pixel* pixel) const;
-</y:MethodLabel>
+    UniqueBitmap getOrMakeThumbnail(uint32_t maxSize) const;</y:MethodLabel>
           </y:UML>
         </y:UMLClassNode>
       </data>
@@ -587,8 +586,6 @@ private:
 
     ~Image();
 
-    const ImageFrame&amp; currentFrame() const
-
     const ImageInfo &amp; info() const
 
     bool getPixel(uint32_t y, uint32_t x, Pixel* p) const
@@ -602,6 +599,8 @@ private:
     bool isNull() const
 
     bool notNull() const
+
+    FIBITMAP* getBitmap() const
 
     uint32_t pagesCount() const
 
@@ -642,10 +641,10 @@ private:
       <data key="d4" xml:space="preserve"/>
       <data key="d6">
         <y:UMLClassNode>
-          <y:Geometry height="736.3984375000002" width="621.5624999999999" x="3169.21875" y="81.80078124999989"/>
+          <y:Geometry height="589.1140648625351" width="601.0111921901206" x="3179.4944039049396" y="155.44296756873246"/>
           <y:Fill color="#C3C3C3" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.92626953125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="43.03173828125" x="289.26538085937494" xml:space="preserve" y="3.0">Player<y:LabelModel><y:SmartNodeLabelModel distance="4.0"/></y:LabelModel><y:ModelParameter><y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/></y:ModelParameter></y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.92626953125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="43.03173828125" x="278.9897269544353" xml:space="preserve" y="3.0">Player<y:LabelModel><y:SmartNodeLabelModel distance="4.0"/></y:LabelModel><y:ModelParameter><y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/></y:ModelParameter></y:NodeLabel>
           <y:UML clipContent="true" constraint="" hasDetailsColor="false" omitDetails="false" stereotype="" use3DEffect="false">
             <y:AttributeLabel xml:space="preserve">private:
     std::shared_ptr&lt;ImageSource&gt; mSource;
@@ -657,8 +656,6 @@ private:
     Player(std::shared_ptr&lt;ImageSource&gt; src);
 
     ~Player();
-
-    const ImageFrame &amp; getCurrentFrame() const;
 
     const ImagePage&amp; getCurrentPage() const;
 
@@ -708,24 +705,6 @@ private:
       <data key="d4" xml:space="preserve"/>
       <data key="d6">
         <y:UMLClassNode>
-          <y:Geometry height="192.6875000000004" width="389.0624999999999" x="2535.46875" y="-306.3437500000002"/>
-          <y:Fill color="#C3C3C3" transparent="false"/>
-          <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="13" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="19.92626953125" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="80.5908203125" x="154.23583984374994" xml:space="preserve" y="26.701171875">ImageFrame<y:LabelModel><y:SmartNodeLabelModel distance="4.0"/></y:LabelModel><y:ModelParameter><y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/></y:ModelParameter></y:NodeLabel>
-          <y:UML clipContent="true" constraint="" hasDetailsColor="false" omitDetails="false" stereotype="struct" use3DEffect="false">
-            <y:AttributeLabel xml:space="preserve">FIBITMAP* bmp
-uint32_t index
-FrameFlags flags
-AnimationInfo animation</y:AttributeLabel>
-            <y:MethodLabel xml:space="preserve"/>
-          </y:UML>
-        </y:UMLClassNode>
-      </data>
-    </node>
-    <node id="n16">
-      <data key="d4" xml:space="preserve"/>
-      <data key="d6">
-        <y:UMLClassNode>
           <y:Geometry height="201.4375000000004" width="253.7499999999999" x="2123.125" y="79.2812499999998"/>
           <y:Fill color="#C3C3C3" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="1.0"/>
@@ -742,7 +721,7 @@ bool animated</y:AttributeLabel>
         </y:UMLClassNode>
       </data>
     </node>
-    <node id="n17">
+    <node id="n16">
       <data key="d4" xml:space="preserve"/>
       <data key="d6">
         <y:UMLClassNode>
@@ -758,7 +737,7 @@ uint32_t height</y:AttributeLabel>
         </y:UMLClassNode>
       </data>
     </node>
-    <node id="n18">
+    <node id="n17">
       <data key="d4" xml:space="preserve"/>
       <data key="d6">
         <y:UMLClassNode>
@@ -816,7 +795,7 @@ uint32_t height</y:AttributeLabel>
         </y:UMLClassNode>
       </data>
     </node>
-    <node id="n19">
+    <node id="n18">
       <data key="d4" xml:space="preserve"/>
       <data key="d6">
         <y:UMLClassNode>
@@ -845,7 +824,7 @@ uint32_t height</y:AttributeLabel>
         </y:UMLClassNode>
       </data>
     </node>
-    <node id="n20">
+    <node id="n19">
       <data key="d4" xml:space="preserve"/>
       <data key="d6">
         <y:UMLClassNode>
@@ -916,7 +895,7 @@ private:
         </y:UMLClassNode>
       </data>
     </node>
-    <node id="n21">
+    <node id="n20">
       <data key="d4" xml:space="preserve"/>
       <data key="d6">
         <y:UMLClassNode>
@@ -947,7 +926,7 @@ private:
         </y:UMLClassNode>
       </data>
     </node>
-    <node id="n22">
+    <node id="n21">
       <data key="d4" xml:space="preserve"/>
       <data key="d6">
         <y:UMLClassNode>
@@ -963,7 +942,7 @@ FIMEMORY* stream = nullptr;</y:AttributeLabel>
         </y:UMLClassNode>
       </data>
     </node>
-    <node id="n23">
+    <node id="n22">
       <data key="d4" xml:space="preserve"/>
       <data key="d6">
         <y:UMLClassNode>
@@ -1002,7 +981,7 @@ private:
         </y:UMLClassNode>
       </data>
     </node>
-    <node id="n24">
+    <node id="n23">
       <data key="d4" xml:space="preserve"/>
       <data key="d6">
         <y:UMLClassNode>
@@ -1022,7 +1001,7 @@ private:
         </y:UMLClassNode>
       </data>
     </node>
-    <node id="n25">
+    <node id="n24">
       <data key="d4" xml:space="preserve"/>
       <data key="d6">
         <y:UMLClassNode>
@@ -1058,7 +1037,7 @@ public:
         </y:UMLClassNode>
       </data>
     </node>
-    <node id="n26">
+    <node id="n25">
       <data key="d4" xml:space="preserve"/>
       <data key="d6">
         <y:UMLClassNode>
@@ -1270,17 +1249,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e18" source="n14" target="n15">
-      <data key="d10">
-        <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
-          <y:LineStyle color="#000000" type="line" width="1.0"/>
-          <y:Arrows source="diamond" target="none"/>
-          <y:BendStyle smoothed="false"/>
-        </y:PolyLineEdge>
-      </data>
-    </edge>
-    <edge id="e19" source="n11" target="n16">
+    <edge id="e18" source="n11" target="n15">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="-192.30689197542597" sy="-270.0" tx="0.0" ty="0.0"/>
@@ -1290,7 +1259,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e20" source="n16" target="n17">
+    <edge id="e19" source="n15" target="n16">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
@@ -1300,17 +1269,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e21" source="n11" target="n15">
-      <data key="d10">
-        <y:PolyLineEdge>
-          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
-          <y:LineStyle color="#000000" type="dashed" width="1.0"/>
-          <y:Arrows source="none" target="standard"/>
-          <y:BendStyle smoothed="false"/>
-        </y:PolyLineEdge>
-      </data>
-    </edge>
-    <edge id="e22" source="n1" target="n18">
+    <edge id="e20" source="n1" target="n17">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="311.9028187179315" sy="-720.0" tx="0.0" ty="0.0">
@@ -1323,7 +1282,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e23" source="n1" target="n19">
+    <edge id="e21" source="n1" target="n18">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="-311.86702075960716" sy="-750.0" tx="0.0" ty="0.0"/>
@@ -1333,7 +1292,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e24" source="n19" target="n20">
+    <edge id="e22" source="n18" target="n19">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
@@ -1343,7 +1302,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e25" source="n1" target="n20">
+    <edge id="e23" source="n1" target="n19">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="-311.88098560335754" sy="-420.0" tx="266.75114330289284" ty="330.0"/>
@@ -1353,7 +1312,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e26" source="n21" target="n22">
+    <edge id="e24" source="n20" target="n21">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
@@ -1363,7 +1322,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e27" source="n21" target="n5">
+    <edge id="e25" source="n20" target="n5">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
@@ -1373,7 +1332,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e28" source="n1" target="n23">
+    <edge id="e26" source="n1" target="n22">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="-311.8670207596074" sy="-840.0" tx="0.0" ty="0.0">
@@ -1386,7 +1345,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e29" source="n23" target="n20">
+    <edge id="e27" source="n22" target="n19">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="266.74259838101784" ty="-150.0">
@@ -1399,7 +1358,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e30" source="n6" target="n24">
+    <edge id="e28" source="n6" target="n23">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="256.88183865539577" sy="150.0" tx="0.0" ty="0.0"/>
@@ -1409,7 +1368,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e31" source="n1" target="n25">
+    <edge id="e29" source="n1" target="n24">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="-311.89143482210716" sy="-930.0" tx="210.13249095914284" ty="150.0">
@@ -1422,7 +1381,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e32" source="n25" target="n20">
+    <edge id="e30" source="n24" target="n19">
       <data key="d8" xml:space="preserve"/>
       <data key="d10">
         <y:PolyLineEdge>
@@ -1436,7 +1395,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e33" source="n25" target="n8">
+    <edge id="e31" source="n24" target="n8">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
@@ -1448,7 +1407,7 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e34" source="n1" target="n26">
+    <edge id="e32" source="n1" target="n25">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="-311.8520967102062" sy="-120.0" tx="0.0" ty="0.0"/>
@@ -1458,40 +1417,12 @@ public slots:
         </y:PolyLineEdge>
       </data>
     </edge>
-    <edge id="e35" source="n11" target="n6">
+    <edge id="e33" source="n11" target="n6">
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="192.30922360898376" sy="-270.0" tx="-256.8673569813536" ty="-210.0">
             <y:Point x="3060.0" y="180.0"/>
             <y:Point x="3060.0" y="-420.0"/>
-          </y:Path>
-          <y:LineStyle color="#000000" type="dashed" width="1.0"/>
-          <y:Arrows source="none" target="standard"/>
-          <y:BendStyle smoothed="false"/>
-        </y:PolyLineEdge>
-      </data>
-    </edge>
-    <edge id="e36" source="n10" target="n15">
-      <data key="d9"/>
-      <data key="d10">
-        <y:PolyLineEdge>
-          <y:Path sx="234.51543965009432" sy="-480.0" tx="0.0" ty="0.0">
-            <y:Point x="2040.0" y="690.0"/>
-            <y:Point x="2040.0" y="-210.0"/>
-          </y:Path>
-          <y:LineStyle color="#000000" type="dashed" width="1.0"/>
-          <y:Arrows source="none" target="standard"/>
-          <y:BendStyle smoothed="false"/>
-        </y:PolyLineEdge>
-      </data>
-    </edge>
-    <edge id="e37" source="n1" target="n15">
-      <data key="d9"/>
-      <data key="d10">
-        <y:PolyLineEdge>
-          <y:Path sx="311.87753570674704" sy="-165.36033054777323" tx="-194.51913844050432" ty="-59.99999999999997">
-            <y:Point x="1980.0" y="284.63966945222677"/>
-            <y:Point x="1980.0" y="-270.0"/>
           </y:Path>
           <y:LineStyle color="#000000" type="dashed" width="1.0"/>
           <y:Arrows source="none" target="standard"/>

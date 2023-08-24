@@ -312,7 +312,7 @@ QMenu* CanvasWidget::createContextMenu()
         // ToDo (.gruzdev): Temporal arrow fix
         const auto tmAction = createMenuAction(QString::fromUtf8("Tone mapping " "\xE2\x80\xA3"));
         QMenu* tmMenu = new QMenu(menu);
-        if (mImage && mImage->notNull() && testFlag(mImage->currentFrame().flags, FrameFlags::eHRD)) {
+        if (mImage && mImage->notNull() && testFlag(mImage->currentPage().flags(), FrameFlags::eHRD)) {
             auto& tmActions = mActToneMapping.get();
             // Manual order is important
             tmMenu->addAction(tmActions[FITMO_CLAMP]);
@@ -349,7 +349,7 @@ QMenu* CanvasWidget::createContextMenu()
         const auto swAction = createMenuAction(QString::fromUtf8("Channels " "\xE2\x80\xA3"));
         swAction->setEnabled(false);
         QMenu* swMenu = new QMenu(menu);
-        if (mImage && mImage->notNull() && mImageProcessor && testFlag(mImage->currentFrame().flags, FrameFlags::eRGB)) {
+        if (mImage && mImage->notNull() && mImageProcessor && testFlag(mImage->currentPage().flags(), FrameFlags::eRGB)) {
             const auto channelsNumber = mImage->channels();
             if (channelsNumber > 1) {
                 auto& swActions = mActSwizzle.get();
@@ -807,8 +807,6 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
                 painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, true);
             }
 
-            const ImageFrame& frame = mImage->currentFrame();
-
             const auto imageRect = calculateImageRegion();
             const auto dstCenter = QRectF(imageRect).center();
 
@@ -846,7 +844,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
             if (mEnableAnimation) {
                 if (currIndex != mAnimIndex) {
-                    new UniqueTick(mImage->id(), frame.animation.duration, this, &CanvasWidget::onAnimationTick, this);
+                    new UniqueTick(mImage->id(), mImage->currentPage().animation().duration, this, &CanvasWidget::onAnimationTick, this);
                 }
                 mAnimIndex = currIndex;
             }
@@ -1539,7 +1537,7 @@ void CanvasWidget::onAnimationTick(uint64_t imgId)
 
 void CanvasWidget::onActToneMapping(bool checked, FREE_IMAGE_TMO m)
 {
-    if (checked && mImage && !mImage->isNull() && testFlag(mImage->currentFrame().flags, FrameFlags::eHRD)) {
+    if (checked && mImage && !mImage->isNull() && testFlag(mImage->currentPage().flags(), FrameFlags::eHRD)) {
         mImageProcessor->setToneMappingMode(m);
         if (mImageDescription) {
             mImageDescription->setToneMapping(m);
