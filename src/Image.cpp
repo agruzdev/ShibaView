@@ -45,15 +45,16 @@ Image::Image(QString name, QString filename) noexcept
 
     // Load bitmap. Keep empty on fail.
     try {
-        const auto imageSource = ImageSource::Load(filename);
-        if (!imageSource || 0 == imageSource->pagesCount()) {
+        mImageSource = ImageSource::Load(filename);
+        if (!mImageSource || 0 == mImageSource->pagesCount()) {
             throw std::runtime_error("Failed to open image: " + filename.toStdString());
         }
 
-        mImagePlayer = std::make_unique<Player>(std::move(imageSource));
+        mImagePlayer = std::make_unique<Player>(mImageSource);
     }
     catch(std::exception & e) {
         qWarning() << QString(e.what());
+        mImageSource = nullptr;
         mImagePlayer = nullptr;
     }
 
@@ -119,4 +120,23 @@ const ImagePage& Image::currentPage() const
         throw std::runtime_error("Image[currentPage]: No pages available");
     }
     return mImagePlayer->getCurrentPage();
+}
+
+bool Image::getPixel(uint32_t y, uint32_t x, Pixel* p) const noexcept
+try
+{
+    if (!mImageSource || !mImagePlayer) {
+        return false;
+    }
+    if (!mImageSource->storesDifference()) {
+        return mImagePlayer->getCurrentPage().getPixel(y, x, p);
+    }
+    else {
+        // Impossible to fetch original color without blending
+        return Pixel::getBitmapPixel(mImagePlayer->getBlendedBitmap(), y, x, p);
+    }
+    return false;
+}
+catch (...) {
+    return false;
 }

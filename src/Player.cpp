@@ -111,24 +111,6 @@ std::unique_ptr<Player::CacheEntry> Player::loadNextFrame(ImageSource* source, c
     return nextEntry;
 }
 
-bool Player::getPixel(uint32_t y, uint32_t x, Pixel* p) const
-{
-    if (mCacheIndex < mFramesCache.size()) {
-        const auto& entry = mFramesCache[mCacheIndex];
-        if (mSource->storesDifference() && entry->blendedImage) {
-            // Impossible to fetch original color without blending
-            return Pixel::getBitmapPixel(entry->blendedImage.get(), y, x, p);
-        }
-        else {
-            // Use original page
-            if (entry->page) {
-                return entry->page->getPixel(y, x, p);
-            }
-        }
-    }
-    return false;
-}
-
 const ImagePage& Player::getCurrentPage() const
 {
     if (mCacheIndex < mFramesCache.size()) {

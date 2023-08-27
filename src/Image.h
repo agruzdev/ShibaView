@@ -60,14 +60,7 @@ public:
         return mInfo;
     }
 
-    bool getPixel(uint32_t y, uint32_t x, Pixel* p) const
-    {
-        assert(notNull());
-        if (mImagePlayer) {
-            return mImagePlayer->getPixel(y, x, p);
-        }
-        return false;
-    }
+    bool getPixel(uint32_t y, uint32_t x, Pixel* p) const noexcept;
 
     uint32_t width() const
     {
@@ -130,7 +123,8 @@ public:
 private:
     uint64_t mId;
 
-    std::unique_ptr<Player> mImagePlayer;
+    std::shared_ptr<ImageSource> mImageSource{ };
+    std::unique_ptr<Player> mImagePlayer{ };
 
     ImageInfo mInfo;
 

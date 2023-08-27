@@ -58,8 +58,6 @@ public:
 
     void prev();
 
-    bool getPixel(uint32_t y, uint32_t x, Pixel* p) const;
-
 private:
     struct CacheEntry;
 
