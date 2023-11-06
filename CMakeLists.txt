@@ -37,6 +37,8 @@ if (Qt6_DIR)
     set(Qt6OpenGL_DIR ${Qt6_DIR}OpenGL)
     set(Qt6Svg_DIR ${Qt6_DIR}Svg)
     set(Qt6Charts_DIR ${Qt6_DIR}Charts)
+    set(Qt6OpenGL_DIR ${Qt6_DIR}OpenGL)
+    set(Qt6OpenGLWidgets_DIR ${Qt6_DIR}OpenGLWidgets)
     set(Qt6Widgets_DIR ${Qt6_DIR}Widgets)
     set(Qt6WidgetsTools_DIR ${Qt6_DIR}WidgetsTools)
     if(WIN32)
@@ -47,9 +49,9 @@ if (Qt6_DIR)
 endif()
 
 if (WIN32)
-    find_package(Qt6 COMPONENTS Core Gui Widgets Svg Charts QWindowsIntegrationPlugin REQUIRED)
+    find_package(Qt6 COMPONENTS Core Gui Widgets Svg Charts OpenGL OpenGLWidgets QWindowsIntegrationPlugin REQUIRED)
 else()
-    find_package(Qt6 COMPONENTS Core Gui Widgets Svg Charts REQUIRED)
+    find_package(Qt6 COMPONENTS Core Gui Widgets Svg Charts OpenGL OpenGLWidgets REQUIRED)
 endif()
 
 get_target_property(Qt5Core_BINARY_DEBUG Qt6::Core IMPORTED_LOCATION_DEBUG)
@@ -66,6 +68,12 @@ get_target_property(Qt5Svg_BINARY_RELEASE Qt6::Svg IMPORTED_LOCATION_RELEASE)
 
 get_target_property(Qt5Charts_BINARY_DEBUG Qt6::Charts IMPORTED_LOCATION_DEBUG)
 get_target_property(Qt5Charts_BINARY_RELEASE Qt6::Charts IMPORTED_LOCATION_RELEASE)
+
+get_target_property(Qt5OpenGL_BINARY_DEBUG Qt6::OpenGL IMPORTED_LOCATION_DEBUG)
+get_target_property(Qt5OpenGL_BINARY_RELEASE Qt6::OpenGL IMPORTED_LOCATION_RELEASE)
+
+get_target_property(Qt5OpenGLWidgets_BINARY_DEBUG Qt6::OpenGLWidgets IMPORTED_LOCATION_DEBUG)
+get_target_property(Qt5OpenGLWidgets_BINARY_RELEASE Qt6::OpenGLWidgets IMPORTED_LOCATION_RELEASE)
 
 if (WIN32)
     get_target_property(QWindowsIntegrationPlugin_BINARY_DEBUG Qt6::QWindowsIntegrationPlugin IMPORTED_LOCATION_DEBUG)
@@ -181,8 +189,16 @@ if(WIN32)
     set_target_properties(ShibaView PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
     set_target_properties(ShibaView PROPERTIES VS_DEBUGGER_ENVIRONMENT "PATH=${CMAKE_SOURCE_DIR}/3rdParty/freeimage/lib/win64;${Qt5_BINARY_DIR};")
 endif()
-install(FILES ${Qt5Core_BINARY_DEBUG} ${Qt5Gui_BINARY_DEBUG} ${Qt5Widgets_BINARY_DEBUG} ${Qt5Svg_BINARY_DEBUG} ${Qt5Charts_BINARY_DEBUG} DESTINATION . CONFIGURATIONS DEBUG)
-install(FILES ${Qt5Core_BINARY_RELEASE} ${Qt5Gui_BINARY_RELEASE} ${Qt5Widgets_BINARY_RELEASE} ${Qt5Svg_BINARY_RELEASE} ${Qt5Charts_BINARY_RELEASE} DESTINATION . CONFIGURATIONS RELEASE)
+install(FILES ${Qt5Core_BINARY_DEBUG} ${Qt5Gui_BINARY_DEBUG} ${Qt5Widgets_BINARY_DEBUG} ${Qt5Svg_BINARY_DEBUG} 
+    ${Qt5Charts_BINARY_DEBUG} ${Qt5OpenGL_BINARY_DEBUG} ${Qt5OpenGLWidgets_BINARY_DEBUG}
+    DESTINATION . 
+    CONFIGURATIONS DEBUG
+)
+install(FILES ${Qt5Core_BINARY_RELEASE} ${Qt5Gui_BINARY_RELEASE} ${Qt5Widgets_BINARY_RELEASE} ${Qt5Svg_BINARY_RELEASE} 
+    ${Qt5Charts_BINARY_RELEASE} ${Qt5OpenGL_BINARY_RELEASE} ${Qt5OpenGLWidgets_BINARY_RELEASE}
+    DESTINATION . 
+    CONFIGURATIONS RELEASE
+)
 if (WIN32)
     install(FILES ${QWindowsIntegrationPlugin_BINARY_DEBUG} DESTINATION platforms CONFIGURATIONS DEBUG)
     install(FILES ${QWindowsIntegrationPlugin_BINARY_RELEASE} DESTINATION platforms CONFIGURATIONS RELEASE)
