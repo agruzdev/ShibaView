@@ -49,6 +49,7 @@
 #include "ImagePage.h"
 #include "ImageProcessor.h"
 #include "ImageSource.h"
+#include "HistogramWidget.h"
 #include "MenuWidget.h"
 #include "TextWidget.h"
 #include "Tooltip.h"
@@ -643,6 +644,10 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
         setWindowTitle(mImage->info().path + " - " + QApplication::applicationName());
     }
 
+    if (mHistogramWidget) {
+        mHistogramWidget->attachImageSource(mImage);
+    }
+
     invalidateImageDescription();
     invalidateTooltip();
     invalidateExif();
@@ -922,6 +927,7 @@ void CanvasWidget::resizeEvent(QResizeEvent * event)
         repositionPageText();
     }
     repaint();
+    emit eventResized();
 }
 
 void CanvasWidget::keyPressEvent(QKeyEvent* event)
@@ -1130,6 +1136,20 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         }
         break;
 
+    case ControlAction::eHistogram:
+        if (!mHistogramWidget) {
+            mHistogramWidget = new HistogramWidget(this);
+        }
+        if (mHistogramWidget->isHidden()) {
+            mHistogramWidget->attachImageSource(mImage);
+            mHistogramWidget->show();
+            mHistogramWidget->update();
+        }
+        else {
+            mHistogramWidget->hide();
+        }
+        break;
+
     case ControlAction::eAbout:
         AboutWidget::getInstance().popUp();
         break;
@@ -1160,13 +1180,13 @@ void CanvasWidget::onTransitionCanceled()
 void CanvasWidget::mousePressEvent(QMouseEvent* event)
 {
     QWidget::mousePressEvent(event);
-    if(!mFullScreen && mHoveredBorder != BorderPosition::eNone) {
+    if(!mFullScreen && mHoveredBorder != BorderPosition::eNone && (event->buttons() & Qt::LeftButton)) {
         // resise window
         mStretching = true;
         mClickGeometry = geometry();
         mClickPos = event->globalPosition().toPoint();
     }
-    else if(!mFullScreen && event->buttons() & Qt::LeftButton) {
+    else if(!mFullScreen && (event->buttons() & Qt::LeftButton)) {
         // drag window
         mDragging = true;
         mClickPos = event->pos();
@@ -1251,9 +1271,10 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
 {
     //QWidget::mouseMoveEvent(event);
     if (event) {
-
         mCursorPosition = event->pos();
-
+        if (!(event->buttons() & Qt::LeftButton)) {
+            mDragging = false;
+        }
         // Window controls
         if (!mFullScreen && mDragging) {
             const auto globalPos = event->globalPosition().toPoint();
@@ -1266,6 +1287,9 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
             repaint();
         }
         else if (!mFullScreen && !mTooltip) {
+            if (!(event->buttons() & Qt::LeftButton)) {
+                mStretching = false;
+            }
             if (mStretching) {
                 QRect r = mClickGeometry;
                 if ((mHoveredBorder & BorderPosition::eLeft) != BorderPosition::eNone) {

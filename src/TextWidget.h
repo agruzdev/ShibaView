@@ -33,7 +33,7 @@ class TextWidget
     Q_OBJECT
 public:
     explicit TextWidget(QWidget* parent = nullptr);
-    TextWidget(QWidget* parent, Qt::GlobalColor color, qreal fsize = 14.0, qreal padh = 1.0);
+    TextWidget(QWidget* parent, QColor color, qreal fsize = 14.0, qreal padh = 1.0);
     ~TextWidget();
 
     uint32_t textWidth() const
@@ -79,6 +79,11 @@ public:
         mColumnOffsets.push_back(offset);
     }
 
+    void setMirroredHorz(bool value = true)
+    {
+        mMirrorHorz = value;
+    }
+
 public slots:
     void setText(const QString & line);
     void setText(const QVector<QString> & lines);
@@ -108,6 +113,7 @@ private:
     QRect mPaddings = QRect(0, 0, 0, 0);
 
     QGraphicsDropShadowEffect* mShadow = nullptr;
+    bool mMirrorHorz = false;
 
     QColor mBorderColor = Qt::transparent;
     QColor mBackgroundColor = Qt::transparent;

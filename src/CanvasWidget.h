@@ -44,6 +44,7 @@ class Controls;
 class TextWidget;
 class Tooltip;
 class ZoomController;
+class HistogramWidget;
 
 enum class FilteringMode
 {
@@ -119,6 +120,8 @@ signals:
     void eventLastImage();
     void eventReloadImage();
     void eventOpenImage();
+
+    void eventResized();
 
 protected:
     void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
@@ -226,6 +229,8 @@ private:
 
     bool mShowTransparencyCheckboard = false;
     std::shared_future<QPixmap> mCheckboard;
+
+    HistogramWidget* mHistogramWidget = nullptr;
 
     // Actions
     std::shared_future<ActionsArray<Rotation>> mActRotate;

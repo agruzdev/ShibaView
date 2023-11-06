@@ -36,6 +36,7 @@ if (Qt6_DIR)
     set(Qt6GuiTools_DIR ${Qt6_DIR}GuiTools)
     set(Qt6OpenGL_DIR ${Qt6_DIR}OpenGL)
     set(Qt6Svg_DIR ${Qt6_DIR}Svg)
+    set(Qt6Charts_DIR ${Qt6_DIR}Charts)
     set(Qt6Widgets_DIR ${Qt6_DIR}Widgets)
     set(Qt6WidgetsTools_DIR ${Qt6_DIR}WidgetsTools)
     if(WIN32)
@@ -46,9 +47,9 @@ if (Qt6_DIR)
 endif()
 
 if (WIN32)
-    find_package(Qt6 COMPONENTS Core Gui Widgets Svg QWindowsIntegrationPlugin REQUIRED)
+    find_package(Qt6 COMPONENTS Core Gui Widgets Svg Charts QWindowsIntegrationPlugin REQUIRED)
 else()
-    find_package(Qt6 COMPONENTS Core Gui Widgets Svg REQUIRED)
+    find_package(Qt6 COMPONENTS Core Gui Widgets Svg Charts REQUIRED)
 endif()
 
 get_target_property(Qt5Core_BINARY_DEBUG Qt6::Core IMPORTED_LOCATION_DEBUG)
@@ -62,6 +63,9 @@ get_target_property(Qt5Widgets_BINARY_RELEASE Qt6::Widgets IMPORTED_LOCATION_REL
 
 get_target_property(Qt5Svg_BINARY_DEBUG Qt6::Svg IMPORTED_LOCATION_DEBUG)
 get_target_property(Qt5Svg_BINARY_RELEASE Qt6::Svg IMPORTED_LOCATION_RELEASE)
+
+get_target_property(Qt5Charts_BINARY_DEBUG Qt6::Charts IMPORTED_LOCATION_DEBUG)
+get_target_property(Qt5Charts_BINARY_RELEASE Qt6::Charts IMPORTED_LOCATION_RELEASE)
 
 if (WIN32)
     get_target_property(QWindowsIntegrationPlugin_BINARY_DEBUG Qt6::QWindowsIntegrationPlugin IMPORTED_LOCATION_DEBUG)
@@ -92,6 +96,8 @@ set(app_sources
     ./src/CanvasWidget.cpp
     ./src/Controls.h
     ./src/Controls.cpp
+    ./src/DragCornerWidget.h
+    ./src/DragCornerWidget.cpp
     ./src/EnumArray.h
     ./src/Exif.h
     ./src/Exif.cpp
@@ -101,6 +107,10 @@ set(app_sources
     ./src/FreeImageExt.cpp
     ./src/Global.h
     ./src/Global.cpp
+    ./src/Histogram.h
+    ./src/Histogram.cpp
+    ./src/HistogramWidget.h
+    ./src/HistogramWidget.cpp
     ./src/Image.h
     ./src/Image.cpp
     ./src/ImageDescription.h
@@ -152,7 +162,7 @@ endif()
 
 target_compile_features(ShibaView PRIVATE cxx_std_14)
 
-target_link_libraries(ShibaView Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Svg ${FreeImage_LIBRARY})
+target_link_libraries(ShibaView Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Svg Qt6::Charts ${FreeImage_LIBRARY})
 if (UNIX)
     target_link_libraries(ShibaView dl)
 endif()
@@ -171,8 +181,8 @@ if(WIN32)
     set_target_properties(ShibaView PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
     set_target_properties(ShibaView PROPERTIES VS_DEBUGGER_ENVIRONMENT "PATH=${CMAKE_SOURCE_DIR}/3rdParty/freeimage/lib/win64;${Qt5_BINARY_DIR};")
 endif()
-install(FILES ${Qt5Core_BINARY_DEBUG} ${Qt5Gui_BINARY_DEBUG} ${Qt5Widgets_BINARY_DEBUG} ${Qt5Svg_BINARY_DEBUG} DESTINATION . CONFIGURATIONS DEBUG)
-install(FILES ${Qt5Core_BINARY_RELEASE} ${Qt5Gui_BINARY_RELEASE} ${Qt5Widgets_BINARY_RELEASE} ${Qt5Svg_BINARY_RELEASE} DESTINATION . CONFIGURATIONS RELEASE)
+install(FILES ${Qt5Core_BINARY_DEBUG} ${Qt5Gui_BINARY_DEBUG} ${Qt5Widgets_BINARY_DEBUG} ${Qt5Svg_BINARY_DEBUG} ${Qt5Charts_BINARY_DEBUG} DESTINATION . CONFIGURATIONS DEBUG)
+install(FILES ${Qt5Core_BINARY_RELEASE} ${Qt5Gui_BINARY_RELEASE} ${Qt5Widgets_BINARY_RELEASE} ${Qt5Svg_BINARY_RELEASE} ${Qt5Charts_BINARY_RELEASE} DESTINATION . CONFIGURATIONS RELEASE)
 if (WIN32)
     install(FILES ${QWindowsIntegrationPlugin_BINARY_DEBUG} DESTINATION platforms CONFIGURATIONS DEBUG)
     install(FILES ${QWindowsIntegrationPlugin_BINARY_RELEASE} DESTINATION platforms CONFIGURATIONS RELEASE)

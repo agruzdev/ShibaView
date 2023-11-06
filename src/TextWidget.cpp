@@ -30,7 +30,7 @@ TextWidget::TextWidget(QWidget *parent)
     : TextWidget(parent, Qt::white)
 { }
 
-TextWidget::TextWidget(QWidget* parent, Qt::GlobalColor color, qreal fsize, qreal padh)
+TextWidget::TextWidget(QWidget* parent, QColor color, qreal fsize, qreal padh)
     : QWidget(parent)
 {
     mRawFont = QRawFont(Global::kDefaultFont, fsize);
@@ -46,6 +46,7 @@ TextWidget::TextWidget(QWidget* parent, Qt::GlobalColor color, qreal fsize, qrea
     mLineHeight = mRawFont.capHeight() + 2.0 * mGlyphPadV;
 
     setAttribute(Qt::WA_TransparentForMouseEvents);
+    setFocusPolicy(Qt::NoFocus);
 }
 
 TextWidget::~TextWidget() = default;
@@ -162,10 +163,22 @@ void TextWidget::paintEvent(QPaintEvent *event)
                 }
             }
             else {
-                for (const auto & glyph : glyphs) {
-                    const auto path = mRawFont.pathForGlyph(glyph);
-                    painter.drawPath(path);
-                    painter.translate(path.boundingRect().width() + mGlyphPadH, 0.0);
+                if (!mMirrorHorz) {
+                    for (uint32_t glyphIdx : glyphs) {
+                        const auto path = mRawFont.pathForGlyph(glyphIdx);
+                        painter.drawPath(path);
+                        painter.translate(path.boundingRect().width() + mGlyphPadH, 0.0);
+                    }
+                }
+                else {
+                    std::for_each(glyphs.crbegin(), glyphs.crend(), [this, &painter](uint32_t glyphIdx) {
+                        const auto path = mRawFont.pathForGlyph(glyphIdx);
+                        painter.translate(path.boundingRect().width() + mGlyphPadH, 0.0);
+                        auto tmp = painter.transform();
+                        painter.scale(-1.0, 1.0);
+                        painter.drawPath(path);
+                        painter.setTransform(tmp);
+                    });
                 }
             }
         }

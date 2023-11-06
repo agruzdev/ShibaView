@@ -100,6 +100,7 @@ Controls::Controls()
     loadKey(ControlAction::eRotation270, "Toggle rotation 270" UTF8_DEGREE, Qt::ControlModifier | Qt::Key_Left);
     loadKey(ControlAction::eColorPicker, "Color picker mode", Qt::ControlModifier | Qt::Key_I);
     loadKey(ControlAction::eDisplayPath, "Display full path", Qt::ControlModifier | Qt::Key_P);
+    loadKey(ControlAction::eHistogram, "Display/hide histogram", Qt::ControlModifier | Qt::Key_H);
     loadKey(ControlAction::eQuit, "Quit", Qt::Key_Escape);
 }
 
