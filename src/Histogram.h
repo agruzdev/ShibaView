@@ -35,6 +35,17 @@ struct Histogram
         rgbl.resize(4 * maxBinsNumber);
     }
 
+    void Reset()
+    {
+        //std::fill(rgbl.begin(), rgbl.end(), 0u);
+        minValue = maxValue = 0.0;
+    }
+
+    bool Empty() const
+    {
+        return (minValue >= maxValue);
+    }
+
     bool FillFromBitmap(FIBITMAP* bmp);
 
     uint32_t GetMaxBinValue() const

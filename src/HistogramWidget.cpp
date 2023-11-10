@@ -87,9 +87,9 @@ HistogramWidget::HistogramWidget(QWidget* parent)
     connect(mDragCorner, &DragCornerWidget::draggingStop,   this, &HistogramWidget::onDraggedStop);
     mDragCorner->resize(width(), kDragCornerSize);
     mDragCorner->setCornerRadius(6.0);
-    //auto dragLabel = new TextWidget(mDragCorner, QColorConstants::White, /*size = */ 12.0, /*pad = */0.5);
-    //dragLabel->setText("X");
-    //dragLabel->move(mDragCorner->width() - dragLabel->width(), 0);
+    auto dragLabel = new TextWidget(mDragCorner, QColorConstants::White, /*size = */ 10.0, /*pad = */0.5);
+    dragLabel->setText("Histogram");
+    dragLabel->setPaddings(2, 0, 0, 0);
     mDragCorner->show();
 
     mStretchCorner = new DragCornerWidget(this, kDragCornerSize, QColorConstants::Transparent);
@@ -226,55 +226,60 @@ void HistogramWidget::paintEvent(QPaintEvent *event)
 
     if (auto image = mImageSource.lock()) {
         if (!mIsValid) {
-            if (image->info().animated) {
-                mHistogram->FillFromBitmap(image->getBitmap());
-            }
-            else {
-                mHistogram->FillFromBitmap(image->currentPage().getSourceBitmap());
+            mHistogram->Reset();
+            if (image->notNull()) {
+                if (image->info().animated) {
+                    mHistogram->FillFromBitmap(image->getBitmap());
+                }
+                else {
+                    mHistogram->FillFromBitmap(image->currentPage().getSourceBitmap());
+                }
             }
 
             if (auto chart = mChartView->chart()) {
-                std::array<QLineSeries*, 4> series = { new QLineSeries(), new QLineSeries(), new QLineSeries(), new QLineSeries() };
-                for (uint32_t i = 0; i < mHistogram->rgbl.size() / 4; ++i) {
-                    for (uint32_t c = 0; c < 4; ++c) {
-                        series[c]->append(i, mHistogram->rgbl[i * 4 + c]);
-                    }
-                }
-                series[0]->setName("red");
-                series[0]->setColor(QColorConstants::Red);
-                series[1]->setName("green");
-                series[1]->setColor(QColorConstants::Green);
-                series[2]->setName("blue");
-                series[2]->setColor(QColorConstants::Blue);
-                series[3]->setName("brightness");
-                series[3]->setColor(QColor(1, 1, 1));
-
                 chart->removeAllSeries();
-                for (const auto& s : series) {
-                    chart->addSeries(s);
-                }
-
                 while (!chart->axes().empty()) {
                     chart->removeAxis(chart->axes().back());
                 }
 
-                auto xAxis = std::make_unique<QValueAxis>();
-                xAxis->setMin(mHistogram->minValue);
-                xAxis->setMax(mHistogram->maxValue);
-                xAxis->setLabelsBrush(QColorConstants::White);
-                chart->addAxis(xAxis.release(), Qt::AlignBottom);
+                if (!mHistogram->Empty()) {
+                    std::array<QLineSeries*, 4> series = { new QLineSeries(), new QLineSeries(), new QLineSeries(), new QLineSeries() };
+                    for (uint32_t i = 0; i < mHistogram->rgbl.size() / 4; ++i) {
+                        for (uint32_t c = 0; c < 4; ++c) {
+                            series[c]->append(i, mHistogram->rgbl[i * 4 + c]);
+                        }
+                    }
+                    series[0]->setName("red");
+                    series[0]->setColor(QColorConstants::Red);
+                    series[1]->setName("green");
+                    series[1]->setColor(QColorConstants::Green);
+                    series[2]->setName("blue");
+                    series[2]->setColor(QColorConstants::Blue);
+                    series[3]->setName("brightness");
+                    series[3]->setColor(QColor(1, 1, 1));
 
-                auto yAxis = std::make_unique<QValueAxis>();
-                yAxis->setMin(0.0);
-                yAxis->setMax(mHistogram->GetMaxBinValue());
-                yAxis->setLabelsBrush(QColorConstants::White);
-                chart->addAxis(yAxis.release(), Qt::AlignLeft);
+                    for (const auto& s : series) {
+                        chart->addSeries(s);
+                    }
 
-                if (auto legend = chart->legend()) {
-                    auto markers = legend->markers();
-                    for (size_t i = 0; i < markers.size(); ++i) {
-                        connect(markers.at(i), &QLegendMarker::clicked, this, std::bind(&HistogramWidget::onMarkerClicked, this, markers.at(i)));
-                        markers.at(i)->setLabelBrush(QColorConstants::White);
+                    auto xAxis = std::make_unique<QValueAxis>();
+                    xAxis->setMin(mHistogram->minValue);
+                    xAxis->setMax(mHistogram->maxValue);
+                    xAxis->setLabelsBrush(QColorConstants::White);
+                    chart->addAxis(xAxis.release(), Qt::AlignBottom);
+
+                    auto yAxis = std::make_unique<QValueAxis>();
+                    yAxis->setMin(0.0);
+                    yAxis->setMax(mHistogram->GetMaxBinValue());
+                    yAxis->setLabelsBrush(QColorConstants::White);
+                    chart->addAxis(yAxis.release(), Qt::AlignLeft);
+
+                    if (auto legend = chart->legend()) {
+                        auto markers = legend->markers();
+                        for (size_t i = 0; i < markers.size(); ++i) {
+                            connect(markers.at(i), &QLegendMarker::clicked, this, std::bind(&HistogramWidget::onMarkerClicked, this, markers.at(i)));
+                            markers.at(i)->setLabelBrush(QColorConstants::White);
+                        }
                     }
                 }
                 mChartView->update();
