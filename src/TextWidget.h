@@ -64,6 +64,7 @@ public:
         mPaddings.setRight(right);
         mPaddings.setTop(top);
         mPaddings.setBottom(bottom);
+        autoResize();
     }
 
     void setColor(QColor c)
