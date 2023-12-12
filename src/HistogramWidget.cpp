@@ -46,6 +46,57 @@ namespace
 
     constexpr const int32_t kDragCornerSize = 16;
 
+
+    std::vector<std::tuple<QString, QColor>> SelectChannelLabels(FIBITMAP* image, FIE_ImageFormat format)
+    {
+        if (image != nullptr) {
+            if (format == FIE_ImageFormat::FIEF_FLO) {
+                return { std::make_tuple("Motion X", QColorConstants::Red), std::make_tuple("Motion Y", QColorConstants::Blue) };
+            }
+
+            switch (FreeImage_GetImageType(image)) {
+            case FIT_RGBAF:
+            case FIT_RGBF:
+            case FIT_RGBA16:
+            case FIT_RGBA32:
+            case FIT_RGB16:
+            case FIT_RGB32:
+                return { std::make_tuple("Red", QColorConstants::Red), std::make_tuple("Green", QColorConstants::Green), std::make_tuple("Blue", QColorConstants::Blue), std::make_tuple("Brightness", QColor(1, 1, 1)) };
+
+            case FIT_UINT16:
+            case FIT_INT16:
+            case FIT_UINT32:
+            case FIT_INT32:
+            case FIT_FLOAT:
+            case FIT_DOUBLE:
+                return { std::make_tuple("Brightness", QColorConstants::Green) };
+
+            case FIT_COMPLEXF:
+            case FIT_COMPLEX:
+                return { std::make_tuple("Real", QColorConstants::Red), std::make_tuple("Imag", QColorConstants::Blue), std::make_tuple("Abs", QColor(1, 1, 1)) };
+
+            case FIT_BITMAP: {
+                    const uint32_t bpp = FreeImage_GetBPP(image);
+                    const auto colorType = FreeImage_GetColorType(image);
+                    if ((32 == bpp) || (24 == bpp) || (FIC_PALETTE == colorType)) {
+                        return { std::make_tuple("Red", QColorConstants::Red), std::make_tuple("Green", QColorConstants::Green), std::make_tuple("Blue", QColorConstants::Blue), std::make_tuple("Brightness", QColor(1, 1, 1)) };
+                    }
+                    else if (FIC_MINISWHITE == colorType || FIC_MINISBLACK == colorType) {
+                        return { std::make_tuple("Brightness", QColorConstants::Green) };
+                    }
+                }
+                break;
+
+            default:
+                break;
+            }
+
+        }
+        return { std::make_tuple("Channel 1", QColorConstants::Red), std::make_tuple("Channel 2", QColorConstants::Green), std::make_tuple("Channel 3", QColorConstants::Blue), std::make_tuple("Brightness", QColor(1, 1, 1)) };
+    }
+
+
+
 } // namespace 
 
 HistogramWidget::HistogramWidget(QWidget* parent)
@@ -226,14 +277,17 @@ void HistogramWidget::paintEvent(QPaintEvent *event)
 
     if (auto image = mImageSource.lock()) {
         if (!mIsValid) {
-            mHistogram->Reset();
+
+            FIBITMAP* srcImage{ nullptr };
             if (image->notNull()) {
-                if (image->info().animated) {
-                    mHistogram->FillFromBitmap(image->getBitmap());
-                }
-                else {
-                    mHistogram->FillFromBitmap(image->currentPage().getSourceBitmap());
-                }
+                srcImage = (image->info().animated)
+                    ? image->getBitmap()
+                    : image->currentPage().getSourceBitmap();
+            }
+
+            mHistogram->Reset();
+            if (srcImage) {
+                mHistogram->FillFromBitmap(image->getBitmap());
             }
 
             if (auto chart = mChartView->chart()) {
@@ -243,25 +297,6 @@ void HistogramWidget::paintEvent(QPaintEvent *event)
                 }
 
                 if (!mHistogram->Empty()) {
-                    std::array<QLineSeries*, 4> series = { new QLineSeries(), new QLineSeries(), new QLineSeries(), new QLineSeries() };
-                    for (uint32_t i = 0; i < mHistogram->rgbl.size() / 4; ++i) {
-                        for (uint32_t c = 0; c < 4; ++c) {
-                            series[c]->append(i, mHistogram->rgbl[i * 4 + c]);
-                        }
-                    }
-                    series[0]->setName("red");
-                    series[0]->setColor(QColorConstants::Red);
-                    series[1]->setName("green");
-                    series[1]->setColor(QColorConstants::Green);
-                    series[2]->setName("blue");
-                    series[2]->setColor(QColorConstants::Blue);
-                    series[3]->setName("brightness");
-                    series[3]->setColor(QColor(1, 1, 1));
-
-                    for (const auto& s : series) {
-                        chart->addSeries(s);
-                    }
-
                     auto xAxis = std::make_unique<QValueAxis>();
                     xAxis->setMin(mHistogram->minValue);
                     xAxis->setMax(mHistogram->maxValue);
@@ -270,9 +305,23 @@ void HistogramWidget::paintEvent(QPaintEvent *event)
 
                     auto yAxis = std::make_unique<QValueAxis>();
                     yAxis->setMin(0.0);
-                    yAxis->setMax(mHistogram->GetMaxBinValue());
+                    yAxis->setMax(std::round((100.0 * mHistogram->GetMaxBinValue()) / (image->width() * image->height())));
+                    yAxis->setLabelFormat("%.1f%%");
                     yAxis->setLabelsBrush(QColorConstants::White);
+                    const auto yAxisPtr = yAxis.get();
                     chart->addAxis(yAxis.release(), Qt::AlignLeft);
+
+                    constexpr qreal thickness = 2.0;
+                    const auto channelLegend = SelectChannelLabels(srcImage, image->getSourceFormat());
+                    for (size_t chanIdx = 0; chanIdx < channelLegend.size(); ++chanIdx) {
+                        auto s = std::make_unique<QLineSeries>();
+                        for (uint32_t i = 0; i < mHistogram->rgbl.size() / 4; ++i) {
+                            s->append(i, mHistogram->rgbl[i * 4 + chanIdx]);
+                        }
+                        s->setName(std::get<QString>(channelLegend.at(chanIdx)));
+                        s->setPen(QPen(std::get<QColor>(channelLegend.at(chanIdx)), thickness));
+                        chart->addSeries(s.release());
+                    }
 
                     if (auto legend = chart->legend()) {
                         auto markers = legend->markers();

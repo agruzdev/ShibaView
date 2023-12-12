@@ -140,3 +140,8 @@ try
 catch (...) {
     return false;
 }
+
+FIE_ImageFormat Image::getSourceFormat() const
+{
+    return mImageSource ? mImageSource->getFormat() : static_cast<FIE_ImageFormat>(FIF_UNKNOWN);
+}

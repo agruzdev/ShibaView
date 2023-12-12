@@ -120,6 +120,8 @@ public:
 
     void removeListener(ImageListener* listener);
 
+    FIE_ImageFormat getSourceFormat() const;
+
 private:
     uint64_t mId;
 

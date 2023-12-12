@@ -20,15 +20,15 @@
 #include <stdexcept>
 #include "FreeImageExt.h"
 
-BitmapSource::BitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif)
+BitmapSource::BitmapSource(const QString & filename, FIE_ImageFormat fif)
     : mImageFormat(fif)
 {
 #ifdef _WIN32
     const auto uniName = filename.toStdWString();
-    mBitmap = FreeImage_LoadU(mImageFormat, uniName.c_str(), JPEG_EXIFROTATE);
+    mBitmap = FreeImage_LoadU(static_cast<FREE_IMAGE_FORMAT>(mImageFormat), uniName.c_str(), JPEG_EXIFROTATE);
 #else
     const auto utfName = filename.toUtf8().toStdString();
-    mBitmap = FreeImage_Load(mImageFormat, utfName.c_str(), JPEG_EXIFROTATE);
+    mBitmap = FreeImage_Load(static_cast<FREE_IMAGE_FORMAT>(mImageFormat), utfName.c_str(), JPEG_EXIFROTATE);
 #endif
     if (nullptr == mBitmap) {
         throw std::runtime_error("BitmapSource[BitmapSource]: Failed to load file.");
@@ -58,4 +58,9 @@ void BitmapSource::doReleasePage(const ImagePage* page)
 bool BitmapSource::doStoresDifference() const
 {
     return false;
+}
+
+FIE_ImageFormat BitmapSource::doGetFormat() const
+{
+    return mImageFormat;
 }

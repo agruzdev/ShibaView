@@ -86,6 +86,11 @@ public:
         return doStoresDifference();
     }
 
+    FIE_ImageFormat getFormat() const
+    {
+        return doGetFormat();
+    }
+
     ImagePagePtr lockPage(uint32_t pageIdx)
     {
         return ImagePagePtr(doDecodePage(pageIdx), ImagePageDeleter(shared_from_this()));
@@ -122,6 +127,10 @@ protected:
      */
     virtual bool doStoresDifference() const = 0;
 
+    /**
+     * Return original source format
+     */
+    virtual FIE_ImageFormat doGetFormat() const = 0;
 };
 
 

@@ -30,7 +30,7 @@ class MultibitmapSource
     : public ImageSource
 {
 public:
-    MultibitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif);
+    MultibitmapSource(const QString & filename, FIE_ImageFormat fif);
 
     MultibitmapSource(const MultibitmapSource&) = delete;
 
@@ -51,6 +51,8 @@ private:
 
     bool doStoresDifference() const Q_DECL_OVERRIDE;
 
+    FIE_ImageFormat doGetFormat() const Q_DECL_OVERRIDE;
+
     // Internal buffer for FreeImage_OpenMultiBitmapU issue workaround
     struct MultibitmapBuffer
     {
@@ -58,7 +60,7 @@ private:
         FIMEMORY* stream = nullptr;
     };
 
-    FREE_IMAGE_FORMAT mImageFormat;
+    FIE_ImageFormat mImageFormat;
     FIMULTIBITMAP* mMultibitmap = nullptr;
     std::unique_ptr<MultibitmapBuffer> mBuffer = nullptr;
 };

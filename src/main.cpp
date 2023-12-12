@@ -33,6 +33,7 @@
 #include "Player.h"
 #include "ImageSource.h"
 
+#include <fstream>
 
 namespace
 {

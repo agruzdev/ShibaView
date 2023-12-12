@@ -27,7 +27,7 @@ class BitmapSource
     : public ImageSource
 {
 public:
-    BitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif);
+    BitmapSource(const QString & filename, FIE_ImageFormat fif);
 
     BitmapSource(const BitmapSource&) = delete;
 
@@ -48,7 +48,9 @@ private:
 
     bool doStoresDifference() const Q_DECL_OVERRIDE;
 
-    FREE_IMAGE_FORMAT mImageFormat;
+    FIE_ImageFormat doGetFormat() const Q_DECL_OVERRIDE;
+
+    FIE_ImageFormat mImageFormat;
     FIBITMAP* mBitmap;
 };
 

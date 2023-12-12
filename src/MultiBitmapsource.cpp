@@ -25,7 +25,7 @@
 #include "FreeImageExt.h"
 
 
-MultibitmapSource::MultibitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif)
+MultibitmapSource::MultibitmapSource(const QString & filename, FIE_ImageFormat fif)
     : mImageFormat(fif)
 {
 #ifdef _WIN32
@@ -52,12 +52,12 @@ MultibitmapSource::MultibitmapSource(const QString & filename, FREE_IMAGE_FORMAT
 
         mBuffer->stream = FreeImage_OpenMemory(mBuffer->data.data(), static_cast<uint32_t>(mBuffer->data.size()));
         if (mBuffer->stream) {
-            mMultibitmap = FreeImage_LoadMultiBitmapFromMemory(mImageFormat, mBuffer->stream, JPEG_EXIFROTATE);
+            mMultibitmap = FreeImage_LoadMultiBitmapFromMemory(static_cast<FREE_IMAGE_FORMAT>(mImageFormat), mBuffer->stream, JPEG_EXIFROTATE);
         }
     }
 #else
     const auto utfName = filename.toUtf8().toStdString();
-    mMultibitmap = FreeImage_OpenMultiBitmap(fif, utfName.c_str(), FALSE, TRUE, FALSE, JPEG_EXIFROTATE);
+    mMultibitmap = FreeImage_OpenMultiBitmap(static_cast<FREE_IMAGE_FORMAT>(fif), utfName.c_str(), FALSE, TRUE, FALSE, JPEG_EXIFROTATE);
 #endif
     if (nullptr == mMultibitmap) {
         throw std::runtime_error("MultibitmapSource[MultibitmapSource]: Failed to load file.");
@@ -100,4 +100,9 @@ void MultibitmapSource::doReleasePage(const ImagePage* page)
 bool MultibitmapSource::doStoresDifference() const
 {
     return (mImageFormat == FIF_GIF);
+}
+
+FIE_ImageFormat MultibitmapSource::doGetFormat() const
+{
+    return mImageFormat;
 }

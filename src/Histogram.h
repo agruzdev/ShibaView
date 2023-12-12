@@ -37,7 +37,7 @@ struct Histogram
 
     void Reset()
     {
-        //std::fill(rgbl.begin(), rgbl.end(), 0u);
+        std::memset(rgbl.data(), 0, rgbl.size() * sizeof(uint32_t));
         minValue = maxValue = 0.0;
     }
 
