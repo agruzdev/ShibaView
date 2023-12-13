@@ -69,6 +69,8 @@ private:
     void moveSticky(QPoint pos, bool updateStickyFlags = true);
     void updatePositionOnResize();
 
+    void onInvalidated(Image*) Q_DECL_OVERRIDE;
+
     QPoint mCurrentPos{};
     QRect mCurrentGeometry{};
 

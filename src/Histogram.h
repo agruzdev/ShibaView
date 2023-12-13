@@ -29,6 +29,7 @@ struct Histogram
     std::vector<uint32_t> rgbl;
     double minValue{ };
     double maxValue{ };
+    size_t mPixelsNumber{ };
 
     Histogram(uint32_t maxBinsNumber)
     {
@@ -39,11 +40,17 @@ struct Histogram
     {
         std::memset(rgbl.data(), 0, rgbl.size() * sizeof(uint32_t));
         minValue = maxValue = 0.0;
+        mPixelsNumber = 0;
     }
 
     bool Empty() const
     {
-        return (minValue >= maxValue);
+        return (mPixelsNumber == 0);
+    }
+
+    size_t GetPixelsNumber() const
+    {
+        return mPixelsNumber;
     }
 
     bool FillFromBitmap(FIBITMAP* bmp);

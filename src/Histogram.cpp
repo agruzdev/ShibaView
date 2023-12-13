@@ -31,6 +31,13 @@ namespace {
 
 bool Histogram::FillFromBitmap(FIBITMAP* bmp)
 {
+    if (!FreeImage_HasPixels(bmp)) {
+        return false;
+    }
+    mPixelsNumber = FreeImage_GetWidth(bmp) * FreeImage_GetHeight(bmp);
+    if (mPixelsNumber == 0) {
+        return false;
+    }
     ValueStorage minValStorage, maxValStorage;
     if (!FreeImage_MakeHistogram(bmp, rgbl.size() / 4, &minValStorage, &maxValStorage, rgbl.data(), 4, rgbl.data() + 1, 4, rgbl.data() + 2, 4, rgbl.data() + 3, 4)) {
         return false;

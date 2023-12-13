@@ -187,6 +187,7 @@ void HistogramWidget::attachImageSource(QWeakPointer<Image> image)
         newImg->addListener(this);
     }
     mIsValid = false;
+    update();
 }
 
 void HistogramWidget::mousePressEvent(QMouseEvent* event)
@@ -272,76 +273,133 @@ void HistogramWidget::keyReleaseEvent(QKeyEvent* event)
 void HistogramWidget::paintEvent(QPaintEvent *event)
 {
     QWidget::paintEvent(event);
-    QPainter painter(this);
-    painter.fillRect(this->rect(), QColorConstants::Transparent);
 
-    if (auto image = mImageSource.lock()) {
-        if (!mIsValid) {
+    if (!mIsValid) {
+        QPainter painter(this);
+        painter.fillRect(this->rect(), QColorConstants::Transparent);
 
-            FIBITMAP* srcImage{ nullptr };
+
+        FIBITMAP* srcImage{ nullptr };
+        FIE_ImageFormat srcFormat = static_cast<FIE_ImageFormat>(FIF_UNKNOWN);
+
+        if (auto image = mImageSource.lock()) {
             if (image->notNull()) {
+                srcFormat = image->getSourceFormat();
                 srcImage = (image->info().animated)
                     ? image->getBitmap()
                     : image->currentPage().getSourceBitmap();
             }
+        }
 
-            mHistogram->Reset();
-            if (srcImage) {
-                mHistogram->FillFromBitmap(image->getBitmap());
-            }
+        mHistogram->Reset();
+        if (srcImage) {
+            mHistogram->FillFromBitmap(srcImage);
+        }
 
-            if (auto chart = mChartView->chart()) {
-                chart->removeAllSeries();
+        if (auto chart = mChartView->chart()) {
+
+            if (chart->axes().size() != 2) {
                 while (!chart->axes().empty()) {
                     chart->removeAxis(chart->axes().back());
                 }
-
-                if (!mHistogram->Empty()) {
-                    auto xAxis = std::make_unique<QValueAxis>();
-                    xAxis->setMin(mHistogram->minValue);
-                    xAxis->setMax(mHistogram->maxValue);
-                    xAxis->setLabelsBrush(QColorConstants::White);
-                    chart->addAxis(xAxis.release(), Qt::AlignBottom);
-
-                    auto yAxis = std::make_unique<QValueAxis>();
-                    yAxis->setMin(0.0);
-                    yAxis->setMax(std::round((100.0 * mHistogram->GetMaxBinValue()) / (image->width() * image->height())));
-                    yAxis->setLabelFormat("%.1f%%");
-                    yAxis->setLabelsBrush(QColorConstants::White);
-                    const auto yAxisPtr = yAxis.get();
-                    chart->addAxis(yAxis.release(), Qt::AlignLeft);
-
-                    constexpr qreal thickness = 2.0;
-                    const auto channelLegend = SelectChannelLabels(srcImage, image->getSourceFormat());
-                    for (size_t chanIdx = 0; chanIdx < channelLegend.size(); ++chanIdx) {
-                        auto s = std::make_unique<QLineSeries>();
-                        for (uint32_t i = 0; i < mHistogram->rgbl.size() / 4; ++i) {
-                            s->append(i, mHistogram->rgbl[i * 4 + chanIdx]);
-                        }
-                        s->setName(std::get<QString>(channelLegend.at(chanIdx)));
-                        s->setPen(QPen(std::get<QColor>(channelLegend.at(chanIdx)), thickness));
-                        chart->addSeries(s.release());
-                    }
-
-                    if (auto legend = chart->legend()) {
-                        auto markers = legend->markers();
-                        for (size_t i = 0; i < markers.size(); ++i) {
-                            connect(markers.at(i), &QLegendMarker::clicked, this, std::bind(&HistogramWidget::onMarkerClicked, this, markers.at(i)));
-                            markers.at(i)->setLabelBrush(QColorConstants::White);
-                        }
-                    }
-                }
-                mChartView->update();
+                chart->addAxis(new QValueAxis(), Qt::AlignBottom);
+                chart->addAxis(new QValueAxis(), Qt::AlignLeft);
             }
-            mIsValid = true;
+
+            auto xAxis = static_cast<QValueAxis*>(chart->axes(Qt::Horizontal).at(0));
+            auto yAxis = static_cast<QValueAxis*>(chart->axes(Qt::Vertical).at(0));
+
+            if (!mHistogram->Empty()) {
+                const qreal yMultiplier = 100.0 / mHistogram->GetPixelsNumber();
+
+                xAxis->setRange(mHistogram->minValue, mHistogram->maxValue);
+                xAxis->setLabelsBrush(QColorConstants::White);
+                xAxis->show();
+
+                yAxis->setRange(0.0, yMultiplier * mHistogram->GetMaxBinValue());
+                yAxis->setLabelsBrush(QColorConstants::White);
+                yAxis->setLabelFormat("%.1f%%");
+                yAxis->show();
+
+
+                constexpr qreal kLineThickness = 2.0;
+                const auto channelLegend = SelectChannelLabels(srcImage, srcFormat);
+                const bool resetOpacity = (channelLegend.size() != chart->series().size());
+                for (size_t chanIdx = 0; chanIdx < channelLegend.size(); ++chanIdx) {
+                    QList<QPointF> points;
+                    for (uint32_t i = 0; i < mHistogram->rgbl.size() / 4; ++i) {
+                        points.append(QPointF(i, yMultiplier * mHistogram->rgbl[i * 4 + chanIdx]));
+                    }
+
+                    std::unique_ptr<QLineSeries> newSeries{ nullptr };
+                    QLineSeries* s = nullptr;
+                    if (chanIdx < chart->series().size()) {
+                        s = static_cast<QLineSeries*>(chart->series().at(chanIdx));
+                    }
+                    else {
+                        newSeries = std::make_unique<QLineSeries>();
+                        s = newSeries.get();
+                    }
+
+                    s->replace(points);
+                    s->setName(std::get<QString>(channelLegend.at(chanIdx)));
+                    s->setPen(QPen(std::get<QColor>(channelLegend.at(chanIdx)), kLineThickness));
+                    if (resetOpacity) {
+                        s->setOpacity(1.0);
+                    }
+
+                    if (newSeries) {
+                        chart->addSeries(newSeries.release());
+                        s->attachAxis(yAxis);
+                    }
+
+                    s->show();
+                }
+                while (chart->series().size() > channelLegend.size()) {
+                    chart->removeSeries(chart->series().back());
+                }
+
+                if (auto legend = chart->legend()) {
+                    auto markers = legend->markers();
+                    for (size_t i = 0; i < markers.size(); ++i) {
+                        disconnect(markers.at(i), nullptr, this, nullptr);
+                        connect(markers.at(i), &QLegendMarker::clicked, this, std::bind(&HistogramWidget::onMarkerClicked, this, markers.at(i)));
+                        if (auto s = dynamic_cast<QLineSeries*>(markers.at(i)->series())) {
+                            if (s->opacity() > 0.0) {
+                                markers.at(i)->setLabelBrush(QColorConstants::White);
+                                markers.at(i)->setBrush(s->color());
+                            }
+                        }
+                        markers.at(i)->setVisible(true);
+                    }
+                    legend->show();
+                }
+            }
+            else {
+                // Histogram->isEmpty()
+
+                xAxis->hide();
+                yAxis->hide();
+
+                for (auto& s : chart->series()) {
+                    s->hide();
+                }
+
+                if (auto legend = chart->legend()) {
+                    legend->hide();
+                }
+            }
+
+            mChartView->update();
         }
+        mIsValid = true;
     }
 }
 
 void HistogramWidget::onMarkerClicked(QLegendMarker* marker) const
 {
     if (auto series = dynamic_cast<QLineSeries*>(marker->series())) {
-        if (series->opacity()) {
+        if (series->opacity() > 0.0) {
             QBrush b(QColor(127, 127, 127, 127));
             marker->setBrush(b);
             marker->setLabelBrush(b);
@@ -355,3 +413,8 @@ void HistogramWidget::onMarkerClicked(QLegendMarker* marker) const
     }
 }
 
+void HistogramWidget::onInvalidated(Image*)
+{
+    mIsValid = false;
+    update();
+}
