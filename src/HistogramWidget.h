@@ -27,11 +27,13 @@
 #include <QBrush>
 #include <QGraphicsDropShadowEffect>
 #include <QChartView>
+#include <QLineSeries>
 
 #include "Image.h"
 
 class Histogram;
 class DragCornerWidget;
+class Tooltip;
 
 class HistogramWidget 
     : public QWidget
@@ -46,6 +48,7 @@ public:
 
 public slots:
     void onMarkerClicked(QLegendMarker* marker) const;
+    void onPointHovered(QLineSeries* series, const QPointF& point, bool state) const;
 
 protected:
     void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
@@ -86,6 +89,8 @@ private:
     bool mStickyTop{ false };
     bool mStickyRight{ false };
     bool mStickyBottom{ false };
+
+    std::unique_ptr<Tooltip> mTooltip;
 };
 
 #endif // HISTOGRAMWIDGET_H

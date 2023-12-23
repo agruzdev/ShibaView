@@ -39,6 +39,7 @@
 #include "DragCornerWidget.h"
 #include "CanvasWidget.h"
 #include "TextWidget.h"
+#include "Tooltip.h"
 
 
 namespace
@@ -156,6 +157,8 @@ HistogramWidget::HistogramWidget(QWidget* parent)
     if (auto canvas = dynamic_cast<CanvasWidget*>(parentWidget())) {
         connect(canvas, &CanvasWidget::eventResized, this, std::bind(&HistogramWidget::updatePositionOnResize, this));
     }
+
+    mTooltip = std::make_unique<Tooltip>();
 }
 
 HistogramWidget::~HistogramWidget() = default;
@@ -349,6 +352,7 @@ void HistogramWidget::paintEvent(QPaintEvent *event)
                     }
 
                     if (newSeries) {
+                        connect(s, &QXYSeries::hovered, this, std::bind(&HistogramWidget::onPointHovered, this, s, std::placeholders::_1, std::placeholders::_2));
                         chart->addSeries(newSeries.release());
                         s->attachAxis(yAxis);
                     }
@@ -410,6 +414,28 @@ void HistogramWidget::onMarkerClicked(QLegendMarker* marker) const
             marker->setLabelBrush(QColorConstants::White);
             series->setOpacity(1.0);
         }
+    }
+}
+
+void HistogramWidget::onPointHovered(QLineSeries* series, const QPointF& point, bool state) const
+{
+    std::cout << point.x() << "," << point.y() << " - " << state << std::endl;
+
+    if (mChartView && state) {
+        QPoint position{ 0, 0 };
+        if (auto chart = mChartView->chart()) {
+            position = chart->mapToPosition(point, series).toPoint();
+        }
+        mTooltip->move(mapToGlobal(position));
+
+        QStringList text;
+        qreal value = point.y();
+        text.append(QString::number(std::max(0.0, point.y()), 'f', 2) + "%");
+        mTooltip->setText(text);
+        mTooltip->show();
+    }
+    else {
+        mTooltip->hide();
     }
 }
 
