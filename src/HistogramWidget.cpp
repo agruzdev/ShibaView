@@ -331,7 +331,9 @@ void HistogramWidget::paintEvent(QPaintEvent *event)
                 for (size_t chanIdx = 0; chanIdx < channelLegend.size(); ++chanIdx) {
                     QList<QPointF> points;
                     for (uint32_t i = 0; i < mHistogram->rgbl.size() / 4; ++i) {
-                        points.append(QPointF(i, yMultiplier * mHistogram->rgbl[i * 4 + chanIdx]));
+                        const auto yValue = yMultiplier * mHistogram->rgbl[i * 4 + chanIdx];
+                        points.append(QPointF(i,     yValue));
+                        points.append(QPointF(i + 1, yValue));
                     }
 
                     std::unique_ptr<QLineSeries> newSeries{ nullptr };
