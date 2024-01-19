@@ -85,6 +85,11 @@ public:
         mMirrorHorz = value;
     }
 
+    QSize sizeHint() const Q_DECL_OVERRIDE
+    {
+        return mSize;
+    }
+
 public slots:
     void setText(const QString & line);
     void setText(const QVector<QString> & lines);
@@ -112,6 +117,8 @@ private:
     qreal mWidth;
 
     QRect mPaddings = QRect(0, 0, 0, 0);
+
+    QSize mSize = QSize(0, 0);
 
     QGraphicsDropShadowEffect* mShadow = nullptr;
     bool mMirrorHorz = false;

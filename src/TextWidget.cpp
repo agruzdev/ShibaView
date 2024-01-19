@@ -108,8 +108,11 @@ void TextWidget::autoResize()
         mWidth = std::max(mWidth, lineWidth);
     }
     const qreal w = mWidth + mPaddings.left() + mPaddings.right();
-    const qreal h = mLines.size() * mLineHeight + mGlyphPadV + mPaddings.top() + mPaddings.bottom();
-    resize(static_cast<int>(std::ceil(w)), static_cast<int>(std::ceil(h)));
+    const qreal h = mLines.size() * mLineHeight + mPaddings.top() + mPaddings.bottom();
+
+    mSize.setWidth(static_cast<int>(std::ceil(w)));
+    mSize.setHeight(static_cast<int>(std::ceil(h)));
+    resize(mSize);
 }
 
 void TextWidget::paintEvent(QPaintEvent *event)
