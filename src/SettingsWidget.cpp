@@ -31,12 +31,13 @@
 SettingsWidget::SettingsWidget()
     : QWidget(nullptr)
 {
-    constexpr qreal kTitleFontSize = 16.0;
+    constexpr qreal kTitleFontSize = 14.0;
     constexpr qreal kLabelFontSize = 12.0;
 
     mSettings = Global::getSettings(Global::SettingsGroup::eGlobal);
     assert(mSettings);
 
+    setWindowTitle(Global::kApplicationName + " - Settings");
     setWindowFlags(Qt::WindowCloseButtonHint | Qt::MSWindowsOwnDC);
 
     auto layout = new QGridLayout(this);
@@ -44,7 +45,7 @@ SettingsWidget::SettingsWidget()
 
     //
     auto title = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kTitleFontSize);
-    title->setText("Settings:");
+    title->setText("Global");
     layout->addWidget(title.release(), 0, 0);
 
     //
