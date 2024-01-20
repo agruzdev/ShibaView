@@ -144,6 +144,8 @@ set(app_sources
     ./src/PluginFLO.cpp
     ./src/PluginSVG.h
     ./src/PluginSVG.cpp
+    ./src/SettingsWidget.h
+    ./src/SettingsWidget.cpp
     ./src/TextWidget.h
     ./src/TextWidget.cpp
     ./src/Tooltip.h

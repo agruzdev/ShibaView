@@ -55,6 +55,7 @@
 #include "Tooltip.h"
 #include "ZoomController.h"
 #include "UniqueTick.h"
+#include "SettingsWidget.h"
 
 enum class BorderPosition
 {
@@ -77,7 +78,6 @@ namespace
     Q_CONSTEXPR int kMinZoomRatio = 30;
     Q_CONSTEXPR int kMaxZoomRatio = 30;
 
-    const QString kSettingsBackground  = "canvas/background";
     const QString kSettingsGeometry    = "canvas/geometry";
     const QString kSettingsFullscreen  = "canvas/fullscreen";
     const QString kSettingsShowInfo    = "canvas/info";
@@ -135,11 +135,12 @@ namespace
 
 CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     : QWidget(nullptr)
-    , mBackgroundColor(QColor(0x2B, 0x2B, 0x2B))
     , mHoveredBorder(BorderPosition::eNone)
     , mStartTime(t)
 {
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::MSWindowsOwnDC);
+
+    mSettings = Global::getSettings(Global::SettingsGroup::eGlobal);
 
     mInfoText = new TextWidget(this);
     mInfoText->move(kTextPaddingLeft, kTextPaddingTop);
@@ -150,7 +151,6 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     const auto kDefaultGeometry = QRect(200, 200, 1280, 720);
 
     QSettings settings;
-    mBackgroundColor.setNamedColor(settings.value(kSettingsBackground, mBackgroundColor.name(QColor::NameFormat::HexRgb)).toString());
     mClickGeometry = settings.value(kSettingsGeometry, kDefaultGeometry).toRect();
     mFullScreen    = settings.value(kSettingsFullscreen, false).toBool();
     mShowInfo      = settings.value(kSettingsShowInfo, false).toBool();
@@ -162,10 +162,6 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     else {
         mZoomMode = ZoomMode::eFitWindow;
     }
-
-    QPalette palette;
-    palette.setColor(QPalette::ColorRole::Window, mBackgroundColor);
-    setPalette(palette);
 
     setMouseTracking(true);
 
@@ -212,7 +208,6 @@ CanvasWidget::~CanvasWidget()
     assert(mImageProcessor); // never null
     try {
         QSettings settings;
-        settings.setValue(kSettingsBackground, mBackgroundColor.name(QColor::NameFormat::HexRgb));
         settings.setValue(kSettingsGeometry,   mClickGeometry);
         settings.setValue(kSettingsFullscreen, mFullScreen);
         settings.setValue(kSettingsShowInfo,   mShowInfo);
@@ -804,6 +799,18 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
     QWidget::paintEvent(event);
 
+    if (mLocalSettingsAreInvalidated) {
+        QColor backgroundColor;
+        backgroundColor.setNamedColor(mSettings->value(Global::kParamBackgroundKey, Global::kParamBackgroundDefault).toString());
+
+        QPalette palette;
+        palette.setColor(QPalette::ColorRole::Window, backgroundColor);
+        setPalette(palette);
+
+        mLocalSettingsAreInvalidated = false;
+    }
+
+
     bool success = false;
     try {
         if (mImage && !mImage->isNull()) {
@@ -1147,6 +1154,16 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         }
         else {
             mHistogramWidget->hide();
+        }
+        break;
+
+    case ControlAction::eSettings:
+        if (!mSettingsWidget) {
+            mSettingsWidget = std::make_unique<SettingsWidget>();
+            connect(mSettingsWidget.get(), &SettingsWidget::changed, this, &CanvasWidget::onSettingsChanged);
+        }
+        if (mSettingsWidget->isHidden()) {
+            mSettingsWidget->show();
         }
         break;
 
@@ -1612,4 +1629,10 @@ void CanvasWidget::onActTransparency(bool checked)
         mShowTransparencyCheckboard = checked;
         update();
     }
+}
+
+void CanvasWidget::onSettingsChanged()
+{
+    mLocalSettingsAreInvalidated = true;
+    update();
 }

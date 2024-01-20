@@ -22,10 +22,6 @@
 #include <QFile>
 #include "Global.h"
 
-namespace
-{
-    static const QString kControlsFileName = "Settings.ini";
-}
 
 const Controls& Controls::getInstance()
 {
@@ -35,33 +31,30 @@ const Controls& Controls::getInstance()
 
 Controls::Controls()
 {
-    const QString absSettingsPath = QDir(QApplication::applicationDirPath()).filePath(kControlsFileName);
-    const bool fileExists = QFile::exists(absSettingsPath);
-    QSettings settings(absSettingsPath, QSettings::Format::IniFormat);
-    settings.beginGroup("Controls");
+    auto settings = Global::getSettings(Global::SettingsGroup::eControls);
     const auto loadKey = [&](ControlAction action, QString comment, QKeySequence defaultKey, QKeySequence defaultKey2 = QKeySequence(), QKeySequence defaultKey3 = QKeySequence()) {
         assert(!defaultKey.isEmpty());
-        const QStringList loadedValues = settings.value(toQString(action)).toStringList();
+        const QStringList loadedValues = settings->value(toQString(action)).toStringList();
         QStringList  decodedValues;
         if (!loadedValues.isEmpty()) {
             for (const auto& s : loadedValues) {
                 auto inputSequence = QKeySequence(s);
                 if (!inputSequence.isEmpty()) {
-                    mSeqToAction.emplace(std::move(inputSequence), action);
                     decodedValues.append(inputSequence.toString(QKeySequence::NativeText));
+                    mSeqToAction.emplace(std::move(inputSequence), action);
                 }
             }
         }
         if (decodedValues.isEmpty()) {
-            mSeqToAction.emplace(defaultKey, action);
             decodedValues.append(defaultKey.toString(QKeySequence::NativeText));
+            mSeqToAction.emplace(defaultKey, action);
             if (!defaultKey2.isEmpty()) {
-                mSeqToAction.emplace(defaultKey2, action);
                 decodedValues.append(defaultKey2.toString(QKeySequence::NativeText));
+                mSeqToAction.emplace(defaultKey2, action);
             }
             if (!defaultKey3.isEmpty()) {
-                mSeqToAction.emplace(defaultKey3, action);
                 decodedValues.append(defaultKey3.toString(QKeySequence::NativeText));
+                mSeqToAction.emplace(defaultKey3, action);
             }
         }
         mActionDescriptions.emplace_back(action, comment, decodedValues);
@@ -74,7 +67,7 @@ Controls::Controls()
             if (!defaultKey3.isEmpty()) {
                 valuesToStore.append(defaultKey3.toString(QKeySequence::PortableText));
             }
-            settings.setValue(toQString(action), valuesToStore);
+            settings->setValue(toQString(action), valuesToStore);
         }
     };
     loadKey(ControlAction::eAbout, "Show the About page", Qt::Key_F1);
@@ -101,6 +94,7 @@ Controls::Controls()
     loadKey(ControlAction::eColorPicker, "Color picker mode", Qt::ControlModifier | Qt::Key_I);
     loadKey(ControlAction::eDisplayPath, "Display full path", Qt::ControlModifier | Qt::Key_P);
     loadKey(ControlAction::eHistogram, "Display/hide histogram", Qt::ControlModifier | Qt::Key_H);
+    loadKey(ControlAction::eSettings, "Open settings window", Qt::Key_F9);
     loadKey(ControlAction::eQuit, "Quit", Qt::Key_Escape);
 }
 

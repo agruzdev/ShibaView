@@ -19,8 +19,10 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
+#include <memory>
 #include <QString>
 #include <QStringList>
+#include <QSettings>
 
 #define UTF8_DEGREE "\xC2\xB0"
 #define UTF8_GAMMA  "\xCE\xB3"
@@ -43,6 +45,21 @@ public:
     static QStringList getSupportedExtensionFilters();
 
     static QString getSupportedExtensionsFilterString();
+
+
+
+    enum class SettingsGroup
+    {
+        eGlobal,
+        eControls
+    };
+
+    // not null
+    static std::unique_ptr<QSettings> getSettings(SettingsGroup group);
+
+    // [Global]
+    static const QString kParamBackgroundKey;
+    static const QString kParamBackgroundDefault;
 
 private:
     Global() = delete;

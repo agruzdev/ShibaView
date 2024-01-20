@@ -30,6 +30,7 @@
 #include <QTimer>
 #include <QWidget>
 #include <QWidgetAction>
+#include <QSettings>
 
 #include "FreeImageExt.h"
 #include "ImageProcessor.h"
@@ -45,6 +46,7 @@ class TextWidget;
 class Tooltip;
 class ZoomController;
 class HistogramWidget;
+class SettingsWidget;
 
 enum class FilteringMode
 {
@@ -111,6 +113,8 @@ public slots:
 
     void onAnimationTick(uint64_t imgId);
 
+    void onSettingsChanged();
+
 signals:
     void eventInfoText(QString s);
 
@@ -171,7 +175,8 @@ private:
     void invalidateExif();
 
 private:
-    QColor mBackgroundColor;
+    std::unique_ptr<QSettings> mSettings;
+    bool mLocalSettingsAreInvalidated = true;
 
     ImagePtr mImage;
 
@@ -239,6 +244,10 @@ private:
     std::shared_future<TMActionsArray> mActToneMapping;
     std::shared_future<ActionsArray<GammaType>> mActGammaType;
     std::shared_future<ActionsArray<ChannelSwizzle>> mActSwizzle;
+
+
+    // Extra windows
+    std::unique_ptr<SettingsWidget> mSettingsWidget = nullptr;
 };
 
 

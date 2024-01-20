@@ -52,6 +52,7 @@ enum class ControlAction
     eColorPicker,
     eDisplayPath,
     eHistogram,
+    eSettings,
     eQuit,
 
     length_
@@ -111,6 +112,8 @@ QString toQString(ControlAction a)
         return "DisplayPath";
     case ControlAction::eHistogram:
         return "Histogram";
+    case ControlAction::eSettings:
+        return "Settings";
     default:
         assert(false);
         return "None";
