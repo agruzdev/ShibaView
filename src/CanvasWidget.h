@@ -47,6 +47,7 @@ class Tooltip;
 class ZoomController;
 class HistogramWidget;
 class SettingsWidget;
+class ToolbarButton;
 
 enum class FilteringMode
 {
@@ -96,6 +97,8 @@ public slots:
 
     void applicationStateChanged(Qt::ApplicationState state);
 
+    void onHoverInterruted();
+
     // Actions
     void onActNoFilter(bool checked);
     void onActAntialiasing(bool checked);
@@ -140,11 +143,13 @@ private:
     void mouseDoubleClickEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void wheelEvent(QWheelEvent* event) Q_DECL_OVERRIDE;
     void leaveEvent(QEvent* event) Q_DECL_OVERRIDE;
+    void closeEvent(QCloseEvent* event) Q_DECL_OVERRIDE;
 
     void invalidateImageDescription();
     void updateZoomLabel();
 
     QRect calculateImageRegion() const;
+    void setGeometry2(QRect r);
 
     void resetOffsets();
     void updateOffsets();
@@ -245,6 +250,10 @@ private:
     std::shared_future<ActionsArray<GammaType>> mActGammaType;
     std::shared_future<ActionsArray<ChannelSwizzle>> mActSwizzle;
 
+
+    // Toolbar buttons
+    QWidget* mButtonsArea = nullptr;
+    ToolbarButton* mCloseButton = nullptr;
 
     // Extra windows
     std::unique_ptr<SettingsWidget> mSettingsWidget = nullptr;

@@ -102,3 +102,7 @@ std::unique_ptr<QSettings> Global::getSettings(SettingsGroup group)
 // [Global]
 const QString Global::kParamBackgroundKey = "Background";
 const QString Global::kParamBackgroundDefault = "#2B2B2B";
+const QString Global::kParamTextColorKey = "TextColor";
+const QString Global::kParamTextColorDefault = "#FFFFFF";
+const QString Global::kParamShowCloseButtonKey = "ShowCloseButton";
+const QString Global::kParamShowCloseButtonDefault = "0";

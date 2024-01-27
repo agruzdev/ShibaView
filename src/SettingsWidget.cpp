@@ -41,7 +41,7 @@ SettingsWidget::SettingsWidget()
     setWindowFlags(Qt::WindowCloseButtonHint | Qt::MSWindowsOwnDC);
 
     auto layout = new QGridLayout(this);
-    layout->setSpacing(24);
+    layout->setSpacing(8);
 
     //
     auto title = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kTitleFontSize);
@@ -49,22 +49,39 @@ SettingsWidget::SettingsWidget()
     layout->addWidget(title.release(), 0, 0);
 
     //
-    auto label1 = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kLabelFontSize);
-    label1->setText("Background color");
-
     auto field1 = std::make_unique<QLineEdit>(nullptr);
     field1->setText(mSettings->value(Global::kParamBackgroundKey, Global::kParamBackgroundDefault).toString());
     field1->setValidator(new QRegularExpressionValidator(QRegularExpression("#[0-9a-fA-F]{6}")));
-    mEditBackground = field1.get();
+    mEditBackgroundColor = field1.get();
 
-    layout->addWidget(label1.release(), 1, 0);
-    layout->addWidget(field1.release(), 1, 1);
+    //
+    auto field2 = std::make_unique<QLineEdit>(nullptr);
+    field2->setText(mSettings->value(Global::kParamTextColorKey, Global::kParamTextColorDefault).toString());
+    field2->setValidator(new QRegularExpressionValidator(QRegularExpression("#[0-9a-fA-F]{6}")));
+    mEditTextColor = field2.get();
 
+    //
+    auto field3 = std::make_unique<QCheckBox>(nullptr);
+    field3->setChecked(mSettings->value(Global::kParamShowCloseButtonKey, Global::kParamShowCloseButtonDefault).toBool());
+    mShowCloseButton = field3.get();
+
+    //
+    uint32_t lineIndex = 1;
+    auto appendOption = [&](QString labelText, auto& edit) mutable {
+        auto label = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kLabelFontSize);
+        label->setText(labelText);
+        layout->addWidget(label.release(), lineIndex, 0);
+        layout->addWidget(edit.release(),  lineIndex, 1);
+        ++lineIndex;
+    };
+    appendOption("Background color", field1);
+    appendOption("Text color", field2);
+    appendOption("Show Close button", field3);
 
     //
     auto buttonApply = std::make_unique<QPushButton>("Apply");
     connect(buttonApply.get(), &QPushButton::clicked, this, &SettingsWidget::onApply);
-    layout->addWidget(buttonApply.release(), 2, 1);
+    layout->addWidget(buttonApply.release(), lineIndex, 1);
 }
 
 SettingsWidget::~SettingsWidget() = default;
@@ -72,8 +89,16 @@ SettingsWidget::~SettingsWidget() = default;
 void SettingsWidget::onApply()
 {
     bool wasChanged = false;
-    if (mEditBackground && mEditBackground->hasAcceptableInput()) {
-        mSettings->setValue(Global::kParamBackgroundKey, mEditBackground->text());
+    if (mEditBackgroundColor && mEditBackgroundColor->hasAcceptableInput()) {
+        mSettings->setValue(Global::kParamBackgroundKey, mEditBackgroundColor->text());
+        wasChanged = true;
+    }
+    if (mEditTextColor && mEditTextColor->hasAcceptableInput()) {
+        mSettings->setValue(Global::kParamTextColorKey, mEditTextColor->text());
+        wasChanged = true;
+    }
+    if (mShowCloseButton) {
+        mSettings->setValue(Global::kParamShowCloseButtonKey, mShowCloseButton->isChecked());
         wasChanged = true;
     }
     if (wasChanged) {

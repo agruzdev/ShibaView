@@ -150,6 +150,8 @@ set(app_sources
     ./src/TextWidget.cpp
     ./src/Tooltip.h
     ./src/Tooltip.cpp
+    ./src/ToolbarButton.h
+    ./src/ToolbarButton.cpp
     ./src/UniqueTick.h
     ./src/UniqueTick.cpp
     ./src/ViewerApplication.h

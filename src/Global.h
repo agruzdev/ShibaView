@@ -60,6 +60,10 @@ public:
     // [Global]
     static const QString kParamBackgroundKey;
     static const QString kParamBackgroundDefault;
+    static const QString kParamTextColorKey;
+    static const QString kParamTextColorDefault;
+    static const QString kParamShowCloseButtonKey;
+    static const QString kParamShowCloseButtonDefault;
 
 private:
     Global() = delete;

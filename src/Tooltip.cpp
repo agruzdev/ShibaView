@@ -30,10 +30,13 @@ Tooltip::Tooltip()
     mTextWidget->setWindowFlags(Qt::ToolTip);
     mTextWidget->setBackgroundColor(QColor::fromRgb(255, 255, 225));
     mTextWidget->setBorderColor(Qt::black);
-    mTextWidget->setPaddings(4, 2, 0, -4);
+    mTextWidget->setPaddings(4, 2, 0, 0);
 }
 
-Tooltip::~Tooltip() = default;
+Tooltip::~Tooltip()
+{
+    mTextWidget->close();
+}
 
 void Tooltip::show()
 {

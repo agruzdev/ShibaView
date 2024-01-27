@@ -16,44 +16,40 @@
  * limitations under the License.
  */
 
-#ifndef SETTINGS_WIDGET_H
-#define SETTINGS_WIDGET_H
+#ifndef TOOLBARBUTTON_H
+#define TOOLBARBUTTON_H
 
 #include <QWidget>
-#include <QSettings>
-#include <QLineEdit>
-#include <QCheckBox>
+#include <QPushButton>
+#include <QGraphicsOpacityEffect>
 
 class TextWidget;
 
-class SettingsWidget final
-    : public QWidget
+class ToolbarButton
+    : public QPushButton
 {
     Q_OBJECT
 public:
-    SettingsWidget();
+    ToolbarButton(QWidget* parent, QSize size);
+    ~ToolbarButton();
 
-    ~SettingsWidget() override;
+    QSize sizeHint() const Q_DECL_OVERRIDE;
 
-    SettingsWidget(const SettingsWidget&) = delete;
-
-    SettingsWidget(SettingsWidget&&) = delete;
-
-    SettingsWidget& operator=(const SettingsWidget&) = delete;
-
-    SettingsWidget& operator=(SettingsWidget&&) = delete;
-
-public slots:
-    void onApply();
+    void setColor(QColor color);
 
 signals:
-    void changed();
+    void hoverEvent();
+
+protected:
+    void paintEvent(QPaintEvent* event) Q_DECL_OVERRIDE;
+    void mouseMoveEvent(QMouseEvent* event) Q_DECL_OVERRIDE;
+    void enterEvent(QEnterEvent* event) Q_DECL_OVERRIDE;
+    void leaveEvent(QEvent* event) Q_DECL_OVERRIDE;
 
 private:
-    std::unique_ptr<QSettings> mSettings;
-    QLineEdit* mEditBackgroundColor = nullptr;
-    QLineEdit* mEditTextColor = nullptr;
-    QCheckBox* mShowCloseButton = nullptr;
+    QSize mSize;
+    TextWidget* mText;
+    QGraphicsOpacityEffect* mOpacityEffect = nullptr;
 };
 
-#endif // SETTINGS_WIDGET_H
+#endif // TOOLBARBUTTON_H

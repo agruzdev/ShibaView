@@ -56,6 +56,8 @@
 #include "ZoomController.h"
 #include "UniqueTick.h"
 #include "SettingsWidget.h"
+#include "ToolbarButton.h"
+
 
 enum class BorderPosition
 {
@@ -91,7 +93,9 @@ namespace
     const QString kSettingsFullPath    = "canvas/fullpath";
 
     Q_CONSTEXPR int kTextPaddingLeft = 15;
-    Q_CONSTEXPR int kTextPaddingTop  = 30;
+    Q_CONSTEXPR int kTextPaddingTop  = 10;
+
+    Q_CONSTEXPR int kToolbarHeight = 24;
 
     Q_CONSTEXPR
     BorderPosition operator|(const BorderPosition & lh, const BorderPosition & rh)
@@ -130,6 +134,12 @@ namespace
         }
     }
 
+    QColor decodeColor(QString hex)
+    {
+        QColor c;
+        c.setNamedColor(hex);
+        return c;
+    }
 }
 
 
@@ -139,6 +149,7 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     , mStartTime(t)
 {
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::MSWindowsOwnDC);
+    setMouseTracking(true);
 
     mSettings = Global::getSettings(Global::SettingsGroup::eGlobal);
 
@@ -161,15 +172,6 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     }
     else {
         mZoomMode = ZoomMode::eFitWindow;
-    }
-
-    setMouseTracking(true);
-
-    if (mFullScreen) {
-        mFullScreen = setFullscreenGeometry();
-    }
-    if (!mFullScreen) {
-        setGeometry(mClickGeometry);
     }
 
     mActRotate      = std::async(std::launch::deferred, [this]{ return initRotationActions();    });
@@ -201,6 +203,24 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
         painter.fillRect(0, 8, 8, 8, QColor(Qt::white));
         return p;
     });
+
+
+    mButtonsArea = new QWidget(this);
+
+    auto toolbarLayout = new QHBoxLayout(mButtonsArea);
+    toolbarLayout->setContentsMargins(0, 0, 0, 0);
+
+    mCloseButton = new ToolbarButton(mButtonsArea, QSize(kToolbarHeight, kToolbarHeight));
+    toolbarLayout->addWidget(mCloseButton, 0, Qt::AlignRight);
+    connect(mCloseButton, &QPushButton::clicked, this, &QWidget::close);
+    connect(mCloseButton, &ToolbarButton::hoverEvent, this, &CanvasWidget::onHoverInterruted);
+
+    if (mFullScreen) {
+        mFullScreen = setFullscreenGeometry();
+    }
+    if (!mFullScreen) {
+        setGeometry2(mClickGeometry);
+    }
 }
 
 CanvasWidget::~CanvasWidget()
@@ -229,6 +249,24 @@ CanvasWidget::~CanvasWidget()
     }
     catch(...) {
         
+    }
+}
+
+void CanvasWidget::closeEvent(QCloseEvent* event)
+{
+    mTooltip.reset();
+    if (mSettingsWidget) {
+        mSettingsWidget->close();
+    }
+    // ToDo (agruzdev): Close About and Exif widgets
+}
+
+void CanvasWidget::setGeometry2(QRect r)
+{
+    QWidget::setGeometry(r);
+    if (mButtonsArea) {
+        const auto buttonsSize = mButtonsArea->sizeHint();
+        mButtonsArea->setGeometry(r.width() - buttonsSize.width(), 0, buttonsSize.width(), kToolbarHeight);
     }
 }
 
@@ -570,7 +608,7 @@ void CanvasWidget::invalidateImageDescription()
 void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
 {
     mImageProcessor->detachSource();
-    if(mContextMenu) {
+    if (mContextMenu) {
         delete mContextMenu;
         mContextMenu = nullptr;
     }
@@ -800,13 +838,37 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
     QWidget::paintEvent(event);
 
     if (mLocalSettingsAreInvalidated) {
-        QColor backgroundColor;
-        backgroundColor.setNamedColor(mSettings->value(Global::kParamBackgroundKey, Global::kParamBackgroundDefault).toString());
+        // background color
+        {
+            const QColor backgroundColor = decodeColor(mSettings->value(Global::kParamBackgroundKey, Global::kParamBackgroundDefault).toString());
 
-        QPalette palette;
-        palette.setColor(QPalette::ColorRole::Window, backgroundColor);
-        setPalette(palette);
+            QPalette palette;
+            palette.setColor(QPalette::ColorRole::Window, backgroundColor);
+            setPalette(palette);
+        }
+        // text color
+        {
+            const QColor textColor = decodeColor(mSettings->value(Global::kParamTextColorKey, Global::kParamTextColorDefault).toString());
 
+            if (mInfoText) {
+                mInfoText->setColor(textColor);
+            }
+            if (mPageText) {
+                mPageText->setColor(textColor);
+            }
+            if (mCloseButton) {
+                mCloseButton->setColor(textColor);
+            }
+        }
+        // show close button
+        if (mButtonsArea) {
+            if (mSettings->value(Global::kParamShowCloseButtonKey, Global::kParamShowCloseButtonDefault).toBool()) {
+                mButtonsArea->show();
+            }
+            else {
+                mButtonsArea->hide();
+            }
+        }
         mLocalSettingsAreInvalidated = false;
     }
 
@@ -1165,6 +1227,7 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         if (mSettingsWidget->isHidden()) {
             mSettingsWidget->show();
         }
+        mSettingsWidget->activateWindow();
         break;
 
     case ControlAction::eAbout:
@@ -1243,11 +1306,11 @@ bool CanvasWidget::setFullscreenGeometry()
     const auto getScreenGeometry_ = [](const QScreen& s) { return s.availableGeometry(); };
 #endif
     if (const auto screen = QApplication::screenAt(mClickGeometry.center())) {
-        setGeometry(getScreenGeometry_(*screen));
+        setGeometry2(getScreenGeometry_(*screen));
         return true;
     }
     if (const auto screen = QApplication::primaryScreen()) {
-        setGeometry(getScreenGeometry_(*screen));
+        setGeometry2(getScreenGeometry_(*screen));
         return true;
     }
     return false;
@@ -1258,7 +1321,7 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event)
     QWidget::mouseDoubleClickEvent(event);
     if((event->button() & Qt::LeftButton) && (mHoveredBorder == BorderPosition::eNone)) {
         if (mFullScreen) {
-            setGeometry(mClickGeometry);
+            setGeometry2(mClickGeometry);
             mFullScreen = false;
         } else {
             const auto currentGeomentry = geometry();
@@ -1325,7 +1388,7 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
                     const auto pos = event->position().toPoint();
                     r.setHeight(std::max(kMinSize, pos.y()));
                 }
-                setGeometry(r);
+                setGeometry2(r);
                 updateOffsets();
             }
             else {
@@ -1368,6 +1431,17 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event)
         }
 
         invalidateTooltip();
+    }
+}
+
+void CanvasWidget::onHoverInterruted()
+{
+    if (mHoveredBorder != BorderPosition::eNone) {
+        mHoveredBorder = BorderPosition::eNone;
+        unsetCursor();
+    }
+    if (mTooltip) {
+        mTooltip->hide();
     }
 }
 
