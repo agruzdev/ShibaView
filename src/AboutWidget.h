@@ -29,8 +29,9 @@ class AboutWidget final
     Q_OBJECT
 
 public:
-    static
-    AboutWidget& getInstance();
+    AboutWidget(QWidget* parent = nullptr);
+
+    ~AboutWidget() override;
 
     AboutWidget(const AboutWidget&) = delete;
 
@@ -43,10 +44,6 @@ public:
     void popUp();
 
 private:
-    AboutWidget();
-
-    ~AboutWidget() override;
-
     void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
 };
 

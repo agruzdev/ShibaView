@@ -25,15 +25,6 @@
 
 namespace
 {
-    struct WidgetStaticContext
-    {
-        ExifWidget* instance = nullptr;
-        std::mutex mutex;
-    };
-
-    WidgetStaticContext gExifWidgetStaticContext{};
-
-
     QString toQString(FREE_IMAGE_MDMODEL mdmodel)
     {
         switch(mdmodel) {
@@ -68,16 +59,6 @@ namespace
     constexpr int32_t kMinimumPadding = 10;
 }
 
-ExifWidget& ExifWidget::getInstance()
-{
-    std::lock_guard<std::mutex> lock(gExifWidgetStaticContext.mutex);
-    if (!gExifWidgetStaticContext.instance) {
-        gExifWidgetStaticContext.instance = new ExifWidget();
-    }
-    return *gExifWidgetStaticContext.instance;
-}
-
-
 ExifWidget::ExifWidget()
     : QWidget(nullptr)
 {
@@ -92,55 +73,40 @@ ExifWidget::ExifWidget()
     setFixedSize(kMinimumWidth, kMinimumHeight);
 }
 
-ExifWidget::~ExifWidget()
-{
-    std::lock_guard<std::mutex> lock(gExifWidgetStaticContext.mutex);
-    gExifWidgetStaticContext.instance = nullptr;
-}
-
-void ExifWidget::activate()
-{
-    mActive = true;
-}
+ExifWidget::~ExifWidget() = default;
 
 void ExifWidget::setExif(const Exif& exif)
 {
-    if (mActive) {
+    QVector<QString> lines;
 
-        QVector<QString> lines;
-
-        for (auto model : { FIMD_COMMENTS, FIMD_EXIF_MAIN, FIMD_EXIF_EXIF, FIMD_EXIF_GPS, FIMD_EXIF_MAKERNOTE,
-                FIMD_EXIF_INTEROP, FIMD_IPTC, /*FIMD_XMP,*/ FIMD_GEOTIFF, /*FIMD_ANIMATION,*/ FIMD_CUSTOM })
-        {
-            QVector<QString> sectionLines;
-            for (const auto& entry: exif.sections[model]) {
-                sectionLines.push_back("  " + std::get<0>(entry) + ": " + std::get<1>(entry).toString());
-            }
-
-            if (!sectionLines.empty()) {
-                lines.push_back(toQString(model) + ":");
-                for (auto str: sectionLines) {
-                    lines.append(std::move(str));
-                }
-            }
+    for (auto model : { FIMD_COMMENTS, FIMD_EXIF_MAIN, FIMD_EXIF_EXIF, FIMD_EXIF_GPS, FIMD_EXIF_MAKERNOTE,
+            FIMD_EXIF_INTEROP, FIMD_IPTC, /*FIMD_XMP,*/ FIMD_GEOTIFF, /*FIMD_ANIMATION,*/ FIMD_CUSTOM })
+    {
+        QVector<QString> sectionLines;
+        for (const auto& entry: exif.sections[model]) {
+            sectionLines.push_back("  " + std::get<0>(entry) + ": " + std::get<1>(entry).toString());
         }
 
-        if (lines.empty()) {
-            lines.push_back("N/A");
+        if (!sectionLines.empty()) {
+            lines.push_back(toQString(model) + ":");
+            for (auto str: sectionLines) {
+                lines.append(std::move(str));
+            }
         }
- 
-        mText->setText(lines);
-
-        QSize newSize = mText->size();
-        newSize.setHeight(std::max(newSize.height() + kMinimumPadding, kMinimumHeight));
-        newSize.setWidth(std::max(newSize.width() + kMinimumPadding, kMinimumWidth));
-        setFixedSize(newSize);
-
-        mText->update();
-
-        update();
-        show();
     }
+
+    if (lines.empty()) {
+        lines.push_back("N/A");
+    }
+ 
+    mText->setText(lines);
+
+    QSize newSize = mText->size();
+    newSize.setHeight(std::max(newSize.height() + kMinimumPadding, kMinimumHeight));
+    newSize.setWidth(std::max(newSize.width() + kMinimumPadding, kMinimumWidth));
+    setFixedSize(newSize);
+
+    mText->update();
 }
 
 void ExifWidget::setEmpty()
@@ -149,23 +115,10 @@ void ExifWidget::setEmpty()
     setExif(empty);
 }
 
-void ExifWidget::paintEvent(QPaintEvent * event)
-{
-    if (mActive) {
-        mText->update();
-    }
-}
-
 void ExifWidget::keyPressEvent(QKeyEvent *event)
 {
     QWidget::keyPressEvent(event);
     if (event->key() == Qt::Key_Escape) {
         close();
     }
-}
-
-void ExifWidget::closeEvent(QCloseEvent* event)
-{
-    mActive = false;
-    hide();
 }

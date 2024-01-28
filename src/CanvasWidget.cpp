@@ -244,8 +244,6 @@ CanvasWidget::~CanvasWidget()
         if (mImageDescription) {
             settings.setValue(kSettingsFullPath, static_cast<int32_t>(mImageDescription->displayPath()));
         }
-
-        mTooltip.reset();
     }
     catch(...) {
         
@@ -258,7 +256,12 @@ void CanvasWidget::closeEvent(QCloseEvent* event)
     if (mSettingsWidget) {
         mSettingsWidget->close();
     }
-    // ToDo (agruzdev): Close About and Exif widgets
+    if (mExifWidget) {
+        mExifWidget->close();
+    }
+    if (mAboutWidget) {
+        mAboutWidget->close();
+    }
 }
 
 void CanvasWidget::setGeometry2(QRect r)
@@ -1231,11 +1234,23 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         break;
 
     case ControlAction::eAbout:
-        AboutWidget::getInstance().popUp();
+        if (!mAboutWidget) {
+            mAboutWidget = std::make_unique<AboutWidget>();
+        }
+        if (mAboutWidget->isHidden()) {
+            mAboutWidget->show();
+        }
+        mAboutWidget->activateWindow();
         break;
 
     case ControlAction::eImageInfo:
-        ExifWidget::getInstance().activate();
+        if (!mExifWidget) {
+            mExifWidget = std::make_unique<ExifWidget>();
+        }
+        if (mExifWidget->isHidden()) {
+            mExifWidget->show();
+        }
+        mExifWidget->activateWindow();
         invalidateExif();
         break;
 
@@ -1483,13 +1498,12 @@ void CanvasWidget::invalidateTooltip()
 
 void CanvasWidget::invalidateExif()
 {
-    ExifWidget& exifWidget = ExifWidget::getInstance();
-    if (exifWidget.isActive()) {
+    if (mExifWidget) {
         if (mImage && mImage->notNull()) {
-            exifWidget.setExif(mImage->currentPage().getExif());
+            mExifWidget->setExif(mImage->currentPage().getExif());
         }
         else {
-            exifWidget.setEmpty();
+            mExifWidget->setEmpty();
         }
     }
 }

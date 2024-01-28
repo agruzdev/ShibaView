@@ -31,8 +31,9 @@ class ExifWidget final
     Q_OBJECT
 
 public:
-    static
-    ExifWidget& getInstance();
+    ExifWidget();
+
+    ~ExifWidget() override;
 
     ExifWidget(const ExifWidget&) = delete;
 
@@ -42,27 +43,12 @@ public:
 
     ExifWidget& operator=(ExifWidget&&) = delete;
 
-    void activate();
-
     void setExif(const Exif& exif);
 
     void setEmpty();
-
-    bool isActive()
-    {
-        return mActive;
-    }
-
 public:
-    ExifWidget();
-
-    ~ExifWidget() override;
-
     void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
-    void paintEvent(QPaintEvent * event) Q_DECL_OVERRIDE;
-    void closeEvent(QCloseEvent* event) Q_DECL_OVERRIDE;
 
-    bool mActive = false;
     TextWidget* mText;
 };
 

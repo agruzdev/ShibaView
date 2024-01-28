@@ -29,31 +29,11 @@
 #include "FreeImage.h"
 
 
-namespace
-{
-    struct WidgetStaticContext
-    {
-        AboutWidget* instance = nullptr;
-        std::mutex mutex;
-    };
-
-    WidgetStaticContext gAboutWidgetStaticContext{};
-}
-
-AboutWidget& AboutWidget::getInstance()
-{
-    std::lock_guard<std::mutex> lock(gAboutWidgetStaticContext.mutex);
-    if (!gAboutWidgetStaticContext.instance) {
-        gAboutWidgetStaticContext.instance = new AboutWidget();
-    }
-    return *gAboutWidgetStaticContext.instance;
-}
-
-AboutWidget::AboutWidget()
-    : QWidget(nullptr)
+AboutWidget::AboutWidget(QWidget* parent)
+    : QWidget(parent)
 {
     setWindowFlags(Qt::WindowCloseButtonHint | Qt::MSWindowsOwnDC);
-    setAttribute(Qt::WA_DeleteOnClose);
+    //setAttribute(Qt::WA_DeleteOnClose);
 
     setWindowTitle(Global::kApplicationName + " - About");
 
@@ -83,11 +63,7 @@ AboutWidget::AboutWidget()
     show();
 }
 
-AboutWidget::~AboutWidget()
-{
-    std::lock_guard<std::mutex> lock(gAboutWidgetStaticContext.mutex);
-    gAboutWidgetStaticContext.instance = nullptr;
-}
+AboutWidget::~AboutWidget() = default;
 
 void AboutWidget::popUp()
 {

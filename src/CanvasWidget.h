@@ -31,6 +31,7 @@
 #include <QWidget>
 #include <QWidgetAction>
 #include <QSettings>
+#include <QLabel>
 
 #include "FreeImageExt.h"
 #include "ImageProcessor.h"
@@ -39,15 +40,15 @@
 
 enum class BorderPosition;
 
-class QLabel;
-
+class AboutWidget;
 class Controls;
+class HistogramWidget;
+class ExifWidget;
+class SettingsWidget;
 class TextWidget;
+class ToolbarButton;
 class Tooltip;
 class ZoomController;
-class HistogramWidget;
-class SettingsWidget;
-class ToolbarButton;
 
 enum class FilteringMode
 {
@@ -256,6 +257,8 @@ private:
     ToolbarButton* mCloseButton = nullptr;
 
     // Extra windows
+    std::unique_ptr<AboutWidget> mAboutWidget = nullptr;
+    std::unique_ptr<ExifWidget> mExifWidget = nullptr;
     std::unique_ptr<SettingsWidget> mSettingsWidget = nullptr;
 };
 
