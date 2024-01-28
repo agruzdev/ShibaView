@@ -74,6 +74,8 @@ private:
 
     void onInvalidated(Image*) Q_DECL_OVERRIDE;
 
+    QRect getParentSpace() const;
+
     QPoint mCurrentPos{};
     QRect mCurrentGeometry{};
 

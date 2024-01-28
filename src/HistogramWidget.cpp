@@ -128,10 +128,11 @@ HistogramWidget::HistogramWidget(QWidget* parent)
     setLayout(layout);
 
     resize(640, 320);
-    if (parentWidget()) {
-        // top right corner
-        moveSticky(QPoint(parentWidget()->width() - width(), 0));
-    }
+
+    // top right corner
+    const auto parentSpace = getParentSpace();
+    moveSticky(QPoint(parentSpace.width() - width(), parentSpace.y()));
+
 
     mDragCorner = new DragCornerWidget(this, kDragCornerSize, QColor(0x4F, 0x4F, 0x4F, 220));
     connect(mDragCorner, &DragCornerWidget::draggingStart,  this, &HistogramWidget::onDraggedStart);
@@ -163,20 +164,30 @@ HistogramWidget::HistogramWidget(QWidget* parent)
 
 HistogramWidget::~HistogramWidget() = default;
 
+QRect HistogramWidget::getParentSpace() const
+{
+    if (auto p = dynamic_cast<CanvasWidget*>(parentWidget())) {
+        return p->getAvailableSpace();
+    }
+    else {
+        return QRect(0, 0, 640, 320);
+    }
+}
+
 void HistogramWidget::moveSticky(QPoint p, bool updateStickyFlags)
 {
+    const auto parentSpace = getParentSpace();
+
     if (updateStickyFlags) {
-        mStickyLeft = (p.x() <= 0);
-        mStickyTop = (p.y() <= 0);
-        mStickyRight = (parentWidget() && p.x() >= parentWidget()->width() - width());
-        mStickyBottom = (parentWidget() && p.y() >= parentWidget()->height() - height());
+        mStickyLeft   = (p.x() <= parentSpace.x());
+        mStickyTop    = (p.y() <= parentSpace.y());
+        mStickyRight  = (p.x() >= parentSpace.x() + parentSpace.width() - width());
+        mStickyBottom = (p.y() >= parentSpace.y() + parentSpace.height() - height());
     }
-    if (parentWidget()) {
-        p.setX(std::min(p.x(), parentWidget()->width() - width()));
-        p.setY(std::min(p.y(), parentWidget()->height() - height()));
-    }
-    p.setX(std::max(p.x(), 0));
-    p.setY(std::max(p.y(), 0));
+    p.setX(std::min(p.x(), parentSpace.x() + parentSpace.width() - width()));
+    p.setY(std::min(p.y(), parentSpace.y() + parentSpace.height() - height()));
+    p.setX(std::max(p.x(), parentSpace.x()));
+    p.setY(std::max(p.y(), parentSpace.y()));
     move(p);
 }
 
@@ -210,15 +221,16 @@ void HistogramWidget::mouseReleaseEvent(QMouseEvent* event)
 
 void HistogramWidget::updatePositionOnResize()
 {
+    const auto parentSpace = getParentSpace();
+
     QPoint p = pos();
-    if (parentWidget()) {
-        if (mStickyRight && !mStickyLeft) {
-            p.setX(parentWidget()->width() - width());
-        }
-        if (mStickyBottom && !mStickyTop) {
-            p.setY(parentWidget()->height() - height());
-        }
+    if (mStickyRight && !mStickyLeft) {
+        p.setX(parentSpace.width() - width());
     }
+    if (mStickyBottom && !mStickyTop) {
+        p.setY(parentSpace.height() - height());
+    }
+
     moveSticky(p, /*updateStickyFlags=*/ false);
 }
 

@@ -250,6 +250,16 @@ CanvasWidget::~CanvasWidget()
     }
 }
 
+QRect CanvasWidget::getAvailableSpace() const
+{
+    if (mButtonsArea && !mButtonsArea->isHidden()) {
+        return QRect(0, kToolbarHeight, width(), height() - kToolbarHeight);
+    }
+    else {
+        return QRect(0, 0, width(), height());
+    }
+}
+
 void CanvasWidget::closeEvent(QCloseEvent* event)
 {
     mTooltip.reset();

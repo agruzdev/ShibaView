@@ -90,6 +90,8 @@ public:
     CanvasWidget(std::chrono::steady_clock::time_point t);
     ~CanvasWidget();
 
+    QRect getAvailableSpace() const;
+
 public slots:
     void onImageReady(ImagePtr image, size_t imgIdx, size_t totalCount);
     void onImageDirScanned(size_t imgIdx, size_t totalCount);
