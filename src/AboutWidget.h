@@ -41,8 +41,6 @@ public:
 
     AboutWidget& operator=(AboutWidget&&) = delete;
 
-    void popUp();
-
 private:
     void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
 };

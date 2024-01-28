@@ -65,10 +65,6 @@ AboutWidget::AboutWidget(QWidget* parent)
 
 AboutWidget::~AboutWidget() = default;
 
-void AboutWidget::popUp()
-{
-}
-
 void AboutWidget::keyPressEvent(QKeyEvent *event)
 {
     QWidget::keyPressEvent(event);
