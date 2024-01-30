@@ -21,7 +21,7 @@
 #include <QDir>
 #include <QFile>
 #include "Global.h"
-
+#include "Settings.h"
 
 const Controls& Controls::getInstance()
 {
@@ -31,7 +31,7 @@ const Controls& Controls::getInstance()
 
 Controls::Controls()
 {
-    auto settings = Global::getSettings(Global::SettingsGroup::eControls);
+    auto settings = Settings::getSettings(Settings::Group::eControls);
     const auto loadKey = [&](ControlAction action, QString comment, QKeySequence defaultKey, QKeySequence defaultKey2 = QKeySequence(), QKeySequence defaultKey3 = QKeySequence()) {
         assert(!defaultKey.isEmpty());
         const QStringList loadedValues = settings->value(toQString(action)).toStringList();

@@ -433,7 +433,7 @@ void HistogramWidget::onMarkerClicked(QLegendMarker* marker) const
 
 void HistogramWidget::onPointHovered(QLineSeries* series, const QPointF& point, bool state) const
 {
-    std::cout << point.x() << "," << point.y() << " - " << state << std::endl;
+    //std::cout << point.x() << "," << point.y() << " - " << state << std::endl;
 
     if (mChartView && state) {
         QPoint position{ 0, 0 };

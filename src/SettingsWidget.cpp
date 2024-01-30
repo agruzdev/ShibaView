@@ -26,6 +26,7 @@
 #include "Global.h"
 #include "TextWidget.h"
 #include "Global.h"
+#include "Settings.h"
 
 
 SettingsWidget::SettingsWidget()
@@ -34,7 +35,7 @@ SettingsWidget::SettingsWidget()
     constexpr qreal kTitleFontSize = 14.0;
     constexpr qreal kLabelFontSize = 12.0;
 
-    mSettings = Global::getSettings(Global::SettingsGroup::eGlobal);
+    mSettings = Settings::getSettings(Settings::Group::eGlobal);
     assert(mSettings);
 
     setWindowTitle(Global::kApplicationName + " - Settings");
@@ -50,19 +51,19 @@ SettingsWidget::SettingsWidget()
 
     //
     auto field1 = std::make_unique<QLineEdit>(nullptr);
-    field1->setText(mSettings->value(Global::kParamBackgroundKey, Global::kParamBackgroundDefault).toString());
+    field1->setText(mSettings->value(Settings::kParamBackgroundKey, Settings::kParamBackgroundDefault).toString());
     field1->setValidator(new QRegularExpressionValidator(QRegularExpression("#[0-9a-fA-F]{6}")));
     mEditBackgroundColor = field1.get();
 
     //
     auto field2 = std::make_unique<QLineEdit>(nullptr);
-    field2->setText(mSettings->value(Global::kParamTextColorKey, Global::kParamTextColorDefault).toString());
+    field2->setText(mSettings->value(Settings::kParamTextColorKey, Settings::kParamTextColorDefault).toString());
     field2->setValidator(new QRegularExpressionValidator(QRegularExpression("#[0-9a-fA-F]{6}")));
     mEditTextColor = field2.get();
 
     //
     auto field3 = std::make_unique<QCheckBox>(nullptr);
-    field3->setChecked(mSettings->value(Global::kParamShowCloseButtonKey, Global::kParamShowCloseButtonDefault).toBool());
+    field3->setChecked(mSettings->value(Settings::kParamShowCloseButtonKey, Settings::kParamShowCloseButtonDefault).toBool());
     mShowCloseButton = field3.get();
 
     //
@@ -90,15 +91,15 @@ void SettingsWidget::onApply()
 {
     bool wasChanged = false;
     if (mEditBackgroundColor && mEditBackgroundColor->hasAcceptableInput()) {
-        mSettings->setValue(Global::kParamBackgroundKey, mEditBackgroundColor->text());
+        mSettings->setValue(Settings::kParamBackgroundKey, mEditBackgroundColor->text());
         wasChanged = true;
     }
     if (mEditTextColor && mEditTextColor->hasAcceptableInput()) {
-        mSettings->setValue(Global::kParamTextColorKey, mEditTextColor->text());
+        mSettings->setValue(Settings::kParamTextColorKey, mEditTextColor->text());
         wasChanged = true;
     }
     if (mShowCloseButton) {
-        mSettings->setValue(Global::kParamShowCloseButtonKey, mShowCloseButton->isChecked());
+        mSettings->setValue(Settings::kParamShowCloseButtonKey, mShowCloseButton->isChecked());
         wasChanged = true;
     }
     if (wasChanged) {

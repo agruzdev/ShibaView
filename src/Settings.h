@@ -16,38 +16,36 @@
  * limitations under the License.
  */
 
-#ifndef GLOBAL_H
-#define GLOBAL_H
+#ifndef SETTINGS_H
+#define SETTINGS_H
 
 #include <memory>
 #include <QString>
-#include <QStringList>
 #include <QSettings>
 
-#define UTF8_DEGREE "\xC2\xB0"
-#define UTF8_GAMMA  "\xCE\xB3"
 
-class Global
+class Settings
 {
 public:
-    static constexpr uint32_t kVersionMajor = SHIBA_VERSION_MAJOR;
+    enum class Group
+    {
+        eGlobal,
+        eControls
+    };
 
-    static constexpr uint32_t kVersionMinor = SHIBA_VERSION_MINOR;
+    // not null
+    static std::unique_ptr<QSettings> getSettings(Group group);
 
-    static const QString kApplicationName;
-
-    static const QString kOrganizationName;
-
-    static const QString kDefaultFont;
-
-    static const QStringList& getSupportedExtensions() noexcept;
-
-    static QStringList getSupportedExtensionFilters();
-
-    static QString getSupportedExtensionsFilterString();
+    // [Global]
+    static const QString kParamBackgroundKey;
+    static const QString kParamBackgroundDefault;
+    static const QString kParamTextColorKey;
+    static const QString kParamTextColorDefault;
+    static const QString kParamShowCloseButtonKey;
+    static const QString kParamShowCloseButtonDefault;
 
 private:
-    Global() = delete;
+    Settings() = delete;
 };
 
-#endif // GLOBAL_H
+#endif // SETTINGS_H

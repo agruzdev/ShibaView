@@ -51,6 +51,7 @@
 #include "ImageSource.h"
 #include "HistogramWidget.h"
 #include "MenuWidget.h"
+#include "Settings.h"
 #include "TextWidget.h"
 #include "Tooltip.h"
 #include "ZoomController.h"
@@ -151,7 +152,7 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::MSWindowsOwnDC);
     setMouseTracking(true);
 
-    mSettings = Global::getSettings(Global::SettingsGroup::eGlobal);
+    mSettings = Settings::getSettings(Settings::Group::eGlobal);
 
     mInfoText = new TextWidget(this);
     mInfoText->move(kTextPaddingLeft, kTextPaddingTop);
@@ -853,7 +854,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
     if (mLocalSettingsAreInvalidated) {
         // background color
         {
-            const QColor backgroundColor = decodeColor(mSettings->value(Global::kParamBackgroundKey, Global::kParamBackgroundDefault).toString());
+            const QColor backgroundColor = decodeColor(mSettings->value(Settings::kParamBackgroundKey, Settings::kParamBackgroundDefault).toString());
 
             QPalette palette;
             palette.setColor(QPalette::ColorRole::Window, backgroundColor);
@@ -861,7 +862,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
         }
         // text color
         {
-            const QColor textColor = decodeColor(mSettings->value(Global::kParamTextColorKey, Global::kParamTextColorDefault).toString());
+            const QColor textColor = decodeColor(mSettings->value(Settings::kParamTextColorKey, Settings::kParamTextColorDefault).toString());
 
             if (mInfoText) {
                 mInfoText->setColor(textColor);
@@ -875,7 +876,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
         }
         // show close button
         if (mButtonsArea) {
-            if (mSettings->value(Global::kParamShowCloseButtonKey, Global::kParamShowCloseButtonDefault).toBool()) {
+            if (mSettings->value(Settings::kParamShowCloseButtonKey, Settings::kParamShowCloseButtonDefault).toBool()) {
                 mButtonsArea->show();
             }
             else {

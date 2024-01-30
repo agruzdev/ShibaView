@@ -18,14 +18,11 @@
 
 #include "Global.h"
 
-#include <QApplication>
 #include <QDir>
 #include <QFile>
 
 namespace
 {
-    const QString kSettingsFileName = "Settings.ini";
-
     const QStringList kSupportedExtensions = {
         ".png", ".pns",
         ".jpg", ".jpeg", ".jpe",
@@ -55,19 +52,6 @@ namespace
         }
         return filters;
     }
-
-    QString ToString(Global::SettingsGroup group)
-    {
-        switch (group) {
-        case Global::SettingsGroup::eControls:
-            return "Controls";
-        case Global::SettingsGroup::eGlobal:
-            return "Global";
-        default:
-            assert(false);
-            return QString();
-        }
-    }
 }
 
 QStringList Global::getSupportedExtensionFilters()
@@ -90,19 +74,3 @@ const QStringList& Global::getSupportedExtensions() noexcept
 {
     return kSupportedExtensions;
 }
-
-std::unique_ptr<QSettings> Global::getSettings(SettingsGroup group)
-{
-    const QString absSettingsPath = QDir(QApplication::applicationDirPath()).filePath(kSettingsFileName);
-    auto settings = std::make_unique<QSettings>(absSettingsPath, QSettings::Format::IniFormat);
-    settings->beginGroup(ToString(group));
-    return settings;
-}
-
-// [Global]
-const QString Global::kParamBackgroundKey = "Background";
-const QString Global::kParamBackgroundDefault = "#2B2B2B";
-const QString Global::kParamTextColorKey = "TextColor";
-const QString Global::kParamTextColorDefault = "#FFFFFF";
-const QString Global::kParamShowCloseButtonKey = "ShowCloseButton";
-const QString Global::kParamShowCloseButtonDefault = "0";
