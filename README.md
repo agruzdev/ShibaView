@@ -2,6 +2,7 @@
 
 Fast and lightweighed image viewer for Windows
 
+
 ## License
 
 Copyright 2018-2021 Alexey Gruzdev
@@ -23,10 +24,10 @@ limitations under the License.
 
 Prebuilt ShibaView executable requires MSVC 2019 runtime on Windows, so please install the latest version of [Microsoft Visual C++ Redistributable for Visual Studio 2019](https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads)
 
-## FreeImage changes
 
-  1. Image load color space is chnaged to RGB by a compile definition, fixed appeared compilation errors
-  2. Exported utility functions from DLL
+## Usage
+
+Use F1 to open menu with controls description
 
 
 ## Building for Linux
