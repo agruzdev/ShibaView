@@ -41,23 +41,28 @@ AboutWidget::AboutWidget(QWidget* parent)
     text->setPaddings(8, 0, 4, 0);
 
     QVector<QString> textLines;
-    textLines.push_back("Version: " + QString::number(Global::kVersionMajor) + "." + QString::number(Global::kVersionMinor));
-    textLines.push_back("Copyright 2018-2023 " + Global::kOrganizationName);
-    textLines.push_back("");
-    textLines.push_back("Using:");
-    textLines.push_back("  Qt v" + QString(qVersion()));
-    textLines.push_back("  FreeImageRe v" + QString(FreeImageRe_GetVersion()) + " (" + QString::number(FREEIMAGE_MAJOR_VERSION) + "." + QString::number(FREEIMAGE_MINOR_VERSION) + ")");
-    textLines.push_back("");
-    textLines.push_back("");
-    textLines.push_back("Controls:");
-    for (const auto& [action, keys] : Controls::getInstance().printControls()) {
-        textLines.push_back("  " + action + " | " + keys);
+    textLines.emplace_back("Version: " + QString::number(Global::kVersionMajor) + "." + QString::number(Global::kVersionMinor));
+    textLines.emplace_back("Copyright 2018-2024 " + Global::kOrganizationName);
+    textLines.emplace_back("");
+    textLines.emplace_back("Dependencies:");
+    textLines.emplace_back("  Qt v" + QString(qVersion()));
+    textLines.emplace_back("  FreeImageRe v" + QString(FreeImageRe_GetVersion()) + " (" + QString::number(FREEIMAGE_MAJOR_VERSION) + "." + QString::number(FREEIMAGE_MINOR_VERSION) + ")");
+    for (uint32_t depIdx = 0; depIdx < FreeImage_GetDependenciesCount(); ++depIdx) {
+        if (const auto* depInfo = FreeImage_GetDependencyInfo(depIdx)) {
+            textLines.emplace_back("   - " + QString(depInfo->name) + "  v" + QString(depInfo->fullVersion));
+        }
     }
+    textLines.emplace_back("");
+    textLines.emplace_back("Controls:");
+    for (const auto& [action, keys] : Controls::getInstance().printControls()) {
+        textLines.emplace_back("  " + action + " | " + keys);
+    }
+    textLines.emplace_back("");
     text->setColumnSeperator('|');
-    text->appendColumnOffset(225);
+    text->appendColumnOffset(300);
     text->setText(textLines);
 
-    setFixedSize(400, 90 + textLines.size() * 16);
+    setFixedSize(500, 90 + textLines.size() * 16);
 
     update();
     show();

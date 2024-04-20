@@ -39,9 +39,22 @@ Version 0.2:
  - Added basic support for YUV images
  - Added basic support for Float32 complex images
  - Added function FreeImage_ConvertToColor
- - Added function FreeImage_FindMinMax
+ - Added function FreeImage_FindMinMax and FreeImage_FindMinMaxValue
  - Added function FreeImage_TmoClamp and corresponding enum FITMO_CLAMP
  - Added function FreeImage_TmoLinear and corresponding enum FITMO_LINEAR
  - Added function FreeImage_DrawBitmap
  - Added function FreeImage_GetColorType2
+ - Added function FreeImage_MakeHistogram
+ - Updated zlib till v1.3.1
+ - Updated OpenEXR till v3.2.2
+ - Updated OpenJPEG till v2.5.2
+ - Updaged LibJPEG till jpeg-9f
+ - Updated LibPNG till v1.6.43
+ - Updated LibTIFF till v4.6.0
+ - Updated LibWebP till v1.3.2
+ - Updated LibRaw till v0.21.2
+
+Version 0.3:
+ - Fixed the vulnerability CVE-2023-47993
+ - Added API for querying versions of compiled dependencies
 
