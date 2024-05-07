@@ -20,6 +20,7 @@
 #define EXIF_WIDGET_H
 
 #include <QWidget>
+#include <QScrollArea>
 #include "FreeImage.h"
 
 struct Exif;
@@ -49,7 +50,8 @@ public:
 public:
     void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
 
-    TextWidget* mText;
+    QScrollArea* mScrollArea = nullptr;
+    TextWidget* mText = nullptr;
 };
 
 #endif // EXIF_WIDGET_H

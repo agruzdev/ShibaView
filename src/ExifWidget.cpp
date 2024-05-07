@@ -19,6 +19,7 @@
 #include "ExifWidget.h"
 #include <mutex>
 #include <QKeyEvent>
+#include <QVBoxLayout>
 #include "Global.h"
 #include "TextWidget.h"
 #include "Exif.h"
@@ -54,9 +55,14 @@ namespace
         }
     }
 
-    constexpr int32_t kMinimumHeight = 300;
+    constexpr int32_t kMinimumHeight = 200;
     constexpr int32_t kMinimumWidth  = 300;
     constexpr int32_t kMinimumPadding = 10;
+
+    constexpr int32_t kDefaultHeight = 600;
+    constexpr int32_t kDefaultWidth = 400;
+
+    const QString kSettingsSize = "exif/size";
 }
 
 ExifWidget::ExifWidget()
@@ -67,13 +73,37 @@ ExifWidget::ExifWidget()
 
     setWindowTitle(Global::kApplicationName + " - Exif");
 
-    mText = new TextWidget(this, Qt::black, 11, 0.8);
+    auto layout = new QVBoxLayout(this);
+
+    mScrollArea = new QScrollArea(this);
+    mScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    mScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    mScrollArea->setWidgetResizable(false);
+    mScrollArea->setStyleSheet("QScrollArea { border: none; }");
+
+    mText = new TextWidget(nullptr, Qt::black, 11, 0.8);
     mText->setPaddings(8, 0, 4, 0);
 
-    setFixedSize(kMinimumWidth, kMinimumHeight);
+    mScrollArea->setWidget(mText);
+    layout->addWidget(mScrollArea);
+
+    mScrollArea->setMinimumSize(kMinimumWidth, kMinimumHeight);
+    mScrollArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    QSettings settings;
+    resize(settings.value(kSettingsSize, QSize(kDefaultWidth, kDefaultHeight)).toSize());
 }
 
-ExifWidget::~ExifWidget() = default;
+ExifWidget::~ExifWidget()
+{
+    try {
+        QSettings settings;
+        settings.setValue(kSettingsSize, size());
+    }
+    catch (...) {
+
+    }
+}
 
 void ExifWidget::setExif(const Exif& exif)
 {
@@ -104,7 +134,7 @@ void ExifWidget::setExif(const Exif& exif)
     QSize newSize = mText->size();
     newSize.setHeight(std::max(newSize.height() + kMinimumPadding, kMinimumHeight));
     newSize.setWidth(std::max(newSize.width() + kMinimumPadding, kMinimumWidth));
-    setFixedSize(newSize);
+    mText->setMinimumSize(newSize);
 
     mText->update();
 }
