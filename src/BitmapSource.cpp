@@ -23,12 +23,17 @@
 BitmapSource::BitmapSource(const QString & filename, FIE_ImageFormat fif)
     : mImageFormat(fif)
 {
+    int loadFlags = 0;
+    if (mImageFormat == FIF_JPEG) {
+        loadFlags = JPEG_EXIFROTATE;
+    }
+
 #ifdef _WIN32
     const auto uniName = filename.toStdWString();
-    mBitmap = FreeImage_LoadU(static_cast<FREE_IMAGE_FORMAT>(mImageFormat), uniName.c_str(), JPEG_EXIFROTATE);
+    mBitmap = FreeImage_LoadU(static_cast<FREE_IMAGE_FORMAT>(mImageFormat), uniName.c_str(), loadFlags);
 #else
     const auto utfName = filename.toUtf8().toStdString();
-    mBitmap = FreeImage_Load(static_cast<FREE_IMAGE_FORMAT>(mImageFormat), utfName.c_str(), JPEG_EXIFROTATE);
+    mBitmap = FreeImage_Load(static_cast<FREE_IMAGE_FORMAT>(mImageFormat), utfName.c_str(), loadFlags);
 #endif
     if (nullptr == mBitmap) {
         throw std::runtime_error("BitmapSource[BitmapSource]: Failed to load file.");
