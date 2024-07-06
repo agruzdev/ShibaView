@@ -21,34 +21,16 @@
 #include <QDir>
 #include <QFile>
 
+#include "FreeImageExt.h"
+
 namespace
 {
-    const QStringList kSupportedExtensions = {
-        ".png", ".pns",
-        ".jpg", ".jpeg", ".jpe",
-        ".jpf", ".jpx", ".jp2", ".j2c", ".j2k", ".jpc",
-        ".tga", ".targa",
-        ".tif", ".tiff",
-        ".exr",
-        ".bmp",
-        ".gif",
-        ".pbm", ".pgm", ".ppm", ".pnm", ".pfm", ".pam",
-        ".hdr",
-        ".webp",
-        ".dds",
-        ".iff", ".tdi",
-        ".pcx",
-        ".psd",
-        ".svg",
-        ".flo"
-    };
-
     QStringList cvtExtensionsToFilters(const QStringList& exts)
     {
         QStringList filters;
         filters.reserve(exts.size());
         for (const auto& ext : exts) {
-            filters.push_back("*" + ext);
+            filters.emplace_back("*" + ext);
         }
         return filters;
     }
@@ -72,5 +54,14 @@ const QString Global::kDefaultFont = ":/fonts/DejaVuSansCondensed.ttf";
 
 const QStringList& Global::getSupportedExtensions() noexcept
 {
-    return kSupportedExtensions;
+    static QStringList extensions = []() {
+        QStringList extensions{};
+        for (int fifIdx = 0; fifIdx < FreeImage_GetFIFCount(); ++fifIdx) {
+            if (const char* extsString = FreeImage_GetFIFExtensionList(static_cast<FREE_IMAGE_FORMAT>(fifIdx))) {
+                extensions.append(QString(extsString).split(',', Qt::SplitBehaviorFlags::SkipEmptyParts));
+            }
+        }
+        return extensions;
+    }();
+    return extensions;
 }
