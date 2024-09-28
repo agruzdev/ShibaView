@@ -641,22 +641,22 @@ typedef FIBOOL (DLL_CALLCONV *FI_SupportsICCProfilesProc)(void);
 typedef FIBOOL (DLL_CALLCONV *FI_SupportsNoPixelsProc)(void);
 
 FI_STRUCT (Plugin) {
-	FI_FormatProc format_proc;
-	FI_DescriptionProc description_proc;
-	FI_ExtensionListProc extension_proc;
-	FI_RegExprProc regexpr_proc;
-	FI_OpenProc open_proc;
-	FI_CloseProc close_proc;
-	FI_PageCountProc pagecount_proc;
-	FI_PageCapabilityProc pagecapability_proc;
-	FI_LoadProc load_proc;
-	FI_SaveProc save_proc;
-	FI_ValidateProc validate_proc;
-	FI_MimeProc mime_proc;
-	FI_SupportsExportBPPProc supports_export_bpp_proc;
-	FI_SupportsExportTypeProc supports_export_type_proc;
-	FI_SupportsICCProfilesProc supports_icc_profiles_proc;
-	FI_SupportsNoPixelsProc supports_no_pixels_proc;
+	FI_FormatProc format_proc FI_DEFAULT(NULL);
+	FI_DescriptionProc description_proc FI_DEFAULT(NULL);
+	FI_ExtensionListProc extension_proc FI_DEFAULT(NULL);
+	FI_RegExprProc regexpr_proc FI_DEFAULT(NULL);
+	FI_OpenProc open_proc FI_DEFAULT(NULL);
+	FI_CloseProc close_proc FI_DEFAULT(NULL);
+	FI_PageCountProc pagecount_proc FI_DEFAULT(NULL);
+	FI_PageCapabilityProc pagecapability_proc FI_DEFAULT(NULL);
+	FI_LoadProc load_proc FI_DEFAULT(NULL);
+	FI_SaveProc save_proc FI_DEFAULT(NULL);
+	FI_ValidateProc validate_proc FI_DEFAULT(NULL);
+	FI_MimeProc mime_proc FI_DEFAULT(NULL);
+	FI_SupportsExportBPPProc supports_export_bpp_proc FI_DEFAULT(NULL);
+	FI_SupportsExportTypeProc supports_export_type_proc FI_DEFAULT(NULL);
+	FI_SupportsICCProfilesProc supports_icc_profiles_proc FI_DEFAULT(NULL);
+	FI_SupportsNoPixelsProc supports_no_pixels_proc FI_DEFAULT(NULL);
 };
 
 typedef void (DLL_CALLCONV *FI_InitProc)(Plugin *plugin, int format_id);
@@ -1030,6 +1030,8 @@ DLL_API void DLL_CALLCONV FreeImage_ConvertLine16To24_565(uint8_t *target, uint8
 DLL_API void DLL_CALLCONV FreeImage_ConvertLine32To24(uint8_t *target, uint8_t *source, int width_in_pixels);
 DLL_API void DLL_CALLCONV FreeImage_ConvertLine1To32(uint8_t *target, uint8_t *source, int width_in_pixels, FIRGBA8* palette);
 DLL_API void DLL_CALLCONV FreeImage_ConvertLine1To32MapTransparency(uint8_t *target, uint8_t *source, int width_in_pixels, FIRGBA8 *palette, uint8_t *table, int transparent_pixels);
+DLL_API void DLL_CALLCONV FreeImage_ConvertLine2To32(uint8_t* target, uint8_t* source, int width_in_pixels, FIRGBA8* palette);
+DLL_API void DLL_CALLCONV FreeImage_ConvertLine2To32MapTransparency(uint8_t* target, uint8_t* source, int width_in_pixels, FIRGBA8* palette, uint8_t* table, int transparent_pixels);
 DLL_API void DLL_CALLCONV FreeImage_ConvertLine4To32(uint8_t *target, uint8_t *source, int width_in_pixels, FIRGBA8 *palette);
 DLL_API void DLL_CALLCONV FreeImage_ConvertLine4To32MapTransparency(uint8_t *target, uint8_t *source, int width_in_pixels, FIRGBA8 *palette, uint8_t *table, int transparent_pixels);
 DLL_API void DLL_CALLCONV FreeImage_ConvertLine8To32(uint8_t *target, uint8_t *source, int width_in_pixels, FIRGBA8 *palette);

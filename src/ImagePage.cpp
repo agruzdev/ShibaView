@@ -85,12 +85,7 @@ namespace
             break;
 
         case FIT_BITMAP:
-            if (32 == bpp) {
-                flags = FrameFlags::eRGB;
-                result = src;
-                dstNeedUnload = false;
-            }
-            else if (24 == bpp) {
+            if (32 == bpp || 24 == bpp) {
                 flags = FrameFlags::eRGB;
                 result = src;
                 dstNeedUnload = false;
@@ -98,8 +93,6 @@ namespace
             else if (8 == bpp) {
                 const auto colorType = FreeImage_GetColorType(src);
                 if (FIC_PALETTE == colorType) {
-                    //FreeImage_Save(FIF_TIFF, src, "test.tiff");
-
                     flags = FrameFlags::eRGB;
                     result = FreeImage_ConvertTo32Bits(src);
                     dstNeedUnload = true;
@@ -113,11 +106,6 @@ namespace
                     result = src;
                     dstNeedUnload = false;
                 }
-            }
-            else if (4 == bpp) {
-                flags = FrameFlags::eRGB;
-                result = FreeImage_ConvertTo32Bits(src);
-                dstNeedUnload = true;
             }
             else if (1 == bpp) {
                 const auto colorType = FreeImage_GetColorType(src);
@@ -135,6 +123,11 @@ namespace
                     result = src;
                     dstNeedUnload = false;
                 }
+            }
+            else {
+                flags = FrameFlags::eRGB;
+                result = FreeImage_ConvertTo32Bits(src);
+                dstNeedUnload = true;
             }
             break;
 

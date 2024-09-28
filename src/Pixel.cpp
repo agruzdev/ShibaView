@@ -127,6 +127,17 @@ bool Pixel::getBitmapPixel(FIBITMAP* src, uint32_t y, uint32_t x, Pixel* pixel)
                     case 8:
                         pixel->repr = pixelToString1<uint8_t>(rawPixel);
                         break;
+                    case 4:
+                    case 2:
+                    case 1: {
+                            uint8_t idx{};
+                            if (!FreeImage_GetPixelIndex(src, x, y, &idx)) {
+                                success = false;
+                                break;
+                            }
+                            pixel->repr = pixelToString1<uint8_t>(&idx);
+                        }
+                        break;
                     default:
                         success = false;
                         break;
