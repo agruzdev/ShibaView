@@ -127,8 +127,8 @@ namespace
         switch(v) {
         case static_cast<int32_t>(ZoomMode::eIdentity):
             return ZoomMode::eIdentity;
-        case static_cast<int32_t>(ZoomMode::eFixed):
-            return ZoomMode::eFixed;
+        case static_cast<int32_t>(ZoomMode::eCustom):
+            return ZoomMode::eCustom;
         default:
         case static_cast<int32_t>(ZoomMode::eFitWindow):
             return ZoomMode::eFitWindow;
@@ -344,9 +344,9 @@ QMenu* CanvasWidget::createContextMenu()
         zoom[mZoomMode]->setChecked(true);
         menu->addAction(zoom[ZoomMode::eIdentity]);
         menu->addAction(zoom[ZoomMode::eFitWindow]);
-        menu->addAction(zoom[ZoomMode::eFixed]);
+        menu->addAction(zoom[ZoomMode::eCustom]);
 
-        const auto rememberZoomAct = createMenuAction(QString::fromUtf8("Freeze zoom mode"));
+        const auto rememberZoomAct = createMenuAction(QString::fromUtf8("Keep zoom mode"));
         rememberZoomAct->setCheckable(true);
         rememberZoomAct->setChecked(mRememberZoom);
         connect(rememberZoomAct, &QAction::triggered, this, &CanvasWidget::onActRememberZoom);
@@ -489,13 +489,13 @@ CanvasWidget::ActionsArray<ZoomMode> CanvasWidget::initZoomActions()
     actions[ZoomMode::eFitWindow]->setCheckable(true);
     actions[ZoomMode::eFitWindow]->setActionGroup(groupZoom);
 
-    actions[ZoomMode::eFixed] = createMenuAction(QString::fromUtf8("Fixed zoom"));
-    actions[ZoomMode::eFixed]->setCheckable(true);
-    actions[ZoomMode::eFixed]->setActionGroup(groupZoom);
+    actions[ZoomMode::eCustom] = createMenuAction(QString::fromUtf8("Custom zoom"));
+    actions[ZoomMode::eCustom]->setCheckable(true);
+    actions[ZoomMode::eCustom]->setActionGroup(groupZoom);
 
     connect(actions[ZoomMode::eIdentity],  &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eIdentity));
     connect(actions[ZoomMode::eFitWindow], &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eFitWindow));
-    connect(actions[ZoomMode::eFixed],     &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eFixed));
+    connect(actions[ZoomMode::eCustom],    &QAction::triggered, std::bind(&CanvasWidget::onActZoomMode, this, std::placeholders::_1, ZoomMode::eCustom));
 
     return actions;
 }
@@ -629,36 +629,29 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
     mAnimIndex = kNoneIndex;
 
     mImage = std::move(image);
-    if(mImage) {
+    if (mImage) {
         mImageDescription->setImageInfo(mImage->info());
         if (mImage && !mImage->isNull()) {
-            const auto fitRect = fitWidth(mImage->width(), mImage->height());
-
-            if (!mRememberZoom && !mTransitionIsReload) {
-                if (width() >= static_cast<int64_t>(mImage->width()) && height() >= static_cast<int64_t>(mImage->height())) {
-                    mZoomMode = ZoomMode::eIdentity;
-                }
-                else {
-                    mZoomMode = ZoomMode::eFitWindow;
+            // Zoom
+            if (!mTransitionIsReload) {
+                // do not change zoom controller on Reload
+                const auto fitRect = fitWidth(mImage->width(), mImage->height());
+                mZoomController->rebase(mImage->width(), fitRect.width());
+                if (!mRememberZoom) {
+                    // select appropriate zoom
+                    if (width() >= static_cast<int64_t>(mImage->width()) && height() >= static_cast<int64_t>(mImage->height())) {
+                        mZoomMode = ZoomMode::eIdentity;
+                        mZoomController->moveToIdentity();
+                    }
+                    else {
+                        mZoomMode = ZoomMode::eFitWindow;
+                        mZoomController->moveToFit();
+                    }
+                    resetOffsets();
                 }
             }
 
-            switch (mZoomMode) {
-            case ZoomMode::eIdentity:
-                mZoomController->rebase(mImage->width(), fitRect.width());
-                mZoomController->moveToIdentity();
-                break;
-            case ZoomMode::eFixed:
-                mZoomController->rebase(mImage->width());
-                break;
-            default:
-            case ZoomMode::eFitWindow:
-                mZoomController->rebase(mImage->width(), fitRect.width());
-                mZoomController->moveToFit();
-                resetOffsets();
-                break;
-            }
-
+            // Animation
             if (mImage->pagesCount() > 1) {
                 if (mPageText == nullptr) {
                     mPageText = new TextWidget(this);
@@ -677,15 +670,15 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
                 mEnableAnimation  = false;
             }
 
+            // Description
             mImageDescription->setZoom(mZoomController->getFactor());
+            mImageDescription->setFormat(mImage->currentPage().describeFormat());
+            mImageDescription->setToneMapping(mImageProcessor->toneMappingMode());
             if (imgIdx < imgCount) {
                 mImageDescription->setImageIndex(imgIdx, imgCount);
             }
 
             mImageProcessor->attachSource(mImage);
-            mImageDescription->setFormat(mImage->currentPage().describeFormat());
-
-            mImageDescription->setToneMapping(mImageProcessor->toneMappingMode());
         }
 
         setWindowTitle(mImage->info().path + " - " + QApplication::applicationName());
@@ -699,7 +692,7 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
     invalidateTooltip();
     invalidateExif();
 
-    if(!isVisible()) {
+    if (!isVisible()) {
         show();
     }
     mTransitionRequested = false;
@@ -1541,8 +1534,8 @@ void CanvasWidget::zoomToTarget(QPoint target, int dir)
         mOffset.rx() -= dx;
         mOffset.ry() -= dy;
 
-        if (mZoomMode != ZoomMode::eFixed) {
-            mActZoom.get()[ZoomMode::eFixed]->trigger();
+        if (mZoomMode != ZoomMode::eCustom) {
+            mActZoom.get()[ZoomMode::eCustom]->trigger();
         }
 
         updateOffsets();
@@ -1644,7 +1637,7 @@ void CanvasWidget::onActZoomMode(bool checked, ZoomMode z)
             break;
 
         default:
-        case ZoomMode::eFixed:
+        case ZoomMode::eCustom:
             break;
         }
     }

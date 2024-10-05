@@ -62,7 +62,7 @@ enum class ZoomMode
 {
     eIdentity,
     eFitWindow,
-    eFixed,
+    eCustom,
 
     length_
 };
