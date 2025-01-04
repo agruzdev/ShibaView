@@ -25,7 +25,7 @@
 #include "FreeImageExt.h"
 
 
-MultibitmapSource::MultibitmapSource(const QString & filename, FIE_ImageFormat fif)
+MultibitmapSource::MultibitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif)
     : mImageFormat(fif)
 {
 #ifdef _WIN32
@@ -102,7 +102,7 @@ bool MultibitmapSource::doStoresDifference() const
     return (mImageFormat == FIF_GIF);
 }
 
-FIE_ImageFormat MultibitmapSource::doGetFormat() const
+FREE_IMAGE_FORMAT MultibitmapSource::doGetFormat() const
 {
     return mImageFormat;
 }

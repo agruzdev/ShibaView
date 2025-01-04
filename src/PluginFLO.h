@@ -19,10 +19,25 @@
 #ifndef PLUGINFLO_H
 #define PLUGINFLO_H
 
-#include "FreeImageExt.h"
+#include "FreeImage.hpp"
 
-void initPluginFLO(Plugin *plugin, int format_id);
+class PluginFlo
+    : public fi::Plugin2
+{
+public:
+    PluginFlo();
+    ~PluginFlo();
 
-FIBITMAP* cvtFloToRgb(FIBITMAP* flo);
+    const char* FormatProc() override;
+    const char* DescriptionProc() override;
+    const char* ExtensionListProc() override;
+    FIBITMAP* LoadProc(FreeImageIO* io, fi_handle handle, uint32_t page, uint32_t flags, void* data) override;
+    bool ValidateProc(FreeImageIO* io, fi_handle handle) override;
+
+
+    static
+    FIBITMAP* cvtFloToRgb(FIBITMAP* flo);
+};
+
 
 #endif // PLUGINFLO_H

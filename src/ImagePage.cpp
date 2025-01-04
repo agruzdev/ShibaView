@@ -80,7 +80,7 @@ namespace
         case FIT_COMPLEXF:
         case FIT_COMPLEX:
             flags = FrameFlags::eNone;
-            result = cvtFloToRgb(src);
+            result = PluginFlo::cvtFloToRgb(src);
             dstNeedUnload = true;
             break;
 

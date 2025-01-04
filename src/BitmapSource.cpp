@@ -20,7 +20,7 @@
 #include <stdexcept>
 #include "FreeImageExt.h"
 
-BitmapSource::BitmapSource(const QString & filename, FIE_ImageFormat fif)
+BitmapSource::BitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif)
     : mImageFormat(fif)
 {
     int loadFlags = 0;
@@ -65,7 +65,7 @@ bool BitmapSource::doStoresDifference() const
     return false;
 }
 
-FIE_ImageFormat BitmapSource::doGetFormat() const
+FREE_IMAGE_FORMAT BitmapSource::doGetFormat() const
 {
     return mImageFormat;
 }

@@ -86,7 +86,7 @@ public:
         return doStoresDifference();
     }
 
-    FIE_ImageFormat getFormat() const
+    FREE_IMAGE_FORMAT getFormat() const
     {
         return doGetFormat();
     }
@@ -130,7 +130,7 @@ protected:
     /**
      * Return original source format
      */
-    virtual FIE_ImageFormat doGetFormat() const = 0;
+    virtual FREE_IMAGE_FORMAT doGetFormat() const = 0;
 };
 
 

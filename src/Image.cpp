@@ -141,7 +141,7 @@ catch (...) {
     return false;
 }
 
-FIE_ImageFormat Image::getSourceFormat() const
+FREE_IMAGE_FORMAT Image::getSourceFormat() const
 {
-    return mImageSource ? mImageSource->getFormat() : static_cast<FIE_ImageFormat>(FIF_UNKNOWN);
+    return mImageSource ? mImageSource->getFormat() : FIF_UNKNOWN;
 }

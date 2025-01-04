@@ -17,6 +17,7 @@
  */
 
 #include "PluginFLO.h"
+#include "FreeImageExt.h"
 
 #ifndef _USE_MATH_DEFINES
 # define _USE_MATH_DEFINES
@@ -174,112 +175,106 @@ namespace
 
 } // namespace
 
+
+
 // Reference code:
 // https://vision.middlebury.edu/flow/code/flow-code/flowIO.cpp
-void initPluginFLO(Plugin *plugin, int format_id)
-{
-    (void)format_id;
-    assert(FIEF_FLO == format_id);
+PluginFlo::PluginFlo() = default;
 
-    plugin->format_proc = []() -> const char* {
-        return "FLO";
-    };
+PluginFlo::~PluginFlo() = default;
 
-    plugin->description_proc = []() -> const char* {
-        return "File format used for optical flow. Reference: https://vision.middlebury.edu";
-    };
-
-    plugin->extension_proc = []() -> const char* {
-        return "flo";
-    };
-
-    plugin->load_proc = [](FreeImageIO* io, fi_handle handle, int /*page*/, int /*flags*/, void* /*data*/) -> FIBITMAP* {
-
-        float tag = 0.0f;
-        uint32_t width = 0;
-        uint32_t height = 0;
-
-        if (io->read_proc(&tag, sizeof(tag), 1, handle) != 1 ||
-                io->read_proc(&width, sizeof(width), 1, handle) != 1 ||
-                io->read_proc(&height, sizeof(height), 1, handle) != 1) {
-            qDebug() << "PluginFLO[Load]: failed to read the file header";
-            return nullptr;
-        }
-
-        if (tag != TAG_FLOAT) {
-            qDebug() << "PluginFLO[Load]: wrong tag";
-            return nullptr;
-        }
-
-        if (width < 1 || width > 99999) {
-            qDebug() << "PluginFLO[Load]: illegal width " << width;
-            return nullptr;
-        }
-
-        if (height < 1 || height > 99999) {
-            qDebug() << "PluginFLO[Load]: illegal height " << height;
-            return nullptr;
-        }
-
-        float maxx = std::numeric_limits<float>::lowest();
-        float maxy = std::numeric_limits<float>::lowest();
-        float minx = std::numeric_limits<float>::max();
-        float miny = std::numeric_limits<float>::max();
-        float maxrad = -1.0f;
-
-        std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> flowImage(FreeImage_AllocateT(FIT_COMPLEXF, width, height, 8 * sizeof(FICOMPLEXF)), &::FreeImage_Unload);
-
-        const int flowLineSize = 2 * width; // two components
-        for (uint32_t y = 0; y < height; y++) {
-            const auto flowLine = reinterpret_cast<FICOMPLEXF*>(FreeImage_GetScanLine(flowImage.get(), height - 1 - y));
-            if (io->read_proc(flowLine, sizeof(float), flowLineSize, handle) != flowLineSize) {
-                qDebug() << "PluginFLO[Load]: file is too short";
-                return nullptr;
-            }
-            for (uint32_t x = 0; x < width; ++x) {
-                const float fx = flowLine[x].r;
-                const float fy = flowLine[x].i;
-                if (!isUnknownFlow(fx, fy)) {
-                    maxx = std::max(maxx, fx);
-                    maxy = std::max(maxy, fy);
-                    minx = std::min(minx, fx);
-                    miny = std::min(miny, fy);
-                    maxrad = std::max(maxrad, std::sqrt(fx * fx + fy * fy));
-                }
-            }
-        }
-
-        if (maxrad == 0) { // if flow == 0 everywhere
-            maxrad = 1;
-        }
-
-        FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Min X", minx);
-        FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Max X", maxx);
-        FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Min Y", miny);
-        FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Max Y", maxy);
-        FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Max R", maxrad);
-        FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "ImageType", "2D motion vector");
-
-        return flowImage.release();
-    };
-
-    plugin->save_proc = [](FreeImageIO* /*io*/, FIBITMAP* /*dib*/, fi_handle /*handle*/, int /*page*/, int /*flags*/, void* /*data*/) -> FIBOOL {
-        return FALSE;
-    };
-
-    plugin->validate_proc = [](FreeImageIO* io, fi_handle handle) -> FIBOOL {
-
-        float tag = 0.0f;
-        if (io->read_proc(&tag, sizeof(tag), 1, handle) != 1) {
-            return FALSE;
-        }
-
-        return (tag == TAG_FLOAT);
-    };
-
+const char* PluginFlo::FormatProc() {
+    return "FLO";
 }
 
-FIBITMAP* cvtFloToRgb(FIBITMAP* flo)
+const char* PluginFlo::DescriptionProc() {
+    return "File format used for optical flow. Reference: https://vision.middlebury.edu";
+}
+
+const char* PluginFlo::ExtensionListProc() {
+    return "flo";
+}
+
+FIBITMAP* PluginFlo::LoadProc(FreeImageIO* io, fi_handle handle, uint32_t /*page*/, uint32_t /*flags*/, void* /*data*/) {
+
+    float tag = 0.0f;
+    uint32_t width = 0;
+    uint32_t height = 0;
+
+    if (io->read_proc(&tag, sizeof(tag), 1, handle) != 1 ||
+            io->read_proc(&width, sizeof(width), 1, handle) != 1 ||
+            io->read_proc(&height, sizeof(height), 1, handle) != 1) {
+        qDebug() << "PluginFLO[Load]: failed to read the file header";
+        return nullptr;
+    }
+
+    if (tag != TAG_FLOAT) {
+        qDebug() << "PluginFLO[Load]: wrong tag";
+        return nullptr;
+    }
+
+    if (width < 1 || width > 99999) {
+        qDebug() << "PluginFLO[Load]: illegal width " << width;
+        return nullptr;
+    }
+
+    if (height < 1 || height > 99999) {
+        qDebug() << "PluginFLO[Load]: illegal height " << height;
+        return nullptr;
+    }
+
+    float maxx = std::numeric_limits<float>::lowest();
+    float maxy = std::numeric_limits<float>::lowest();
+    float minx = std::numeric_limits<float>::max();
+    float miny = std::numeric_limits<float>::max();
+    float maxrad = -1.0f;
+
+    std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> flowImage(FreeImage_AllocateT(FIT_COMPLEXF, width, height, 8 * sizeof(FICOMPLEXF)), &::FreeImage_Unload);
+
+    const int flowLineSize = 2 * width; // two components
+    for (uint32_t y = 0; y < height; y++) {
+        const auto flowLine = reinterpret_cast<FICOMPLEXF*>(FreeImage_GetScanLine(flowImage.get(), height - 1 - y));
+        if (io->read_proc(flowLine, sizeof(float), flowLineSize, handle) != flowLineSize) {
+            qDebug() << "PluginFLO[Load]: file is too short";
+            return nullptr;
+        }
+        for (uint32_t x = 0; x < width; ++x) {
+            const float fx = flowLine[x].r;
+            const float fy = flowLine[x].i;
+            if (!isUnknownFlow(fx, fy)) {
+                maxx = std::max(maxx, fx);
+                maxy = std::max(maxy, fy);
+                minx = std::min(minx, fx);
+                miny = std::min(miny, fy);
+                maxrad = std::max(maxrad, std::sqrt(fx * fx + fy * fy));
+            }
+        }
+    }
+
+    if (maxrad == 0) { // if flow == 0 everywhere
+        maxrad = 1;
+    }
+
+    FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Min X", minx);
+    FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Max X", maxx);
+    FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Min Y", miny);
+    FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Max Y", maxy);
+    FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "Max R", maxrad);
+    FreeImageExt_SetMetadataValue(FIMD_CUSTOM, flowImage.get(), "ImageType", "2D motion vector");
+
+    return flowImage.release();
+}
+
+bool PluginFlo::ValidateProc(FreeImageIO* io, fi_handle handle) {
+    float tag = 0.0f;
+    if (io->read_proc(&tag, sizeof(tag), 1, handle) != 1) {
+        return false;
+    }
+    return (tag == TAG_FLOAT);
+};
+
+
+FIBITMAP* PluginFlo::cvtFloToRgb(FIBITMAP* flo)
 {
     if (!FreeImage_HasPixels(flo)) {
         return nullptr;
@@ -295,3 +290,9 @@ FIBITMAP* cvtFloToRgb(FIBITMAP* flo)
     }
 }
 
+
+//FREE_IMAGE_FORMAT PluginFlo::getRegisteredId()
+//{
+//    static auto id = fi::Plugin2::RegisterLocal(std::make_unique<PluginFlo>());
+//    return static_cast<FREE_IMAGE_FORMAT>(id);
+//}

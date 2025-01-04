@@ -31,7 +31,7 @@
 
 #include "../ImageSource.h"
 #include "../Player.h"
-#include "../FreeImageExt.h"
+#include "../PluginManager.h"
 
 #define ENABLE_LOG (0)
 
@@ -47,7 +47,8 @@ public:
     WindowsThumbnailProvider()
     {
         static std::once_flag once;
-        std::call_once(once, []{ FreeImageExt_Initialise(/* skipSvg= */ true); });
+        //std::call_once(once, []{ FreeImageExt_Initialise(/* skipSvg= */ true); });
+        std::call_once(once, [] { PluginManager::getInstance().initForThumbnails(); });
 #if ENABLE_LOG
         std::locale::global(std::locale("Russian_Russia"));
         mLog.open("D:/ShibaThumbnailService.log", std::ios::app);

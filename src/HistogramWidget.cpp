@@ -40,7 +40,7 @@
 #include "CanvasWidget.h"
 #include "TextWidget.h"
 #include "Tooltip.h"
-
+#include "PluginManager.h"
 
 namespace
 {
@@ -48,10 +48,11 @@ namespace
     constexpr const int32_t kDragCornerSize = 16;
 
 
-    std::vector<std::tuple<QString, QColor>> SelectChannelLabels(FIBITMAP* image, FIE_ImageFormat format)
+    std::vector<std::tuple<QString, QColor>> SelectChannelLabels(FIBITMAP* image, FREE_IMAGE_FORMAT format)
     {
-        if (image != nullptr) {
-            if (format == FIE_ImageFormat::FIEF_FLO) {
+        if (image != nullptr && format != FIF_UNKNOWN) {
+            //if (format == FIE_ImageFormat::FIEF_FLO) {
+            if (format == PluginManager::getInstance().getFloId()) {
                 return { std::make_tuple("Motion X", QColorConstants::Red), std::make_tuple("Motion Y", QColorConstants::Blue) };
             }
 
@@ -295,7 +296,7 @@ void HistogramWidget::paintEvent(QPaintEvent *event)
 
 
         FIBITMAP* srcImage{ nullptr };
-        FIE_ImageFormat srcFormat = static_cast<FIE_ImageFormat>(FIF_UNKNOWN);
+        FREE_IMAGE_FORMAT srcFormat{ FIF_UNKNOWN };
 
         if (auto image = mImageSource.lock()) {
             if (image->notNull()) {

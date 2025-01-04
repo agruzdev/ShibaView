@@ -140,6 +140,8 @@ set(app_sources
     ./src/Pixel.cpp
     ./src/Player.h
     ./src/Player.cpp
+    ./src/PluginManager.h
+    ./src/PluginManager.cpp
     ./src/PluginFLO.h
     ./src/PluginFLO.cpp
     ./src/PluginSVG.h
@@ -233,6 +235,8 @@ if(WIN32)
         ./src/Pixel.cpp
         ./src/Player.h
         ./src/Player.cpp
+        ./src/PluginManager.h
+        ./src/PluginManager.cpp
         ./src/PluginFLO.h
         ./src/PluginFLO.cpp
         ./src/PluginSVG.h

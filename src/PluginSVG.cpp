@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "PluginFLO.h"
+#include "PluginSVG.h"
 
 #include <QDebug>
 #include <QSvgRenderer>
@@ -47,102 +47,94 @@ namespace
     }
 }
 
-void initPluginSVG(Plugin *plugin, int format_id)
-{
-    (void)format_id;
-    assert(FIEF_SVG == format_id);
+PluginSvg::PluginSvg() = default;
 
-    plugin->format_proc = []() -> const char* {
-        return "SVG";
-    };
+PluginSvg::~PluginSvg() = default;
 
-    plugin->description_proc = []() -> const char* {
-        return "Scalable Vector Graphics";
-    };
+const char* PluginSvg::FormatProc() {
+    return "SVG";
+};
 
-    plugin->extension_proc = []() -> const char* {
-        return "svg";
-    };
+const char* PluginSvg::DescriptionProc() {
+    return "Scalable Vector Graphics";
+};
 
-    plugin->load_proc = [](FreeImageIO* io, fi_handle handle, int /*page*/, int /*flags*/, void* /*data*/) -> FIBITMAP* {
-        try {
-            const auto xmlBuffer = loadXmlBuffer(io, handle);
-            if (!xmlBuffer) {
-                qDebug() << "Failed to read xml buffer";
-                return nullptr;
-            }
+const char* PluginSvg::ExtensionListProc() {
+    return "svg";
+};
 
-            QXmlStreamReader xmlReader(*xmlBuffer);
-            if (xmlReader.hasError()) {
-                qDebug() << xmlReader.error();
-                return nullptr;
-            }
-
-            QSvgRenderer svgRenderer(&xmlReader);
-            if (!svgRenderer.isValid()) {
-                qDebug() << "QSvgRenderer is not valid";
-                return nullptr;
-            }
-
-            QSize svgSize = svgRenderer.defaultSize();
-            if (svgSize.isEmpty()) {
-                svgSize = QSize(1024, 1024);
-            }
-
-            std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> bmp(FreeImage_Allocate(svgSize.width(), svgSize.height(), 32), &::FreeImage_Unload);
-            QImage rgbaView(FreeImage_GetBits(bmp.get()), FreeImage_GetWidth(bmp.get()), FreeImage_GetHeight(bmp.get()), FreeImage_GetPitch(bmp.get()), QImage::Format::Format_RGBA8888);
-
-            QPainter painter(&rgbaView);
-
-            const auto center = QRectF(0, 0, svgSize.width(), svgSize.height()).center();
-            const auto trans1 = QTransform::fromTranslate(-center.x(), -center.y());
-            const auto scale  = QTransform::fromScale(1.0, -1.0);
-            const auto trans2 = QTransform::fromTranslate(center.x(), center.y());
-            painter.setTransform(trans1 * scale * trans2);
-
-            svgRenderer.render(&painter);
-
-            return bmp.release();
-        }
-        catch (std::exception& err) {
-            qDebug() << "Failed to render svg";
-        }
-        catch (...) {
-        }
-        return nullptr;
-    };
-
-    plugin->save_proc = [](FreeImageIO* /*io*/, FIBITMAP* /*dib*/, fi_handle /*handle*/, int /*page*/, int /*flags*/, void* /*data*/) -> FIBOOL {
-        return FALSE;
-    };
-
-    plugin->validate_proc = [](FreeImageIO* io, fi_handle handle) -> FIBOOL {
-        // ToDo (a.gruzdev): Is it possible to not read the entire file?
-#if 0
+FIBITMAP* PluginSvg::LoadProc(FreeImageIO* io, fi_handle handle, uint32_t page, uint32_t flags, void* data) {
+    try {
         const auto xmlBuffer = loadXmlBuffer(io, handle);
         if (!xmlBuffer) {
             qDebug() << "Failed to read xml buffer";
-            return FALSE;
+            return nullptr;
         }
 
         QXmlStreamReader xmlReader(*xmlBuffer);
         if (xmlReader.hasError()) {
             qDebug() << xmlReader.error();
-            return FALSE;
+            return nullptr;
         }
 
-        int maxTagsToRead = 8;
-        while(!xmlReader.atEnd()) {
-            xmlReader.readNext();
-            if (xmlReader.name() == QString("svg")) {
-                return TRUE;
-            }
-            if (!(maxTagsToRead--)) {
-                break;
-            }
+        QSvgRenderer svgRenderer(&xmlReader);
+        if (!svgRenderer.isValid()) {
+            qDebug() << "QSvgRenderer is not valid";
+            return nullptr;
         }
-#endif
+
+        QSize svgSize = svgRenderer.defaultSize();
+        if (svgSize.isEmpty()) {
+            svgSize = QSize(1024, 1024);
+        }
+
+        std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> bmp(FreeImage_Allocate(svgSize.width(), svgSize.height(), 32), &::FreeImage_Unload);
+        QImage rgbaView(FreeImage_GetBits(bmp.get()), FreeImage_GetWidth(bmp.get()), FreeImage_GetHeight(bmp.get()), FreeImage_GetPitch(bmp.get()), QImage::Format::Format_RGBA8888);
+
+        QPainter painter(&rgbaView);
+
+        const auto center = QRectF(0, 0, svgSize.width(), svgSize.height()).center();
+        const auto trans1 = QTransform::fromTranslate(-center.x(), -center.y());
+        const auto scale  = QTransform::fromScale(1.0, -1.0);
+        const auto trans2 = QTransform::fromTranslate(center.x(), center.y());
+        painter.setTransform(trans1 * scale * trans2);
+
+        svgRenderer.render(&painter);
+
+        return bmp.release();
+    }
+    catch (...) {
+        qDebug() << "Failed to render svg";
+    }
+    return nullptr;
+};
+
+bool PluginSvg::ValidateProc(FreeImageIO* io, fi_handle handle) {
+    // ToDo (a.gruzdev): Is it possible to not read the entire file?
+#if 0
+    const auto xmlBuffer = loadXmlBuffer(io, handle);
+    if (!xmlBuffer) {
+        qDebug() << "Failed to read xml buffer";
         return FALSE;
-    };
+    }
 
-}
+    QXmlStreamReader xmlReader(*xmlBuffer);
+    if (xmlReader.hasError()) {
+        qDebug() << xmlReader.error();
+        return FALSE;
+    }
+
+    int maxTagsToRead = 8;
+    while(!xmlReader.atEnd()) {
+        xmlReader.readNext();
+        if (xmlReader.name() == QString("svg")) {
+            return TRUE;
+        }
+        if (!(maxTagsToRead--)) {
+            break;
+        }
+    }
+#endif
+    return false;
+};
+

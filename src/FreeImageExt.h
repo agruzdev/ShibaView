@@ -28,27 +28,6 @@
 #include "FreeImage.h"
 
 
- /**
-  * Extends FREE_IMAGE_FORMAT
-  */
-enum FIE_ImageFormat
-{
-    FIEF_FLO = FIF_JXR + 1,
-    FIEF_SVG
-};
-
-
-
-/**
- * Must be called after FreeImage_Initialise()
- */
-bool FreeImageExt_Initialise(bool skipSvg = false);
-
-
-/**
- * Does not call FreeImage_DeInitialise() internally.
- */
-void FreeImageExt_DeInitialise();
 
 /**
  * Returns short image type description

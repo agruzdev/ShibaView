@@ -120,7 +120,7 @@ public:
 
     void removeListener(ImageListener* listener);
 
-    FIE_ImageFormat getSourceFormat() const;
+    FREE_IMAGE_FORMAT getSourceFormat() const;
 
 private:
     uint64_t mId;

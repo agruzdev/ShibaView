@@ -47,10 +47,10 @@ std::shared_ptr<ImageSource> ImageSource::Load(const QString & filename) Q_DECL_
             case FIF_GIF:
             case FIF_ICO:
             case FIF_TIFF:
-                source = std::make_shared<MultibitmapSource>(filename, static_cast<FIE_ImageFormat>(fif));
+                source = std::make_shared<MultibitmapSource>(filename, fif);
                 break;
             default:
-                source = std::make_shared<BitmapSource>(filename, static_cast<FIE_ImageFormat>(fif));
+                source = std::make_shared<BitmapSource>(filename, fif);
                 break;
             }
         }

@@ -28,27 +28,6 @@
 
 
 
-bool FreeImageExt_Initialise(bool skipSvg)
-{
-    if (!FreeImage_IsPluginEnabled(static_cast<FREE_IMAGE_FORMAT>(FIEF_FLO))) {
-        if (FIEF_FLO != FreeImage_RegisterLocalPlugin(&initPluginFLO)) {
-            return false;
-        }
-    }
-    if (!skipSvg && !FreeImage_IsPluginEnabled(static_cast<FREE_IMAGE_FORMAT>(FIEF_SVG))) {
-        if (FIEF_SVG != FreeImage_RegisterLocalPlugin(&initPluginSVG)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-
-void FreeImageExt_DeInitialise()
-{
-}
-
-
 const char* FreeImageExt_TMtoString(FREE_IMAGE_TMO mode)
 {
     switch(mode) {
