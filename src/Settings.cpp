@@ -17,6 +17,7 @@
  */
 
 #include "Settings.h"
+#include "PluginManager.h"
 
 #include <QApplication>
 #include <QDir>
@@ -33,6 +34,8 @@ namespace
             return "Controls";
         case Settings::Group::eGlobal:
             return "Global";
+        case Settings::Group::ePlugins:
+            return "Plugins";
         default:
             assert(false);
             return QString();
@@ -55,3 +58,12 @@ const QString Settings::kParamTextColorKey = "TextColor";
 const QString Settings::kParamTextColorDefault = "#FFFFFF";
 const QString Settings::kParamShowCloseButtonKey = "ShowCloseButton";
 const QString Settings::kParamShowCloseButtonDefault = "0";
+
+// [Plugins]
+const QString  Settings::kPluginFloUsage  = "Flo";
+const uint32_t Settings::kPluginFloUsageDefault = static_cast<uint32_t>(PluginUsage::eViewer | PluginUsage::eThumbnails);
+const QString  Settings::kPluginSvgUsage  = "Svg";
+const uint32_t Settings::kPluginSvgUsageDefault = static_cast<uint32_t>(PluginUsage::eViewer);
+const QString  Settings::kPluginSvgLibcairo = "SvgLibcairo";
+const QString  Settings::kPluginSvgLibrsvg  = "SvgLibrsvg";
+

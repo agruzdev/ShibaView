@@ -32,7 +32,7 @@ public:
     const char* DescriptionProc() override;
     const char* ExtensionListProc() override;
     FIBITMAP* LoadProc(FreeImageIO* io, fi_handle handle, uint32_t page, uint32_t flags, void* data) override;
-    bool ValidateProc(FreeImageIO* io, fi_handle handle) override;
+    //bool ValidateProc(FreeImageIO* io, fi_handle handle) override;
 };
 
 

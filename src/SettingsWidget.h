@@ -22,7 +22,7 @@
 #include <QWidget>
 #include <QSettings>
 #include <QLineEdit>
-#include <QCheckBox>
+#include "QCheckBox2.h"
 
 class TextWidget;
 
@@ -50,10 +50,19 @@ signals:
     void changed();
 
 private:
+    struct UsageCheckboxes;
+
     std::unique_ptr<QSettings> mSettings;
-    QLineEdit* mEditBackgroundColor = nullptr;
-    QLineEdit* mEditTextColor = nullptr;
-    QCheckBox* mShowCloseButton = nullptr;
+    std::unique_ptr<QSettings> mPluginsSettings;
+
+    QLineEdit* mEditBackgroundColor{ nullptr };
+    QLineEdit* mEditTextColor{ nullptr };
+    QCheckBox2* mShowCloseButton{ nullptr };
+
+    std::unique_ptr<UsageCheckboxes> mPluginUsageFlo;
+    std::unique_ptr<UsageCheckboxes> mPluginUsageSvg;
+    QLineEdit* mEditSvgLibcairo{ nullptr };
+    QLineEdit* mEditSvgLibrsvg{ nullptr };
 };
 
 #endif // SETTINGS_WIDGET_H

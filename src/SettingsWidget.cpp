@@ -23,10 +23,37 @@
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QValidator>
+#include <QDialogButtonBox>
 #include "Global.h"
 #include "TextWidget.h"
-#include "Global.h"
 #include "Settings.h"
+#include "PluginManager.h"
+
+
+struct SettingsWidget::UsageCheckboxes
+{
+    QCheckBox2* useInViewer{ nullptr };
+    QCheckBox2* useInThumbnails{ nullptr };
+
+    bool isValid() const {
+        return (useInViewer != nullptr) && (useInThumbnails != nullptr);
+    }
+
+    bool isModified() const {
+        return isValid() && (useInViewer->isModified() || useInThumbnails->isModified());
+    }
+
+    PluginUsage toUsage() const {
+        PluginUsage usage{ PluginUsage::eNone };
+        if (useInViewer && useInViewer->isChecked()) {
+            usage = usage | PluginUsage::eViewer;
+        }
+        if (useInThumbnails && useInThumbnails->isChecked()) {
+            usage = usage | PluginUsage::eThumbnails;
+        }
+        return usage;
+    }
+};
 
 
 SettingsWidget::SettingsWidget()
@@ -41,68 +68,167 @@ SettingsWidget::SettingsWidget()
     setWindowTitle(Global::kApplicationName + " - Settings");
     setWindowFlags(Qt::WindowCloseButtonHint | Qt::MSWindowsOwnDC);
 
-    auto layout = new QGridLayout(this);
-    layout->setSpacing(8);
+    auto vlayout = new QVBoxLayout(this);
 
-    //
-    auto title = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kTitleFontSize);
-    title->setText("Global");
-    layout->addWidget(title.release(), 0, 0);
-
-    //
-    auto field1 = std::make_unique<QLineEdit>(nullptr);
-    field1->setText(mSettings->value(Settings::kParamBackgroundKey, Settings::kParamBackgroundDefault).toString());
-    field1->setValidator(new QRegularExpressionValidator(QRegularExpression("#[0-9a-fA-F]{6}")));
-    mEditBackgroundColor = field1.get();
-
-    //
-    auto field2 = std::make_unique<QLineEdit>(nullptr);
-    field2->setText(mSettings->value(Settings::kParamTextColorKey, Settings::kParamTextColorDefault).toString());
-    field2->setValidator(new QRegularExpressionValidator(QRegularExpression("#[0-9a-fA-F]{6}")));
-    mEditTextColor = field2.get();
-
-    //
-    auto field3 = std::make_unique<QCheckBox>(nullptr);
-    field3->setChecked(mSettings->value(Settings::kParamShowCloseButtonKey, Settings::kParamShowCloseButtonDefault).toBool());
-    mShowCloseButton = field3.get();
-
-    //
-    uint32_t lineIndex = 1;
-    auto appendOption = [&](QString labelText, auto& edit) mutable {
+    uint32_t lineIndex = 0;
+    auto appendOption = [&](QGridLayout* grid, QString labelText, auto elemPtr) -> auto {
         auto label = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kLabelFontSize);
         label->setText(labelText);
-        layout->addWidget(label.release(), lineIndex, 0);
-        layout->addWidget(edit.release(),  lineIndex, 1);
+        grid->addWidget(label.release(), lineIndex, 0);
+        auto ptr = elemPtr.release();
+        grid->addWidget(ptr, lineIndex, 1);
         ++lineIndex;
+        return ptr;
     };
-    appendOption("Background color", field1);
-    appendOption("Text color", field2);
-    appendOption("Show Close button", field3);
+
+    {
+        // [Global]
+        auto gridWidget = new QWidget(this);
+        auto gridGlobal = new QGridLayout(gridWidget);
+        gridGlobal->setSpacing(8);
+
+        auto title = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kTitleFontSize);
+        title->setText("Global");
+        gridGlobal->addWidget(title.release(), lineIndex++, 0);
+
+        //
+        mEditBackgroundColor = appendOption(gridGlobal, "Background color", std::make_unique<QLineEdit>(nullptr));
+        mEditBackgroundColor->setText(mSettings->value(Settings::kParamBackgroundKey, Settings::kParamBackgroundDefault).toString());
+        mEditBackgroundColor->setValidator(new QRegularExpressionValidator(QRegularExpression("#[0-9a-fA-F]{6}")));
+
+        //
+        mEditTextColor = appendOption(gridGlobal, "Text color", std::make_unique<QLineEdit>(nullptr));
+        mEditTextColor->setText(mSettings->value(Settings::kParamTextColorKey, Settings::kParamTextColorDefault).toString());
+        mEditTextColor->setValidator(new QRegularExpressionValidator(QRegularExpression("#[0-9a-fA-F]{6}")));
+
+        //
+        mShowCloseButton = appendOption(gridGlobal, "Show Close button", std::make_unique<QCheckBox2>(nullptr));
+        mShowCloseButton->setChecked(mSettings->value(Settings::kParamShowCloseButtonKey, Settings::kParamShowCloseButtonDefault).toBool());
+
+        vlayout->addWidget(gridWidget);
+
+    } // [Global]
+
+    vlayout->addItem(new QSpacerItem(4, 4, QSizePolicy::Fixed, QSizePolicy::Fixed));
+    lineIndex = 0;
+
+    mPluginsSettings = Settings::getSettings(Settings::Group::ePlugins);
+    if (mPluginsSettings) {
+        auto appendPluginUsage = [&](QGridLayout* grid, const QString& labelText, PluginUsage usageMask) {
+            auto checkboxes = std::make_unique<UsageCheckboxes>();
+
+            auto label = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kLabelFontSize);
+            label->setText(labelText);
+
+            auto checkBoxViewer = std::make_unique<QCheckBox2>(nullptr);
+            checkBoxViewer->setChecked(testFlag(usageMask, PluginUsage::eViewer));
+            checkboxes->useInViewer = checkBoxViewer.get();
+
+            auto checkBoxThumbnails = std::make_unique<QCheckBox2>(nullptr);
+            checkBoxThumbnails->setChecked(testFlag(usageMask, PluginUsage::eThumbnails));
+            checkboxes->useInThumbnails = checkBoxThumbnails.get();
+
+            grid->addWidget(label.release(), lineIndex, 0);
+            grid->addWidget(checkBoxViewer.release(), lineIndex, 1);
+            grid->addWidget(checkBoxThumbnails.release(), lineIndex, 2);
+            ++lineIndex;
+
+            return checkboxes;
+        };
+
+        // [Plguins]
+        auto gridWidget = new QWidget(this);
+        auto gridPlugins = new QGridLayout(gridWidget);
+        gridPlugins->setSpacing(8);
+
+        auto title = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kTitleFontSize);
+        title->setText("Plugins");
+        gridPlugins->addWidget(title.release(), lineIndex++, 0);
+
+        auto title1 = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kLabelFontSize);
+        title1->setText("in Viewer");
+        gridPlugins->addWidget(title1.release(), lineIndex, 1);
+
+        auto title2 = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kLabelFontSize);
+        title2->setText("in Thumbnails");
+        gridPlugins->addWidget(title2.release(), lineIndex, 2);
+
+        ++lineIndex;
+
+        //
+        mPluginUsageFlo = appendPluginUsage(gridPlugins, "FLO", static_cast<PluginUsage>(mPluginsSettings->value(Settings::kPluginFloUsage, Settings::kPluginFloUsageDefault).toUInt()));
+        mPluginUsageSvg = appendPluginUsage(gridPlugins, "SVG", static_cast<PluginUsage>(mPluginsSettings->value(Settings::kPluginSvgUsage, Settings::kPluginSvgUsageDefault).toUInt()));
+
+        //
+        vlayout->addWidget(gridWidget);
+
+        //
+        auto gridExtraWidget = new QWidget(this);
+        auto gridExtra = new QGridLayout(gridExtraWidget);
+        gridExtra->setSpacing(8);
+
+        mEditSvgLibcairo = appendOption(gridExtra, "SVG: libcairo-2", std::make_unique<QLineEdit>(nullptr));
+        mEditSvgLibcairo->setText(mPluginsSettings->value(Settings::kPluginSvgLibcairo, QString{}).toString());
+
+        mEditSvgLibrsvg = appendOption(gridExtra, "SVG: librsvg", std::make_unique<QLineEdit>(nullptr));
+        mEditSvgLibrsvg->setText(mPluginsSettings->value(Settings::kPluginSvgLibrsvg, QString{}).toString());
+
+        //
+        vlayout->addWidget(gridExtraWidget);
+
+    } // [Plugins]
+
+    vlayout->addItem(new QSpacerItem(4, 4, QSizePolicy::Fixed, QSizePolicy::Expanding));
 
     //
-    auto buttonApply = std::make_unique<QPushButton>("Apply");
-    connect(buttonApply.get(), &QPushButton::clicked, this, &SettingsWidget::onApply);
-    layout->addWidget(buttonApply.release(), lineIndex, 1);
+    auto buttonsBox = std::make_unique<QDialogButtonBox>();
+    buttonsBox->addButton("Apply", QDialogButtonBox::AcceptRole);
+    buttonsBox->addButton("Close", QDialogButtonBox::RejectRole);
+    connect(buttonsBox.get(), &QDialogButtonBox::accepted, this, &SettingsWidget::onApply);
+    connect(buttonsBox.get(), &QDialogButtonBox::rejected, this, &SettingsWidget::close);
+    vlayout->addWidget(buttonsBox.release());
 }
 
 SettingsWidget::~SettingsWidget() = default;
 
 void SettingsWidget::onApply()
 {
-    bool wasChanged = false;
-    if (mEditBackgroundColor && mEditBackgroundColor->hasAcceptableInput()) {
+    bool globalsChanged{ false };
+    if (mEditBackgroundColor && mEditBackgroundColor->isModified() && mEditBackgroundColor->hasAcceptableInput()) {
         mSettings->setValue(Settings::kParamBackgroundKey, mEditBackgroundColor->text());
-        wasChanged = true;
+        globalsChanged = true;
     }
-    if (mEditTextColor && mEditTextColor->hasAcceptableInput()) {
+    if (mEditTextColor && mEditTextColor->isModified() && mEditTextColor->hasAcceptableInput()) {
         mSettings->setValue(Settings::kParamTextColorKey, mEditTextColor->text());
-        wasChanged = true;
+        globalsChanged = true;
     }
-    if (mShowCloseButton) {
+    if (mShowCloseButton && mShowCloseButton->isModified()) {
         mSettings->setValue(Settings::kParamShowCloseButtonKey, mShowCloseButton->isChecked());
-        wasChanged = true;
+        globalsChanged = true;
     }
-    if (wasChanged) {
+
+    bool pluginsChanged{ false };
+    if (mPluginUsageFlo && mPluginUsageFlo->isModified()) {
+        mPluginsSettings->setValue(Settings::kPluginFloUsage, static_cast<uint32_t>(mPluginUsageFlo->toUsage()));
+        pluginsChanged = true;
+    }
+    if (mPluginUsageSvg && mPluginUsageSvg->isModified()) {
+        mPluginsSettings->setValue(Settings::kPluginSvgUsage, static_cast<uint32_t>(mPluginUsageSvg->toUsage()));
+        pluginsChanged = true;
+    }
+    if (mEditSvgLibcairo && mEditSvgLibcairo->isModified()) {
+        mPluginsSettings->setValue(Settings::kPluginSvgLibcairo, mEditSvgLibcairo->text());
+        pluginsChanged = true;
+    }
+    if (mEditSvgLibrsvg && mEditSvgLibrsvg->isModified()) {
+        mPluginsSettings->setValue(Settings::kPluginSvgLibrsvg, mEditSvgLibrsvg->text());
+        pluginsChanged = true;
+    }
+    if (pluginsChanged) {
+        PluginManager::getInstance().reload();
+    }
+
+    if (globalsChanged || pluginsChanged) {
         emit changed();
     }
 }

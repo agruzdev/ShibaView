@@ -146,6 +146,9 @@ set(app_sources
     ./src/PluginFLO.cpp
     ./src/PluginSVG.h
     ./src/PluginSVG.cpp
+    ./src/PluginSvgCairo.h
+    ./src/PluginSvgCairo.cpp
+    ./src/QCheckBox2.h
     ./src/Settings.h
     ./src/Settings.cpp
     ./src/SettingsWidget.h
@@ -241,6 +244,8 @@ if(WIN32)
         ./src/PluginFLO.cpp
         ./src/PluginSVG.h
         ./src/PluginSVG.cpp
+        ./src/PluginSvgCairo.h
+        ./src/PluginSvgCairo.cpp
         ./src/thumbnails/WindowsThumbnailProvider.h
         ./src/thumbnails/WindowsThumbnailProvider.cpp
         ./src/thumbnails/WindowsThumbnailService.cpp

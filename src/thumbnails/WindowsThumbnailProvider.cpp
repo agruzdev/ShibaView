@@ -48,7 +48,7 @@ public:
     {
         static std::once_flag once;
         //std::call_once(once, []{ FreeImageExt_Initialise(/* skipSvg= */ true); });
-        std::call_once(once, [] { PluginManager::getInstance().initForThumbnails(); });
+        std::call_once(once, [] { PluginManager::getInstance().init(PluginUsage::eThumbnails); });
 #if ENABLE_LOG
         std::locale::global(std::locale("Russian_Russia"));
         mLog.open("D:/ShibaThumbnailService.log", std::ios::app);

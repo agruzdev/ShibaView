@@ -30,6 +30,7 @@ public:
     enum class Group
     {
         eGlobal,
+        ePlugins,
         eControls
     };
 
@@ -43,6 +44,14 @@ public:
     static const QString kParamTextColorDefault;
     static const QString kParamShowCloseButtonKey;
     static const QString kParamShowCloseButtonDefault;
+
+    // [Plugins]
+    static const QString  kPluginFloUsage;
+    static const uint32_t kPluginFloUsageDefault;
+    static const QString  kPluginSvgUsage;
+    static const uint32_t kPluginSvgUsageDefault;
+    static const QString  kPluginSvgLibcairo;
+    static const QString  kPluginSvgLibrsvg;
 
 private:
     Settings() = delete;

@@ -66,11 +66,6 @@ FrameFlags operator&(FrameFlags f1, FrameFlags f2)
     return static_cast<FrameFlags>(static_cast<std::underlying_type_t<FrameFlags>>(f1) & static_cast<std::underlying_type_t<FrameFlags>>(f2));
 }
 
-inline
-bool testFlag(FrameFlags flags, FrameFlags test)
-{
-    return 0 != (static_cast<std::underlying_type_t<FrameFlags>>(flags) & static_cast<std::underlying_type_t<FrameFlags>>(test));
-}
 
 static Q_CONSTEXPR uint32_t kNoneIndex = std::numeric_limits<uint32_t>::max();
 

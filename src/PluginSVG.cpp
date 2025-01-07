@@ -23,6 +23,9 @@
 #include <QImage>
 #include <QPainter>
 #include <QRect>
+#include <iostream>
+#include "FreeImageExt.h"
+
 
 namespace
 {
@@ -65,6 +68,8 @@ const char* PluginSvg::ExtensionListProc() {
 
 FIBITMAP* PluginSvg::LoadProc(FreeImageIO* io, fi_handle handle, uint32_t page, uint32_t flags, void* data) {
     try {
+        //const auto t0 = std::chrono::steady_clock::now();
+
         const auto xmlBuffer = loadXmlBuffer(io, handle);
         if (!xmlBuffer) {
             qDebug() << "Failed to read xml buffer";
@@ -101,6 +106,12 @@ FIBITMAP* PluginSvg::LoadProc(FreeImageIO* io, fi_handle handle, uint32_t page, 
 
         svgRenderer.render(&painter);
 
+
+        //const auto t1 = std::chrono::steady_clock::now();
+        //std::cout << "Qt SVG load time = " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << std::endl;
+
+        FreeImageExt_SetMetadataValue(FIMD_CUSTOM, bmp.get(), "Rendered by", "QSvg");
+
         return bmp.release();
     }
     catch (...) {
@@ -109,9 +120,9 @@ FIBITMAP* PluginSvg::LoadProc(FreeImageIO* io, fi_handle handle, uint32_t page, 
     return nullptr;
 };
 
+#if 0
 bool PluginSvg::ValidateProc(FreeImageIO* io, fi_handle handle) {
     // ToDo (a.gruzdev): Is it possible to not read the entire file?
-#if 0
     const auto xmlBuffer = loadXmlBuffer(io, handle);
     if (!xmlBuffer) {
         qDebug() << "Failed to read xml buffer";
@@ -134,7 +145,7 @@ bool PluginSvg::ValidateProc(FreeImageIO* io, fi_handle handle) {
             break;
         }
     }
-#endif
     return false;
 };
+#endif
 

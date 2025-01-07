@@ -21,9 +21,29 @@
 
 #include <memory>
 #include "FreeImage.hpp"
+#include "Settings.h"
 
-class PluginFlo;
-class PluginSvg;
+
+enum class PluginUsage
+    : uint32_t
+{
+    eNone       = 0,
+    eViewer     = 1 << 0,
+    eThumbnails = 1 << 1
+};
+
+inline
+PluginUsage operator| (PluginUsage lhs, PluginUsage rhs)
+{
+    return static_cast<PluginUsage>(static_cast<std::underlying_type_t<PluginUsage>>(lhs) | static_cast<std::underlying_type_t<PluginUsage>>(rhs));
+}
+
+inline
+PluginUsage operator& (PluginUsage lhs, PluginUsage rhs)
+{
+    return static_cast<PluginUsage>(static_cast<std::underlying_type_t<PluginUsage>>(lhs) & static_cast<std::underlying_type_t<PluginUsage>>(rhs));
+}
+
 
 class PluginManager
 {
@@ -38,20 +58,22 @@ public:
     PluginManager& operator=(PluginManager&&) = delete;
 
 
-    bool initForViewer();
+    bool init(PluginUsage usage = PluginUsage::eThumbnails);
 
-    bool initForThumbnails();
+    bool reload();
+
 
     FREE_IMAGE_FORMAT getFloId() const {
-        return mPluginFlo.id;
+        return static_cast<FREE_IMAGE_FORMAT>(mPluginFlo.id);
     }
 
+
 private:
-    template <typename PluginType_>
     struct PluginCell
     {
-        std::shared_ptr<PluginType_> impl{ };
-        FREE_IMAGE_FORMAT id{ FIF_UNKNOWN };    // out of bounds of fi::ImageFormat
+        std::shared_ptr<fi::Plugin2> impl{ };
+        fi::ImageFormat id{ fi::ImageFormat::eUnknown };
+        PluginUsage usageMask{ PluginUsage::eNone };
     };
 
     PluginManager();
@@ -60,11 +82,21 @@ private:
 
     template <typename PluginType_, typename... Args_>
     static
-    bool InitPlugin(PluginCell<PluginType_>& plugin, Args_&&... args);
+    bool InitOrUpdatePlugin(PluginCell& plugin, Args_&&... args);
+
+    void UnloadPlugin(PluginCell& plugin);
 
 
-    PluginCell<PluginFlo> mPluginFlo;
-    PluginCell<PluginSvg> mPluginSvg;
+    bool setupPluginFlo();
+
+    bool setupPluginSvg();
+
+
+    bool mInitialized{ false };
+    PluginUsage mTargetUsage{ PluginUsage::eNone };
+    std::unique_ptr<QSettings> mSettings;
+    PluginCell mPluginFlo;
+    PluginCell mPluginSvg;
 };
 
 

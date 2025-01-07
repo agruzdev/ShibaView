@@ -50,4 +50,13 @@ private:
     Global() = delete;
 };
 
+
+template <typename Enum_>
+auto testFlag(const Enum_& flags, const Enum_& test)
+    -> std::enable_if_t<std::is_enum<Enum_>::value, bool>
+{
+    return 0 != (static_cast<std::underlying_type_t<Enum_>>(flags) & static_cast<std::underlying_type_t<Enum_>>(test));
+}
+
+
 #endif // GLOBAL_H

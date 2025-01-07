@@ -33,10 +33,7 @@
 
 ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
 {
-    //if (!FreeImageExt_Initialise()) {
-    if (!PluginManager::getInstance().initForViewer()) {
-        throw std::runtime_error("ViewerApplication[ctor]: Failed to initialize FreeImage plugins");
-    }
+    PluginManager::getInstance().init(PluginUsage::eViewer);
 
     mCanvasWidget.reset(new CanvasWidget(t));
 
@@ -59,8 +56,6 @@ ViewerApplication::~ViewerApplication()
 {
     mBackgroundThread->quit();
     mBackgroundThread->wait();
-
-    //FreeImageExt_DeInitialise();
 }
 
 void ViewerApplication::loadImageAsync(const QString &path, size_t imgIdx, size_t totalCount)

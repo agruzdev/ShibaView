@@ -17,10 +17,21 @@
  */
 
 #include "PluginManager.h"
-
+#include <QMessageBox>
+#include "Global.h"
 #include "PluginFLO.h"
 #include "PluginSVG.h"
+#include "PluginSvgCairo.h"
 
+
+namespace
+{
+
+    bool checkOneBitIsSet(uint32_t v) {
+        return (v > 0) && ((v & (v - 1)) == 0);
+    }
+
+} // namespace
 
 
 PluginManager& PluginManager::getInstance()
@@ -31,16 +42,33 @@ PluginManager& PluginManager::getInstance()
 
 
 template <typename PluginType_, typename... Args_>
-bool PluginManager::InitPlugin(PluginCell<PluginType_>& plugin, Args_&&... args)
+bool PluginManager::InitOrUpdatePlugin(PluginCell& plugin, Args_&&... args)
 {
-    PluginCell<PluginType_> res{};
+    PluginCell res{};
     res.impl = std::make_shared<PluginType_>(std::forward<Args_>(args)...);
-    res.id = static_cast<FREE_IMAGE_FORMAT>(fi::Plugin2::RegisterLocal(res.impl));
-    if (res.id == FIF_UNKNOWN) {
+    if (plugin.id != fi::ImageFormat::eUnknown) {
+        if (fi::Plugin2::ResetLocalPlugin(plugin.id, res.impl, /*force=*/true)) {
+            res.id = plugin.id;
+        }
+    }
+    else {
+        res.id =fi::Plugin2::RegisterLocal(res.impl);
+    }
+    if (res.id == fi::ImageFormat::eUnknown) {
         return false;
     }
     plugin = std::move(res);
     return true;
+}
+
+
+void PluginManager::UnloadPlugin(PluginCell& plugin)
+{
+    if (plugin.id != fi::ImageFormat::eUnknown) {
+        fi::Plugin2::ResetLocalPlugin(static_cast<fi::ImageFormat>(plugin.id), nullptr);
+        plugin.impl = nullptr;
+        plugin.id = fi::ImageFormat::eUnknown;
+    }
 }
 
 
@@ -50,18 +78,65 @@ PluginManager::PluginManager() = default;
 PluginManager::~PluginManager() = default;
 
 
-bool PluginManager::initForViewer()
+bool PluginManager::init(PluginUsage usage)
 {
-    bool success = true;
-    success &= InitPlugin<PluginFlo>(mPluginFlo);
-    success &= InitPlugin<PluginSvg>(mPluginSvg);
+    if (mInitialized) {
+        throw std::runtime_error("PluginManager[init]: Already initialized.");
+    }
+    if (!checkOneBitIsSet(static_cast<std::underlying_type_t<PluginUsage>>(usage))) {
+        throw std::runtime_error("PluginManager[init]: Invalid usage.");
+    }
+    mTargetUsage = usage;
+    mSettings = Settings::getSettings(Settings::Group::ePlugins);
+    const bool success = reload();
+    mInitialized = true;
     return success;
 }
 
 
-bool PluginManager::initForThumbnails()
+bool PluginManager::reload()
 {
     bool success = true;
-    success &= InitPlugin<PluginFlo>(mPluginFlo);
+    success &= setupPluginFlo();
+    success &= setupPluginSvg();
     return success;
+}
+
+
+bool PluginManager::setupPluginFlo()
+try
+{
+    mPluginFlo.usageMask = static_cast<PluginUsage>(mSettings->value(Settings::kPluginFloUsage, Settings::kPluginFloUsageDefault).toUInt());
+    if (testFlag(mPluginFlo.usageMask, mTargetUsage)) {
+        return InitOrUpdatePlugin<PluginFlo>(mPluginFlo);
+    }
+    UnloadPlugin(mPluginFlo);
+    return true;
+}
+catch (std::exception& err) {
+    QMessageBox::warning(nullptr, Global::kApplicationName + " - Error", "Failed to load plugin 'FLO'. Reason:\n" + QString::fromUtf8(err.what()));
+    return false;
+}
+
+
+bool PluginManager::setupPluginSvg()
+try
+{
+    mPluginSvg.usageMask = static_cast<PluginUsage>(mSettings->value(Settings::kPluginSvgUsage, Settings::kPluginSvgUsageDefault).toUInt());
+    if (testFlag(mPluginSvg.usageMask, mTargetUsage)) {
+        const QString libcairo = mSettings->value(Settings::kPluginSvgLibcairo, QString{}).toString();
+        const QString librsvg  = mSettings->value(Settings::kPluginSvgLibrsvg,  QString{}).toString();
+        if (!libcairo.isEmpty() && !librsvg.isEmpty()) {
+            return InitOrUpdatePlugin<PluginSvgCairo>(mPluginSvg, libcairo, librsvg);
+        }
+        else {
+            return InitOrUpdatePlugin<PluginSvg>(mPluginSvg);
+        }
+    }
+    UnloadPlugin(mPluginSvg);
+    return true;
+}
+catch (std::exception& err) {
+    QMessageBox::warning(nullptr, Global::kApplicationName + " - Error", "Failed to load plugin 'SVG'. Reason:\n" + QString::fromUtf8(err.what()));
+    return false;
 }
