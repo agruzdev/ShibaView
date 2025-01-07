@@ -17,7 +17,11 @@
  */
 
 #include "PluginManager.h"
-#include <QMessageBox>
+
+#if SHIBAVIEW_APPLICATION
+# include <QMessageBox>
+#endif
+
 #include "Global.h"
 #include "PluginFLO.h"
 #include "PluginSVG.h"
@@ -114,7 +118,9 @@ try
     return true;
 }
 catch (std::exception& err) {
+#if SHIBAVIEW_APPLICATION
     QMessageBox::warning(nullptr, Global::kApplicationName + " - Error", "Failed to load plugin 'FLO'. Reason:\n" + QString::fromUtf8(err.what()));
+#endif
     return false;
 }
 
@@ -137,6 +143,8 @@ try
     return true;
 }
 catch (std::exception& err) {
+#if SHIBAVIEW_APPLICATION
     QMessageBox::warning(nullptr, Global::kApplicationName + " - Error", "Failed to load plugin 'SVG'. Reason:\n" + QString::fromUtf8(err.what()));
+#endif
     return false;
 }

@@ -180,6 +180,7 @@ else()
 endif()
 
 target_compile_features(ShibaView PRIVATE cxx_std_14)
+target_compile_options(ShibaView PRIVATE "-DSHIBAVIEW_APPLICATION=1")
 
 target_link_libraries(ShibaView Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Svg Qt6::Charts ${FreeImage_LIBRARY})
 if (UNIX)
@@ -246,6 +247,8 @@ if(WIN32)
         ./src/PluginSVG.cpp
         ./src/PluginSvgCairo.h
         ./src/PluginSvgCairo.cpp
+        ./src/Settings.h
+        ./src/Settings.cpp
         ./src/thumbnails/WindowsThumbnailProvider.h
         ./src/thumbnails/WindowsThumbnailProvider.cpp
         ./src/thumbnails/WindowsThumbnailService.cpp

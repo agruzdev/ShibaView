@@ -19,7 +19,7 @@
 #include "Settings.h"
 #include "PluginManager.h"
 
-#include <QApplication>
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 
@@ -45,7 +45,7 @@ namespace
 
 std::unique_ptr<QSettings> Settings::getSettings(Settings::Group group)
 {
-    const QString absSettingsPath = QDir(QApplication::applicationDirPath()).filePath(kSettingsFileName);
+    const QString absSettingsPath = QDir(QCoreApplication::applicationDirPath()).filePath(kSettingsFileName);
     auto settings = std::make_unique<QSettings>(absSettingsPath, QSettings::Format::IniFormat);
     settings->beginGroup(ToString(group));
     return settings;
