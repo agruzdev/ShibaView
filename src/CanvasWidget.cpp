@@ -185,7 +185,7 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     connect(this, &QWidget::customContextMenuRequested, this, &CanvasWidget::onShowContextMenu);
 
     mImageDescription = std::make_unique<ImageDescription>();
-    mImageDescription->setDisplayPath(settings.value(kSettingsFullPath, false).toBool());
+    mDisplayFullPath = settings.value(kSettingsFullPath, false).toBool();
 
     mImageProcessor = std::make_unique<ImageProcessor>();
     mImageProcessor->setToneMappingMode(static_cast<FREE_IMAGE_TMO>(settings.value(kSettingsToneMapping, static_cast<int32_t>(FITMO_CLAMP)).toInt()));
@@ -241,10 +241,8 @@ CanvasWidget::~CanvasWidget()
         settings.setValue(kSettingsZoomFitValue,   static_cast<int32_t>(mZoomController->getFitValue()));
         settings.setValue(kSettingsToneMapping,    static_cast<int32_t>(mImageProcessor->toneMappingMode()));
         settings.setValue(kSettingsCheckboard,     mShowTransparencyCheckboard);
-
-        if (mImageDescription) {
-            settings.setValue(kSettingsFullPath, static_cast<int32_t>(mImageDescription->displayPath()));
-        }
+        // ToDo: move to Settings
+        settings.setValue(kSettingsFullPath, static_cast<int32_t>(mDisplayFullPath));
     }
     catch(...) {
         
@@ -622,16 +620,26 @@ void CanvasWidget::invalidateImageDescription()
 void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
 {
     mImageProcessor->detachSource();
+
     if (mContextMenu) {
         delete mContextMenu;
         mContextMenu = nullptr;
     }
+
+    if (mPageText) {
+        delete mPageText;
+        mPageText = nullptr;
+    }
+    mEnableAnimation = false;
     mAnimIndex = kNoneIndex;
+
 
     mImage = std::move(image);
     if (mImage) {
+        //mImageDescription = std::make_unique<ImageDescription>();
         mImageDescription->setImageInfo(mImage->info());
-        if (mImage && !mImage->isNull()) {
+
+        if (!mImage->isNull()) {
             // Zoom
             if (!mTransitionIsReload) {
                 // do not change zoom controller on Reload
@@ -662,13 +670,6 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
 
                 mEnableAnimation = mImage->info().animated;
             }
-            else {
-                if (mPageText) {
-                    delete mPageText;
-                    mPageText = nullptr;
-                }
-                mEnableAnimation  = false;
-            }
 
             // Description
             mImageDescription->setZoom(mZoomController->getFactor());
@@ -680,9 +681,14 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
 
             mImageProcessor->attachSource(mImage);
         }
-
-        setWindowTitle(mImage->info().path + " - " + QApplication::applicationName());
+        else {
+            mImageDescription->setZoom(1.0);
+            mImageDescription->setFormat(QString{});
+            mImageDescription->setToneMapping(FITMO_CLAMP);
+        }
     }
+
+    setWindowTitle(Global::makeTitle(mImage->info().path));
 
     if (mHistogramWidget) {
         mHistogramWidget->attachImageSource(mImage);
@@ -703,7 +709,7 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
 
 void CanvasWidget::onImageDirScanned(size_t imgIdx, size_t totalCount)
 {
-    if(!mImageDescription) {
+    if (!mImageDescription) {
         mImageDescription = std::make_unique<ImageDescription>();
     }
     if (imgIdx < totalCount) {
@@ -712,10 +718,7 @@ void CanvasWidget::onImageDirScanned(size_t imgIdx, size_t totalCount)
     else {
         mImageDescription->setImageIndex(0, 0);
     }
-    if(mInfoText) {
-        mInfoText->setText(mImageDescription->toLines());
-    }
-    update();
+    invalidateImageDescription();
 }
 
 void CanvasWidget::updateOffsets()
@@ -903,24 +906,9 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             painter.drawPixmap(imageRect, mImageProcessor->getResultPixmap());
 
             const uint32_t currIndex = mImage->currentPage().index();
-            if (mShowInfo) {
-                if (!mInfoIsValid) {
-                    if (mInfoText && mImageDescription) {
-                        mInfoText->setText(mImageDescription->toLines());
-                    }
-                    mInfoIsValid = true;
-                }
-                mInfoText->show();
-                if (mPageText) {
-                    mPageText->setText("Page " + QString::number(currIndex + 1) + "/" + QString::number(mImage->pagesCount()));
-                    mPageText->show();
-                }
-            }
-            else {
-                mInfoText->hide();
-                if (mPageText) {
-                    mPageText->hide();
-                }
+
+            if (mPageText) {
+                mPageText->setText("Page " + QString::number(currIndex + 1) + "/" + QString::number(mImage->pagesCount()));
             }
 
             if (mEnableAnimation) {
@@ -939,10 +927,26 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
     catch(...) {
     }
 
-    if (success) {
-        mErrorText->hide();
+    if (mShowInfo) {
+        if (!mInfoIsValid) {
+            if (mInfoText && mImageDescription) {
+                mInfoText->setText(mImageDescription->toLines(mDisplayFullPath));
+            }
+            mInfoIsValid = true;
+        }
+        mInfoText->show();
+        if (mPageText) {
+            mPageText->show();
+        }
     }
     else {
+        mInfoText->hide();
+        if (mPageText) {
+            mPageText->hide();
+        }
+    }
+
+    if (!success) {
         const auto dstRegion = fitWidth(512, 512);
         QPainter painter(this);
         painter.setBrush(Qt::black);
@@ -957,6 +961,9 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
         mErrorText->setText(error);
         mErrorText->move(width() / 2 - mErrorText->width() / 2, height() / 2 - mErrorText->height() / 2);
         mErrorText->show();
+    }
+    else {
+        mErrorText->hide();
     }
 
     invalidateTooltip();
@@ -1201,15 +1208,9 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         break;
 
     case ControlAction::eDisplayPath:
-        if (mImageDescription && mShowInfo) {
-            try {
-                mImageDescription->setDisplayPath(!mImageDescription->displayPath());
-                mInfoIsValid = false;
-                update();
-            }
-            catch(...)
-            { }
-        }
+        mDisplayFullPath = !mDisplayFullPath;
+        mInfoIsValid = false;
+        update();
         break;
 
     case ControlAction::eHistogram:

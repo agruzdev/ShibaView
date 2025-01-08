@@ -52,6 +52,11 @@ const QString Global::kOrganizationName = "Alexey Gruzdev";
 
 const QString Global::kDefaultFont = ":/fonts/DejaVuSansCondensed.ttf";
 
+QString Global::makeTitle(const QString& tag)
+{
+    return tag + " - " + kApplicationName;
+}
+
 const QStringList& Global::getSupportedExtensions() noexcept
 {
     static QStringList extensions = []() {

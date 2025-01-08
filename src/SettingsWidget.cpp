@@ -65,7 +65,7 @@ SettingsWidget::SettingsWidget()
     mSettings = Settings::getSettings(Settings::Group::eGlobal);
     assert(mSettings);
 
-    setWindowTitle(Global::kApplicationName + " - Settings");
+    setWindowTitle(Global::makeTitle("Settings"));
     setWindowFlags(Qt::WindowCloseButtonHint | Qt::MSWindowsOwnDC);
 
     auto vlayout = new QVBoxLayout(this);

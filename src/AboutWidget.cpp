@@ -35,7 +35,7 @@ AboutWidget::AboutWidget(QWidget* parent)
     setWindowFlags(Qt::WindowCloseButtonHint | Qt::MSWindowsOwnDC);
     //setAttribute(Qt::WA_DeleteOnClose);
 
-    setWindowTitle(Global::kApplicationName + " - About");
+    setWindowTitle(Global::makeTitle("About"));
 
     auto text = new TextWidget(this, Qt::black, 11, 0.8);
     text->setPaddings(8, 0, 4, 0);

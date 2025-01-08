@@ -71,7 +71,7 @@ ExifWidget::ExifWidget()
     setWindowFlags(Qt::WindowCloseButtonHint | Qt::MSWindowsOwnDC);
     //setAttribute(Qt::WA_DeleteOnClose);
 
-    setWindowTitle(Global::kApplicationName + " - Exif");
+    setWindowTitle(Global::makeTitle("Exif"));
 
     auto layout = new QVBoxLayout(this);
 

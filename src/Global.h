@@ -40,6 +40,8 @@ public:
 
     static const QString kDefaultFont;
 
+    static QString makeTitle(const QString& tag);
+
     static const QStringList& getSupportedExtensions() noexcept;
 
     static QStringList getSupportedExtensionFilters();

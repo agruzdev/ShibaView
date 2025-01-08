@@ -66,17 +66,8 @@ public:
         mImagesCount = count;
     }
 
-    void setDisplayPath(bool enable = true)
-    {
-        mDisplayPath = enable;
-    }
+    QVector<QString> toLines(bool fullPath = false) const;
 
-    bool displayPath() const
-    {
-        return mDisplayPath;
-    }
-
-    QVector<QString> toLines() const;
 
 private:
     ImageInfo mFileInfo;
@@ -87,7 +78,6 @@ private:
     bool mChangedFlag = false;
     size_t mImageIndex = 0;
     size_t mImagesCount = 0;
-    bool mDisplayPath = false;
 };
 
 #endif // IMAGEDESCRIPTION_H

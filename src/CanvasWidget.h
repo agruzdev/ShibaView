@@ -189,6 +189,7 @@ private:
     ImagePtr mImage;
 
     std::unique_ptr<ImageDescription> mImageDescription;
+    bool mDisplayFullPath = false;
 
     std::unique_ptr<ImageProcessor> mImageProcessor;
 

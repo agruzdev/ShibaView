@@ -30,10 +30,10 @@ namespace
     }
 }
 
-QVector<QString> ImageDescription::toLines() const
+QVector<QString> ImageDescription::toLines(bool fullPath) const
 {
     QVector<QString> res;
-    const QString& name = mDisplayPath ? mFileInfo.path : mFileInfo.name;
+    const QString& name = fullPath ? mFileInfo.path : mFileInfo.name;
     if (name.length() < kMaxPathLength) {
         res.push_back("File name: " + name);
     }
