@@ -24,6 +24,7 @@
 #include <QRegularExpression>
 #include <QValidator>
 #include <QDialogButtonBox>
+#include <QKeyEvent>
 #include "Global.h"
 #include "TextWidget.h"
 #include "Settings.h"
@@ -230,5 +231,14 @@ void SettingsWidget::onApply()
 
     if (globalsChanged || pluginsChanged) {
         emit changed();
+    }
+}
+
+
+void SettingsWidget::keyPressEvent(QKeyEvent* event)
+{
+    QWidget::keyPressEvent(event);
+    if (event->key() == Qt::Key_Escape) {
+        close();
     }
 }
