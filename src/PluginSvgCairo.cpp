@@ -31,11 +31,17 @@
 #ifdef _WIN32
 # include <Windows.h>
 # define LIBRARY_HANDLE_TYPE HMODULE
-# define SET_LOAD_DIRECTORY(Path_) SetDllDirectory(Path_)
-# define LOAD_LIBRARY(Path_, Flags_) LoadLibrary(Path_)
+# define SET_LOAD_DIRECTORY(QString_) SetDllDirectory((QString_).toStdWString().c_str())
+# define LOAD_LIBRARY(QString_) LoadLibraryW((QString_).toStdWString().c_str())
 # define FREE_LIBRARY(Handle_) FreeLibrary(Handle_)
 # define LOAD_SYMBOL(Handle_, Symbol_) GetProcAddress(Handle_, Symbol_)
 #else
+# include <dlfcn.h>
+# define LIBRARY_HANDLE_TYPE void*
+# define SET_LOAD_DIRECTORY(QString_)
+# define LOAD_LIBRARY(QString_) dlopen((QString_).toStdString().c_str(), RTLD_NOW | RTLD_GLOBAL)
+# define FREE_LIBRARY(Handle_) dlclose(Handle_)
+# define LOAD_SYMBOL(Handle_, Symbol_) dlsym(Handle_, Symbol_)
 #endif
 
 
@@ -101,8 +107,8 @@ namespace
 
     LIBRARY_HANDLE_TYPE loadLib(const QString& libPath) {
         QFileInfo libPathInfo{ libPath };
-        SET_LOAD_DIRECTORY(libPathInfo.absolutePath().toStdWString().c_str());
-        return LOAD_LIBRARY(libPathInfo.absoluteFilePath().toStdWString().c_str(), 0);
+        SET_LOAD_DIRECTORY(libPathInfo.absolutePath());
+        return LOAD_LIBRARY(libPathInfo.absoluteFilePath());
     }
 
     template <typename SymbolType_>
