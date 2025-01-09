@@ -24,12 +24,19 @@
 #include <QPainter>
 #include <QRect>
 #include <QFileInfo>
-
-#include <Windows.h>
 #include <iostream>
-#include <filesystem>
-
 #include "FreeImageExt.h"
+
+
+#ifdef _WIN32
+# include <Windows.h>
+# define LIBRARY_HANDLE_TYPE HMODULE
+# define SET_LOAD_DIRECTORY(Path_) SetDllDirectory(Path_)
+# define LOAD_LIBRARY(Path_, Flags_) LoadLibrary(Path_)
+# define FREE_LIBRARY(Handle_) FreeLibrary(Handle_)
+# define LOAD_SYMBOL(Handle_, Symbol_) GetProcAddress(Handle_, Symbol_)
+#else
+#endif
 
 
 namespace
@@ -92,68 +99,75 @@ namespace
     };
 
 
-    HMODULE loadLib(const QString& libPath) {
+    LIBRARY_HANDLE_TYPE loadLib(const QString& libPath) {
         QFileInfo libPathInfo{ libPath };
-        SetDllDirectory(libPathInfo.absolutePath().toStdWString().c_str());
-        return LoadLibrary(libPathInfo.absoluteFilePath().toStdWString().c_str());
+        SET_LOAD_DIRECTORY(libPathInfo.absolutePath().toStdWString().c_str());
+        return LOAD_LIBRARY(libPathInfo.absoluteFilePath().toStdWString().c_str(), 0);
+    }
+
+    template <typename SymbolType_>
+    SymbolType_ loadSymbol(LIBRARY_HANDLE_TYPE handle, const char* name) {
+        SymbolType_ sym = reinterpret_cast<SymbolType_>(LOAD_SYMBOL(handle, name));
+        if (!sym) {
+            throw std::runtime_error(std::string("Failed to load symbol '") + name + "'");
+        }
+        return sym;
     }
 }
 
 
 struct PluginSvgCairo::LibRsvg
 {
-    HMODULE handle{};
+    LIBRARY_HANDLE_TYPE handle{};
     LibVersion version{};
 
     void* (*rsvg_handle_new_from_data_f)(const char*, unsigned long, GError**) { nullptr };
     void  (*rsvg_handle_get_dimensions_f)(void*, RsvgDimensionData*) { nullptr };
     int   (*rsvg_handle_render_document_f)(void*, void*, const RsvgRectangle*, GError**) { nullptr };
+    int   (*rsvg_handle_close_f)(void* handle, GError** error) { nullptr };
+    void  (*rsvg_handle_free_f)(void* handle) { nullptr };
 
 
     LibRsvg(const QString& libRsvgPath)
+    try
     {
         handle = loadLib(libRsvgPath);
         if (!handle) {
-            throw std::runtime_error("PluginSvgCairo[LibRsvg]: Failed to load librsvg");
+            throw std::runtime_error("Failed to open librsvg");
         }
-        if (auto rsvg_major_version = reinterpret_cast<uint32_t*>(GetProcAddress(handle, "rsvg_major_version"))) {
-            version.major = *rsvg_major_version;
-        }
-        if (auto rsvg_minor_version = reinterpret_cast<uint32_t*>(GetProcAddress(handle, "rsvg_minor_version"))) {
-            version.minor = *rsvg_minor_version;
-        }
-        if (auto rsvg_micro_version = reinterpret_cast<uint32_t*>(GetProcAddress(handle, "rsvg_micro_version"))) {
-            version.minor = *rsvg_micro_version;
-        }
+        
+        version.major = *loadSymbol<uint32_t*>(handle, "rsvg_major_version");
+        version.minor = *loadSymbol<uint32_t*>(handle, "rsvg_minor_version");
+        version.micro = *loadSymbol<uint32_t*>(handle, "rsvg_micro_version");
 
         // https://www.manpagez.com/html/rsvg-2.0/rsvg-2.0-2.42.2/rsvg-RsvgHandle.php#rsvg-handle-new-from-file
-        rsvg_handle_new_from_data_f = reinterpret_cast<decltype(rsvg_handle_new_from_data_f)>(GetProcAddress(handle, "rsvg_handle_new_from_data"));
-        if (!rsvg_handle_new_from_data_f) {
-            throw std::runtime_error("PluginSvgCairo[LibRsvg]: Failed to load the symbol 'rsvg_handle_new_from_data'");
-        }
+        rsvg_handle_new_from_data_f = loadSymbol<decltype(rsvg_handle_new_from_data_f)>(handle, "rsvg_handle_new_from_data");
 
         // https://www.manpagez.com/html/rsvg-2.0/rsvg-2.0-2.40.20/RsvgHandle.php#rsvg-handle-get-dimensions
-        rsvg_handle_get_dimensions_f = reinterpret_cast<decltype(rsvg_handle_get_dimensions_f)>(GetProcAddress(handle, "rsvg_handle_get_dimensions"));
-        if (!rsvg_handle_get_dimensions_f) {
-            throw std::runtime_error("PluginSvgCairo[LibRsvg]: Failed to load the symbol 'rsvg_handle_get_dimensions_f'");
-        }
+        rsvg_handle_get_dimensions_f = loadSymbol<decltype(rsvg_handle_get_dimensions_f)>(handle, "rsvg_handle_get_dimensions");
 
         // https://gnome.pages.gitlab.gnome.org/librsvg/Rsvg-2.0/method.Handle.render_document.html
-        rsvg_handle_render_document_f = reinterpret_cast<decltype(rsvg_handle_render_document_f)>(GetProcAddress(handle, "rsvg_handle_render_document"));
-        if (!rsvg_handle_render_document_f) {
-            throw std::runtime_error("PluginSvgCairo[LibRsvg]: Failed to load the symbol 'rsvg_handle_render_document'");
-        }
+        rsvg_handle_render_document_f = loadSymbol<decltype(rsvg_handle_render_document_f)>(handle, "rsvg_handle_render_document");
+
+        // https://www.manpagez.com/html/rsvg-2.0/rsvg-2.0-2.42.2/rsvg-RsvgHandle.php#rsvg-handle-close
+        rsvg_handle_close_f = loadSymbol<decltype(rsvg_handle_close_f)>(handle, "rsvg_handle_close");
+
+        // https://www.manpagez.com/html/rsvg-2.0/rsvg-2.0-2.42.2/rsvg-RsvgHandle.php#rsvg-handle-free
+        rsvg_handle_free_f = loadSymbol<decltype(rsvg_handle_free_f)>(handle, "rsvg_handle_free");
+    }
+    catch (std::exception& err) {
+        throw std::runtime_error(std::string("PluginSvgCairo[ctor]: Failed to load librsvg. Reason: ") + err.what());
     }
 
     ~LibRsvg()
     {
-        FreeLibrary(handle);
+        FREE_LIBRARY(handle);
     }
 };
 
 struct PluginSvgCairo::LibCairo
 {
-    HMODULE handle{};
+    LIBRARY_HANDLE_TYPE handle{};
     LibVersion version{};
 
     void* (*cairo_image_surface_create_for_data_f)(void*, int, int, int, int) { nullptr };
@@ -161,54 +175,50 @@ struct PluginSvgCairo::LibCairo
     void* (*cairo_create_f)(void*) { nullptr };
     void  (*cairo_translate_f)(void*, double, double) { nullptr };
     void  (*cairo_scale_f)(void*, double, double) { nullptr };
+    void  (*cairo_surface_destroy_f)(void*) { nullptr };
+    void  (*cairo_destroy_f)(void*) { nullptr };
+
 
     LibCairo(const QString& libCairoPath)
+    try
     {
         handle = loadLib(libCairoPath);
         if (!handle) {
-            throw std::runtime_error("PluginSvgCairo[LibCairo]: Failed to load libcairo");
+            throw std::runtime_error("Failed to open libcairo");
         }
 
-        if (auto cairo_version = reinterpret_cast<int(*)()>(GetProcAddress(handle, "cairo_version"))) {
-            int cairoVersionValue = cairo_version();
-            version.micro = cairoVersionValue % 100;
-            version.minor = cairoVersionValue / 100 % 10000;
-            version.major = cairoVersionValue / 10000;
-        }
+        const int cairoVersionValue = loadSymbol<int(*)()>(handle, "cairo_version")();
+        version.micro = cairoVersionValue % 100;
+        version.minor = cairoVersionValue / 100 % 10000;
+        version.major = cairoVersionValue / 10000;
 
         // https://www.cairographics.org/manual/cairo-Image-Surfaces.html#cairo_image_surface_create_for_data
-        cairo_image_surface_create_for_data_f = reinterpret_cast<decltype(cairo_image_surface_create_for_data_f)>(GetProcAddress(handle, "cairo_image_surface_create_for_data"));
-        if (!cairo_image_surface_create_for_data_f) {
-            throw std::runtime_error("PluginSvgCairo[LibCairo]: Failed to load the symbol 'cairo_image_surface_create_for_data_f'");
-        }
+        cairo_image_surface_create_for_data_f = loadSymbol<decltype(cairo_image_surface_create_for_data_f)>(handle, "cairo_image_surface_create_for_data");
 
         // https://www.cairographics.org/manual/cairo-Image-Surfaces.html#cairo-image-surface-create
         // https://github.com/ImageMagick/cairo/blob/5633024ccf6a34b6083cba0a309955a91c619dff/src/cairo.h#L441
-        cairo_surface_status_f = reinterpret_cast<decltype(cairo_surface_status_f)>(GetProcAddress(handle, "cairo_surface_status"));
-        if (!cairo_surface_status_f) {
-            throw std::runtime_error("PluginSvgCairo[LibCairo]: Failed to load the symbol 'cairo_surface_status_f'");
-        }
+        cairo_surface_status_f = loadSymbol<decltype(cairo_surface_status_f)>(handle, "cairo_surface_status");
 
         // https://www.cairographics.org/manual/cairo-cairo-t.html#cairo-create
-        cairo_create_f = reinterpret_cast<decltype(cairo_create_f)>(GetProcAddress(handle, "cairo_create"));
-        if (!cairo_create_f) {
-            throw std::runtime_error("PluginSvgCairo[LibCairo]: Failed to load the symbol 'cairo_create_f'");
-        }
+        cairo_create_f = loadSymbol<decltype(cairo_create_f)>(handle, "cairo_create");
 
         // https://www.cairographics.org/manual/cairo-Transformations.html
-        cairo_translate_f = reinterpret_cast<decltype(cairo_translate_f)>(GetProcAddress(handle, "cairo_translate"));
-        if (!cairo_translate_f) {
-            throw std::runtime_error("PluginSvgCairo[LibCairo]: Failed to load the symbol 'cairo_translate_f'");
-        }
-        cairo_scale_f = reinterpret_cast<decltype(cairo_scale_f)>(GetProcAddress(handle, "cairo_scale"));
-        if (!cairo_scale_f) {
-            throw std::runtime_error("PluginSvgCairo[LibCairo]: Failed to load the symbol 'cairo_scale_f'");
-        }
+        cairo_translate_f = loadSymbol<decltype(cairo_translate_f)>(handle, "cairo_translate");
+        cairo_scale_f     = loadSymbol<decltype(cairo_scale_f)>(handle, "cairo_scale");
+
+        // https://www.cairographics.org/manual/cairo-cairo-surface-t.html#cairo-surface-destroy
+        cairo_surface_destroy_f = loadSymbol<decltype(cairo_surface_destroy_f)>(handle, "cairo_surface_destroy");
+
+        // https://www.cairographics.org/manual/cairo-cairo-t.html#cairo-destroy
+        cairo_destroy_f = loadSymbol<decltype(cairo_destroy_f)>(handle, "cairo_destroy");
+    }
+    catch (std::exception& err) {
+        throw std::runtime_error(std::string("PluginSvgCairo[ctor]: Failed to load libcairo. Reason: ") + err.what());
     }
 
     ~LibCairo()
     {
-        FreeLibrary(handle);
+        FREE_LIBRARY(handle);
     }
 };
 
@@ -261,43 +271,54 @@ FIBITMAP* PluginSvgCairo::LoadProc(FreeImageIO* io, fi_handle handle, uint32_t p
 
         const auto xmlBuffer = loadXmlBuffer(io, handle);
         if (!xmlBuffer) {
-            qDebug() << "Failed to read xml buffer";
-            return nullptr;
+            throw std::runtime_error("Failed to read xml buffer");
         }
 
-        GError* rsvg_error = nullptr;
-        auto rsvg_handle = mLibRsvg->rsvg_handle_new_from_data_f(xmlBuffer->data(), xmlBuffer->size(), &rsvg_error);
+        GError* rsvgError = nullptr;
+        auto rsvgHandle = mLibRsvg->rsvg_handle_new_from_data_f(xmlBuffer->data(), xmlBuffer->size(), &rsvgError);
+        if (!rsvgHandle) {
+            throw std::runtime_error("Failed to create rsvg handke");
+        }
+        auto cleanupRsvgHandle = qScopeGuard([&, this] { mLibRsvg->rsvg_handle_free_f(rsvgHandle); });
 
-        RsvgDimensionData svg_dims{};
-        mLibRsvg->rsvg_handle_get_dimensions_f(rsvg_handle, &svg_dims);
-        if (svg_dims.width * svg_dims.height <= 0) {
-            svg_dims.width  = 1024;
-            svg_dims.height = 1024;
+        RsvgDimensionData dims{};
+        mLibRsvg->rsvg_handle_get_dimensions_f(rsvgHandle, &dims);
+        if (dims.width * dims.height <= 0) {
+            dims.width  = 1024;
+            dims.height = 1024;
         }
 
-        std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> image(FreeImage_Allocate(svg_dims.width, svg_dims.height, 32), &::FreeImage_Unload);
+        std::unique_ptr<FIBITMAP, decltype(&::FreeImage_Unload)> image(FreeImage_Allocate(dims.width, dims.height, 32), &::FreeImage_Unload);
 
-        auto cairo_surface = mLibCairo->cairo_image_surface_create_for_data_f(FreeImage_GetBits(image.get()), 0, svg_dims.width, svg_dims.height, FreeImage_GetPitch(image.get()));
-        if (0 != mLibCairo->cairo_surface_status_f(cairo_surface)) {
-            qDebug() << "Failed to create cairo surface";
-            return nullptr;
+        auto cairoSurface = mLibCairo->cairo_image_surface_create_for_data_f(FreeImage_GetBits(image.get()), 0, dims.width, dims.height, FreeImage_GetPitch(image.get()));
+        if (0 != mLibCairo->cairo_surface_status_f(cairoSurface)) {
+            throw std::runtime_error("Failed to create cairo surface");
         }
+        auto cleanupCairoSurface = qScopeGuard([&, this] { mLibCairo->cairo_surface_destroy_f(cairoSurface); });
 
-        auto cairo_canvas = mLibCairo->cairo_create_f(cairo_surface);
-        mLibCairo->cairo_translate_f(cairo_canvas, 0.0, svg_dims.height / 2.0);
-        mLibCairo->cairo_scale_f(cairo_canvas, 1.0, -1.0);
-        mLibCairo->cairo_translate_f(cairo_canvas, 0.0, -svg_dims.height / 2.0);
+        auto cairoCanvas = mLibCairo->cairo_create_f(cairoSurface);
+        if (!cairoCanvas) {
+            throw std::runtime_error("Failed to create cairo canvas");
+        }
+        auto cleanupCairoCanvas = qScopeGuard([&, this] { mLibCairo->cairo_destroy_f(cairoCanvas); });
+
+        mLibCairo->cairo_translate_f(cairoCanvas, 0.0, dims.height / 2.0);
+        mLibCairo->cairo_scale_f(cairoCanvas, 1.0, -1.0);
+        mLibCairo->cairo_translate_f(cairoCanvas, 0.0, -dims.height / 2.0);
 
         RsvgRectangle viewport{};
         viewport.x = 0;
         viewport.y = 0;
-        viewport.width  = svg_dims.width;
-        viewport.height = svg_dims.height;
+        viewport.width  = dims.width;
+        viewport.height = dims.height;
 
-        auto render_status = mLibRsvg->rsvg_handle_render_document_f(rsvg_handle, cairo_canvas, &viewport, &rsvg_error);
-        if (0 != mLibCairo->cairo_surface_status_f(cairo_surface)) {
-            qDebug() << "Failed to render";
-            return nullptr;
+        auto renderStatus = mLibRsvg->rsvg_handle_render_document_f(rsvgHandle, cairoCanvas, &viewport, &rsvgError);
+        if (0 != mLibCairo->cairo_surface_status_f(cairoSurface) && !static_cast<bool>(renderStatus)) {
+            throw std::runtime_error("Failed to render");
+        }
+
+        if (!static_cast<bool>(mLibRsvg->rsvg_handle_close_f(rsvgHandle, &rsvgError))) {
+            qDebug() << "Failed to close rsvg handle";
         }
 
         SwapRedBlue32(image.get());
@@ -312,9 +333,10 @@ FIBITMAP* PluginSvgCairo::LoadProc(FreeImageIO* io, fi_handle handle, uint32_t p
         return image.release();
     }
     catch (std::exception& err) {
-        qDebug() << "Failed to render svg";
+        qDebug() << "PluginSvgCairo[LoadProc]: Error. " << err.what();
     }
     catch (...) {
+        qDebug() << "PluginSvgCairo[LoadProc]: Unknown error.";
     }
     return nullptr;
 }
