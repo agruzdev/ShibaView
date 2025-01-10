@@ -52,7 +52,7 @@ signals:
 private:
     struct UsageCheckboxes;
 
-    void keyPressEvent(QKeyEvent* event);
+    void keyPressEvent(QKeyEvent* event) override;
 
 
     std::unique_ptr<QSettings> mSettings;
