@@ -24,6 +24,7 @@
 #include <QPainter>
 #include <QRect>
 #include <QFileInfo>
+#include <QStringList>
 #include <iostream>
 #include "FreeImageExt.h"
 
@@ -32,6 +33,7 @@
 # include <Windows.h>
 # define LIBRARY_HANDLE_TYPE HMODULE
 # define SET_LOAD_DIRECTORY(QString_) SetDllDirectory((QString_).toStdWString().c_str())
+# define RESTORE_LOAD_DIRECTORY SetDllDirectory(NULL)
 # define LOAD_LIBRARY(QString_) LoadLibraryW((QString_).toStdWString().c_str())
 # define FREE_LIBRARY(Handle_) FreeLibrary(Handle_)
 # define LOAD_SYMBOL(Handle_, Symbol_) GetProcAddress(Handle_, Symbol_)
@@ -39,34 +41,12 @@
 # include <dlfcn.h>
 # define LIBRARY_HANDLE_TYPE void*
 # define SET_LOAD_DIRECTORY(QString_)
+# define RESTORE_LOAD_DIRECTORY
 # define LOAD_LIBRARY(QString_) dlopen((QString_).toStdString().c_str(), RTLD_NOW | RTLD_GLOBAL)
 # define FREE_LIBRARY(Handle_) dlclose(Handle_)
 # define LOAD_SYMBOL(Handle_, Symbol_) dlsym(Handle_, Symbol_)
 #endif
 
-
-namespace
-{
-    std::unique_ptr<QByteArray> loadXmlBuffer(FreeImageIO* io, fi_handle handle)
-    {
-        const auto posStart = io->tell_proc(handle);
-        io->seek_proc(handle, 0, SEEK_END);
-        const auto posEnd = io->tell_proc(handle);
-        io->seek_proc(handle, posStart, SEEK_SET);
-
-        if (posEnd <= posStart) {
-            return nullptr;
-        }
-
-        const auto xmlSize = static_cast<uint32_t>(posEnd - posStart);
-        auto xmlBuffer = std::make_unique<QByteArray>(xmlSize, Qt::Initialization::Uninitialized);
-        if (xmlSize != io->read_proc(xmlBuffer->data(), sizeof(char), xmlSize, handle)) {
-            return nullptr;
-        }
-
-        return xmlBuffer;
-    }
-}
 
 namespace
 {
@@ -105,26 +85,78 @@ namespace
     };
 
 
-    LIBRARY_HANDLE_TYPE loadLib(const QString& libPath) {
-        QFileInfo libPathInfo{ libPath };
-        SET_LOAD_DIRECTORY(libPathInfo.absolutePath());
-        return LOAD_LIBRARY(libPathInfo.absoluteFilePath());
-    }
-
-    template <typename SymbolType_>
-    SymbolType_ loadSymbol(LIBRARY_HANDLE_TYPE handle, const char* name) {
-        SymbolType_ sym = reinterpret_cast<SymbolType_>(LOAD_SYMBOL(handle, name));
-        if (!sym) {
-            throw std::runtime_error(std::string("Failed to load symbol '") + name + "'");
+    class LibraryLoader
+    {
+    public:
+        LibraryLoader(const QStringList& names) {
+            for (const auto& n : names) {
+                QFileInfo libPathInfo{ n };
+                SET_LOAD_DIRECTORY(libPathInfo.absolutePath());
+                mHandle = LOAD_LIBRARY(libPathInfo.absoluteFilePath());
+                if (mHandle) {
+                    break;
+                }
+            }
+            RESTORE_LOAD_DIRECTORY;
+            if (!mHandle) {
+                throw std::runtime_error("Failed to open library.");
+            }
         }
-        return sym;
+
+        LibraryLoader(const QString& name)
+            : LibraryLoader(QStringList{ name })
+        { }
+
+        LibraryLoader(const LibraryLoader&) = delete;
+        LibraryLoader(LibraryLoader&&) = delete;
+
+        virtual ~LibraryLoader() {
+            FREE_LIBRARY(mHandle);
+        }
+
+        LibraryLoader& operator=(const LibraryLoader&) = delete;
+        LibraryLoader& operator=(LibraryLoader&&) = delete;
+
+
+        template <typename SymbolType_>
+        SymbolType_ LoadSymbol(const char* name, bool required = true) {
+            SymbolType_ sym = static_cast<SymbolType_>(static_cast<void*>(LOAD_SYMBOL(mHandle, name)));
+            if (required && !sym) {
+                throw std::runtime_error(std::string("Failed to load symbol '") + name + "'");
+            }
+            return sym;
+        }
+
+    private:
+        LIBRARY_HANDLE_TYPE mHandle{};
+    };
+
+    std::unique_ptr<QByteArray> loadXmlBuffer(FreeImageIO* io, fi_handle handle)
+    {
+        const auto posStart = io->tell_proc(handle);
+        io->seek_proc(handle, 0, SEEK_END);
+        const auto posEnd = io->tell_proc(handle);
+        io->seek_proc(handle, posStart, SEEK_SET);
+
+        if (posEnd <= posStart) {
+            return nullptr;
+        }
+
+        const auto xmlSize = static_cast<uint32_t>(posEnd - posStart);
+        auto xmlBuffer = std::make_unique<QByteArray>(xmlSize, Qt::Initialization::Uninitialized);
+        if (xmlSize != io->read_proc(xmlBuffer->data(), sizeof(char), xmlSize, handle)) {
+            return nullptr;
+        }
+
+        return xmlBuffer;
     }
 }
 
 
-struct PluginSvgCairo::LibRsvg
+class PluginSvgCairo::LibRsvg
+    : public LibraryLoader
 {
-    LIBRARY_HANDLE_TYPE handle{};
+public:
     LibVersion version{};
 
     void* (*rsvg_handle_new_from_data_f)(const char*, unsigned long, GError**) { nullptr };
@@ -135,45 +167,37 @@ struct PluginSvgCairo::LibRsvg
 
 
     LibRsvg(const QString& libRsvgPath)
-    try
+        try
+        : LibraryLoader(libRsvgPath)
     {
-        handle = loadLib(libRsvgPath);
-        if (!handle) {
-            throw std::runtime_error("Failed to open librsvg");
-        }
-        
-        version.major = *loadSymbol<uint32_t*>(handle, "rsvg_major_version");
-        version.minor = *loadSymbol<uint32_t*>(handle, "rsvg_minor_version");
-        version.micro = *loadSymbol<uint32_t*>(handle, "rsvg_micro_version");
+        version.major = *LoadSymbol<uint32_t*>("rsvg_major_version");
+        version.minor = *LoadSymbol<uint32_t*>("rsvg_minor_version");
+        version.micro = *LoadSymbol<uint32_t*>("rsvg_micro_version");
 
         // https://www.manpagez.com/html/rsvg-2.0/rsvg-2.0-2.42.2/rsvg-RsvgHandle.php#rsvg-handle-new-from-file
-        rsvg_handle_new_from_data_f = loadSymbol<decltype(rsvg_handle_new_from_data_f)>(handle, "rsvg_handle_new_from_data");
+        rsvg_handle_new_from_data_f = LoadSymbol<decltype(rsvg_handle_new_from_data_f)>("rsvg_handle_new_from_data");
 
         // https://www.manpagez.com/html/rsvg-2.0/rsvg-2.0-2.40.20/RsvgHandle.php#rsvg-handle-get-dimensions
-        rsvg_handle_get_dimensions_f = loadSymbol<decltype(rsvg_handle_get_dimensions_f)>(handle, "rsvg_handle_get_dimensions");
+        rsvg_handle_get_dimensions_f = LoadSymbol<decltype(rsvg_handle_get_dimensions_f)>("rsvg_handle_get_dimensions");
 
         // https://gnome.pages.gitlab.gnome.org/librsvg/Rsvg-2.0/method.Handle.render_document.html
-        rsvg_handle_render_document_f = loadSymbol<decltype(rsvg_handle_render_document_f)>(handle, "rsvg_handle_render_document");
+        rsvg_handle_render_document_f = LoadSymbol<decltype(rsvg_handle_render_document_f)>("rsvg_handle_render_document");
 
         // https://www.manpagez.com/html/rsvg-2.0/rsvg-2.0-2.42.2/rsvg-RsvgHandle.php#rsvg-handle-close
-        rsvg_handle_close_f = loadSymbol<decltype(rsvg_handle_close_f)>(handle, "rsvg_handle_close");
+        rsvg_handle_close_f = LoadSymbol<decltype(rsvg_handle_close_f)>("rsvg_handle_close");
 
         // https://www.manpagez.com/html/rsvg-2.0/rsvg-2.0-2.42.2/rsvg-RsvgHandle.php#rsvg-handle-free
-        rsvg_handle_free_f = loadSymbol<decltype(rsvg_handle_free_f)>(handle, "rsvg_handle_free");
+        rsvg_handle_free_f = LoadSymbol<decltype(rsvg_handle_free_f)>("rsvg_handle_free");
     }
     catch (std::exception& err) {
         throw std::runtime_error(std::string("PluginSvgCairo[ctor]: Failed to load librsvg. Reason: ") + err.what());
     }
-
-    ~LibRsvg()
-    {
-        FREE_LIBRARY(handle);
-    }
 };
 
-struct PluginSvgCairo::LibCairo
+class PluginSvgCairo::LibCairo
+    : public LibraryLoader
 {
-    LIBRARY_HANDLE_TYPE handle{};
+public:
     LibVersion version{};
 
     void* (*cairo_image_surface_create_for_data_f)(void*, int, int, int, int) { nullptr };
@@ -186,45 +210,36 @@ struct PluginSvgCairo::LibCairo
 
 
     LibCairo(const QString& libCairoPath)
-    try
+        try
+        : LibraryLoader(libCairoPath)
     {
-        handle = loadLib(libCairoPath);
-        if (!handle) {
-            throw std::runtime_error("Failed to open libcairo");
-        }
-
-        const int cairoVersionValue = loadSymbol<int(*)()>(handle, "cairo_version")();
+        const int cairoVersionValue = LoadSymbol<int(*)()>("cairo_version")();
         version.micro = cairoVersionValue % 100;
         version.minor = cairoVersionValue / 100 % 10000;
         version.major = cairoVersionValue / 10000;
 
         // https://www.cairographics.org/manual/cairo-Image-Surfaces.html#cairo_image_surface_create_for_data
-        cairo_image_surface_create_for_data_f = loadSymbol<decltype(cairo_image_surface_create_for_data_f)>(handle, "cairo_image_surface_create_for_data");
+        cairo_image_surface_create_for_data_f = LoadSymbol<decltype(cairo_image_surface_create_for_data_f)>("cairo_image_surface_create_for_data");
 
         // https://www.cairographics.org/manual/cairo-Image-Surfaces.html#cairo-image-surface-create
         // https://github.com/ImageMagick/cairo/blob/5633024ccf6a34b6083cba0a309955a91c619dff/src/cairo.h#L441
-        cairo_surface_status_f = loadSymbol<decltype(cairo_surface_status_f)>(handle, "cairo_surface_status");
+        cairo_surface_status_f = LoadSymbol<decltype(cairo_surface_status_f)>("cairo_surface_status");
 
         // https://www.cairographics.org/manual/cairo-cairo-t.html#cairo-create
-        cairo_create_f = loadSymbol<decltype(cairo_create_f)>(handle, "cairo_create");
+        cairo_create_f = LoadSymbol<decltype(cairo_create_f)>("cairo_create");
 
         // https://www.cairographics.org/manual/cairo-Transformations.html
-        cairo_translate_f = loadSymbol<decltype(cairo_translate_f)>(handle, "cairo_translate");
-        cairo_scale_f     = loadSymbol<decltype(cairo_scale_f)>(handle, "cairo_scale");
+        cairo_translate_f = LoadSymbol<decltype(cairo_translate_f)>("cairo_translate");
+        cairo_scale_f     = LoadSymbol<decltype(cairo_scale_f)>("cairo_scale");
 
         // https://www.cairographics.org/manual/cairo-cairo-surface-t.html#cairo-surface-destroy
-        cairo_surface_destroy_f = loadSymbol<decltype(cairo_surface_destroy_f)>(handle, "cairo_surface_destroy");
+        cairo_surface_destroy_f = LoadSymbol<decltype(cairo_surface_destroy_f)>("cairo_surface_destroy");
 
         // https://www.cairographics.org/manual/cairo-cairo-t.html#cairo-destroy
-        cairo_destroy_f = loadSymbol<decltype(cairo_destroy_f)>(handle, "cairo_destroy");
+        cairo_destroy_f = LoadSymbol<decltype(cairo_destroy_f)>("cairo_destroy");
     }
     catch (std::exception& err) {
         throw std::runtime_error(std::string("PluginSvgCairo[ctor]: Failed to load libcairo. Reason: ") + err.what());
-    }
-
-    ~LibCairo()
-    {
-        FREE_LIBRARY(handle);
     }
 };
 
@@ -283,7 +298,7 @@ FIBITMAP* PluginSvgCairo::LoadProc(FreeImageIO* io, fi_handle handle, uint32_t p
         GError* rsvgError = nullptr;
         auto rsvgHandle = mLibRsvg->rsvg_handle_new_from_data_f(xmlBuffer->data(), xmlBuffer->size(), &rsvgError);
         if (!rsvgHandle) {
-            throw std::runtime_error("Failed to create rsvg handke");
+            throw std::runtime_error("Failed to create rsvg handle");
         }
         auto cleanupRsvgHandle = qScopeGuard([&, this] { mLibRsvg->rsvg_handle_free_f(rsvgHandle); });
 
