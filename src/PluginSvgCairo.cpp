@@ -215,7 +215,7 @@ public:
     {
         const int cairoVersionValue = LoadSymbol<int(*)()>("cairo_version")();
         version.micro = cairoVersionValue % 100;
-        version.minor = cairoVersionValue / 100 % 10000;
+        version.minor = cairoVersionValue / 100 % 100;
         version.major = cairoVersionValue / 10000;
 
         // https://www.cairographics.org/manual/cairo-Image-Surfaces.html#cairo_image_surface_create_for_data
