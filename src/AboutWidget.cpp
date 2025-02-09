@@ -50,6 +50,9 @@ AboutWidget::AboutWidget(QWidget* parent)
     for (uint32_t depIdx = 0; depIdx < FreeImage_GetDependenciesCount(); ++depIdx) {
         if (const auto* depInfo = FreeImage_GetDependencyInfo(depIdx)) {
             textLines.emplace_back("   - " + QString(depInfo->name) + "  v" + QString(depInfo->fullVersion));
+            if (depInfo->type == FIDEP_DYNAMIC) {
+                textLines.back().append(" (External DLL)");
+            }
         }
     }
     textLines.emplace_back("");

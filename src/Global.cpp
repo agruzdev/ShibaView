@@ -61,8 +61,12 @@ const QStringList& Global::getSupportedExtensions() noexcept
 {
     static QStringList extensions = []() {
         QStringList extensions{};
-        for (int fifIdx = 0; fifIdx < FreeImage_GetFIFCount(); ++fifIdx) {
-            if (const char* extsString = FreeImage_GetFIFExtensionList(static_cast<FREE_IMAGE_FORMAT>(fifIdx))) {
+        for (int fifIdx = 0; fifIdx < FreeImage_GetFIFCount2(); ++fifIdx) {
+            const auto fif = FreeImage_GetFIFFromIndex(fifIdx);
+            if (fif == FIF_UNKNOWN) {
+                continue;
+            }
+            if (const char* extsString = FreeImage_GetFIFExtensionList(fif)) {
                 extensions.append(QString(extsString).split(',', Qt::SplitBehaviorFlags::SkipEmptyParts));
             }
         }

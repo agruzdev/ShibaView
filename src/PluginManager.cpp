@@ -31,6 +31,7 @@
 namespace
 {
 
+    constexpr
     bool checkOneBitIsSet(uint32_t v) {
         return (v > 0) && ((v & (v - 1)) == 0);
     }
@@ -56,7 +57,7 @@ bool PluginManager::InitOrUpdatePlugin(PluginCell& plugin, Args_&&... args)
         }
     }
     else {
-        res.id =fi::Plugin2::RegisterLocal(res.impl);
+        res.id = fi::Plugin2::RegisterLocal(res.impl);
     }
     if (res.id == fi::ImageFormat::eUnknown) {
         return false;
