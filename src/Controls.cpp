@@ -23,6 +23,69 @@
 #include "Global.h"
 #include "Settings.h"
 
+
+QString toQString(ControlAction a)
+{
+    switch (a) {
+    case ControlAction::eQuit:
+        return "Quit";
+    case ControlAction::eAbout:
+        return "About";
+    case ControlAction::eImageInfo:
+        return "ImageInfo";
+    case ControlAction::eOverlay:
+        return "Overlay";
+    case ControlAction::eOpenFile:
+        return "OpenFile";
+    case ControlAction::eSaveFile:
+        return "SaveFile";
+    case ControlAction::eReload:
+        return "Reload";
+    case ControlAction::eCopyFrame:
+        return "CopyFrame";
+    case ControlAction::ePreviousImage:
+        return "PreviousImage";
+    case ControlAction::eNextImage:
+        return "NextImage";
+    case ControlAction::eFirstImage:
+        return "FirstImage";
+    case ControlAction::eLastImage:
+        return "LastImage";
+    case ControlAction::eZoomIn:
+        return "ZoomIn";
+    case ControlAction::eZoomOut:
+        return "ZoomOut";
+    case ControlAction::eSwitchZoom:
+        return "SwitchZoom";
+    case ControlAction::ePause:
+        return "Pause";
+    case ControlAction::eNextFrame:
+        return "NextFrame";
+    case ControlAction::ePreviousFrame:
+        return "PreviousFrame";
+    case ControlAction::eRotation0:
+        return "Rotation0";
+    case ControlAction::eRotation90:
+        return "Rotation90";
+    case ControlAction::eRotation180:
+        return "Rotation180";
+    case ControlAction::eRotation270:
+        return "Rotation270";
+    case ControlAction::eColorPicker:
+        return "ColorPicker";
+    case ControlAction::eDisplayPath:
+        return "DisplayPath";
+    case ControlAction::eHistogram:
+        return "Histogram";
+    case ControlAction::eSettings:
+        return "Settings";
+    default:
+        assert(false);
+        return "None";
+    }
+}
+
+
 const Controls& Controls::getInstance()
 {
     static Controls instance;
