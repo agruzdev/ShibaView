@@ -32,7 +32,7 @@ ToolbarButton::ToolbarButton(QWidget *parent, QSize size)
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     resize(mSize);
 
-    mText = new TextWidget(this, QColorConstants::White, 18.0, 0.0);
+    mText = new TextWidget(this, {}, 18.0, 0.0);
     mText->setText(UTF8_CROSS_SYMBOL);
     mText->setPaddings(5, 0, 0, 0);
     mText->resize(mSize);

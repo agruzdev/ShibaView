@@ -37,7 +37,7 @@ AboutWidget::AboutWidget(QWidget* parent)
 
     setWindowTitle(Global::makeTitle("About"));
 
-    auto text = new TextWidget(this, Qt::black, 11, 0.8);
+    auto text = new TextWidget(this, {}, 11, 0.8);
     text->setPaddings(8, 0, 4, 0);
 
     QVector<QString> textLines;

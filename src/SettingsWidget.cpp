@@ -73,7 +73,7 @@ SettingsWidget::SettingsWidget()
 
     uint32_t lineIndex = 0;
     auto appendOption = [&](QGridLayout* grid, QString labelText, auto elemPtr) -> auto {
-        auto label = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kLabelFontSize);
+        auto label = std::make_unique<TextWidget>(nullptr, std::nullopt, kLabelFontSize);
         label->setText(labelText);
         grid->addWidget(label.release(), lineIndex, 0);
         auto ptr = elemPtr.release();
@@ -88,7 +88,7 @@ SettingsWidget::SettingsWidget()
         auto gridGlobal = new QGridLayout(gridWidget);
         gridGlobal->setSpacing(8);
 
-        auto title = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kTitleFontSize);
+        auto title = std::make_unique<TextWidget>(nullptr, std::nullopt, kTitleFontSize);
         title->setText("Global");
         gridGlobal->addWidget(title.release(), lineIndex++, 0);
 
@@ -118,7 +118,7 @@ SettingsWidget::SettingsWidget()
         auto appendPluginUsage = [&](QGridLayout* grid, const QString& labelText, PluginUsage usageMask) {
             auto checkboxes = std::make_unique<UsageCheckboxes>();
 
-            auto label = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kLabelFontSize);
+            auto label = std::make_unique<TextWidget>(nullptr, std::nullopt, kLabelFontSize);
             label->setText(labelText);
 
             auto checkBoxViewer = std::make_unique<QCheckBox2>(nullptr);
@@ -142,15 +142,15 @@ SettingsWidget::SettingsWidget()
         auto gridPlugins = new QGridLayout(gridWidget);
         gridPlugins->setSpacing(8);
 
-        auto title = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kTitleFontSize);
+        auto title = std::make_unique<TextWidget>(nullptr, std::nullopt, kTitleFontSize);
         title->setText("Plugins");
         gridPlugins->addWidget(title.release(), lineIndex++, 0);
 
-        auto title1 = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kLabelFontSize);
+        auto title1 = std::make_unique<TextWidget>(nullptr, std::nullopt, kLabelFontSize);
         title1->setText("in Viewer");
         gridPlugins->addWidget(title1.release(), lineIndex, 1);
 
-        auto title2 = std::make_unique<TextWidget>(nullptr, QColorConstants::Black, kLabelFontSize);
+        auto title2 = std::make_unique<TextWidget>(nullptr, std::nullopt, kLabelFontSize);
         title2->setText("in Thumbnails");
         gridPlugins->addWidget(title2.release(), lineIndex, 2);
 

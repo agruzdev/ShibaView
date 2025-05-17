@@ -32,9 +32,16 @@ class TextWidget
 {
     Q_OBJECT
 public:
-    explicit TextWidget(QWidget* parent = nullptr);
-    TextWidget(QWidget* parent, QColor color, qreal fsize = 14.0, qreal padh = 1.0);
+    explicit TextWidget(QWidget* parent, std::optional<QColor> color = std::nullopt, qreal fsize = 14.0, qreal padh = 1.0);
+
+    TextWidget(const TextWidget&) = delete;
+    TextWidget(TextWidget&&) = delete;
+
     ~TextWidget();
+
+    TextWidget& operator=(const TextWidget&) = delete;
+    TextWidget& operator=(TextWidget&&) = delete;
+
 
     uint32_t textWidth() const
     {
@@ -99,6 +106,8 @@ protected:
     void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
 
 private:
+    static QColor selectDefaultFontColor();
+
     void autoResize();
 
     QRawFont mRawFont;
@@ -113,8 +122,8 @@ private:
     qreal mGlyphPadH = 3.75;
     qreal mGlyphPadV = 5.0;
 
-    qreal mLineHeight;
-    qreal mWidth;
+    qreal mLineHeight{};
+    qreal mWidth{};
 
     QRect mPaddings = QRect(0, 0, 0, 0);
 

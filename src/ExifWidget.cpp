@@ -81,7 +81,7 @@ ExifWidget::ExifWidget()
     mScrollArea->setWidgetResizable(false);
     mScrollArea->setStyleSheet("QScrollArea { border: none; }");
 
-    mText = new TextWidget(nullptr, Qt::black, 11, 0.8);
+    mText = new TextWidget(nullptr, {}, 11, 0.8);
     mText->setPaddings(8, 0, 4, 0);
 
     mScrollArea->setWidget(mText);

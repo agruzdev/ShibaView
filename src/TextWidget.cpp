@@ -20,26 +20,47 @@
 
 #include <cmath>
 
+#include <QGuiApplication>
+#include <QStyleHints>
 #include <QPainter>
 #include <QPainterPath>
 #include <QGlyphRun>
 
 #include "Global.h"
 
-TextWidget::TextWidget(QWidget *parent)
-    : TextWidget(parent, Qt::white)
-{ }
 
-TextWidget::TextWidget(QWidget* parent, QColor color, qreal fsize, qreal padh)
+QColor TextWidget::selectDefaultFontColor()
+{
+    const auto styleHints = QGuiApplication::styleHints();
+    if (!styleHints) {
+        return Qt::black;
+    }
+    switch (styleHints->colorScheme()) {
+    case Qt::ColorScheme::Dark:
+        return Qt::white;
+    case Qt::ColorScheme::Light:
+    default:
+        return Qt::black;
+    }
+}
+
+
+
+TextWidget::TextWidget(QWidget* parent, std::optional<QColor> color, qreal fsize, qreal padh)
     : QWidget(parent)
 {
+    if (!color) {
+        color = selectDefaultFontColor();
+    }
+    auto s = QGuiApplication::styleHints()->colorScheme();
+
     mRawFont = QRawFont(Global::kDefaultFont, fsize);
     if(!mRawFont.isValid()) {
         mRawFont = QRawFont::fromFont(QFont());
     }
-    mPen           = QPen(color, 0.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+    mPen           = QPen(color.value(), 0.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
     mPenDisabled   = QPen(Qt::gray);
-    mBrush         = QBrush(color,    Qt::BrushStyle::SolidPattern);
+    mBrush         = QBrush(color.value(), Qt::BrushStyle::SolidPattern);
     mBrushDisabled = QBrush(Qt::gray, Qt::BrushStyle::SolidPattern);
 
     mGlyphPadH *= padh;
