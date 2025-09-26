@@ -52,6 +52,7 @@ signals:
 private:
     struct UsageCheckboxes;
 
+    void showEvent(QShowEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
 
 

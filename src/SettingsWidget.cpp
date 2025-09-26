@@ -29,7 +29,7 @@
 #include "TextWidget.h"
 #include "Settings.h"
 #include "PluginManager.h"
-
+#include <iostream>
 
 struct SettingsWidget::UsageCheckboxes
 {
@@ -42,6 +42,15 @@ struct SettingsWidget::UsageCheckboxes
 
     bool isModified() const {
         return isValid() && (useInViewer->isModified() || useInThumbnails->isModified());
+    }
+
+    void setFromUsage(PluginUsage usage) const {
+        if (useInViewer) {
+            useInViewer->setChecked((usage & PluginUsage::eViewer) != PluginUsage::eNone);
+        }
+        if (useInThumbnails) {
+            useInThumbnails->setChecked((usage & PluginUsage::eThumbnails) != PluginUsage::eNone);
+        }
     }
 
     PluginUsage toUsage() const {
@@ -82,7 +91,8 @@ SettingsWidget::SettingsWidget()
         return ptr;
     };
 
-    {
+    if (mSettings) {
+
         // [Global]
         auto gridWidget = new QWidget(this);
         auto gridGlobal = new QGridLayout(gridWidget);
@@ -196,43 +206,81 @@ SettingsWidget::SettingsWidget()
 
 SettingsWidget::~SettingsWidget() = default;
 
+void SettingsWidget::showEvent(QShowEvent* event)
+{
+    if (mSettings) {
+        if (mEditBackgroundColor) {
+            mEditBackgroundColor->setText(mSettings->value(Settings::kParamBackgroundKey, Settings::kParamBackgroundDefault).toString());
+        }
+        if (mEditTextColor) {
+            mEditTextColor->setText(mSettings->value(Settings::kParamTextColorKey, Settings::kParamTextColorDefault).toString());
+        }
+        if (mShowCloseButton) {
+            mShowCloseButton->setChecked(mSettings->value(Settings::kParamShowCloseButtonKey, Settings::kParamShowCloseButtonDefault).toBool());
+        }
+        if (mInvertZoom) {
+            mInvertZoom->setChecked(mSettings->value(Settings::kParamInvertZoom, Settings::kParamInvertZoomDefault).toBool());
+        }
+    }
+
+    if (mPluginsSettings) {
+        if (mPluginUsageFlo) {
+            mPluginUsageFlo->setFromUsage(static_cast<PluginUsage>(mPluginsSettings->value(Settings::kPluginFloUsage, Settings::kPluginFloUsageDefault).toUInt()));
+        }
+        if (mPluginUsageSvg) {
+            mPluginUsageSvg->setFromUsage(static_cast<PluginUsage>(mPluginsSettings->value(Settings::kPluginSvgUsage, Settings::kPluginSvgUsageDefault).toUInt()));
+        }
+        if (mEditSvgLibcairo) {
+            mEditSvgLibcairo->setText(mSettings->value(Settings::kPluginSvgLibcairo, QString{}).toString());
+        }
+        if (mEditSvgLibrsvg) {
+            mEditSvgLibrsvg->setText(mSettings->value(Settings::kPluginSvgLibrsvg, QString{}).toString());
+        }
+    }
+}
+
 void SettingsWidget::onApply()
 {
     bool globalsChanged{ false };
-    if (mEditBackgroundColor && mEditBackgroundColor->isModified() && mEditBackgroundColor->hasAcceptableInput()) {
-        mSettings->setValue(Settings::kParamBackgroundKey, mEditBackgroundColor->text());
-        globalsChanged = true;
-    }
-    if (mEditTextColor && mEditTextColor->isModified() && mEditTextColor->hasAcceptableInput()) {
-        mSettings->setValue(Settings::kParamTextColorKey, mEditTextColor->text());
-        globalsChanged = true;
-    }
-    if (mShowCloseButton && mShowCloseButton->isModified()) {
-        mSettings->setValue(Settings::kParamShowCloseButtonKey, mShowCloseButton->isChecked());
-        globalsChanged = true;
-    }
-    if (mInvertZoom && mInvertZoom->isModified()) {
-        mSettings->setValue(Settings::kParamInvertZoom, mInvertZoom->isChecked());
-        globalsChanged = true;
+    if (mSettings) {
+        if (mEditBackgroundColor && mEditBackgroundColor->isModified() && mEditBackgroundColor->hasAcceptableInput()) {
+            mSettings->setValue(Settings::kParamBackgroundKey, mEditBackgroundColor->text());
+            globalsChanged = true;
+        }
+        if (mEditTextColor && mEditTextColor->isModified() && mEditTextColor->hasAcceptableInput()) {
+            mSettings->setValue(Settings::kParamTextColorKey, mEditTextColor->text());
+            globalsChanged = true;
+        }
+        if (mShowCloseButton && mShowCloseButton->isModified()) {
+            mSettings->setValue(Settings::kParamShowCloseButtonKey, mShowCloseButton->isChecked());
+            globalsChanged = true;
+        }
+        if (mInvertZoom && mInvertZoom->isModified()) {
+            mSettings->setValue(Settings::kParamInvertZoom, mInvertZoom->isChecked());
+            globalsChanged = true;
+        }
     }
 
     bool pluginsChanged{ false };
-    if (mPluginUsageFlo && mPluginUsageFlo->isModified()) {
-        mPluginsSettings->setValue(Settings::kPluginFloUsage, static_cast<uint32_t>(mPluginUsageFlo->toUsage()));
-        pluginsChanged = true;
+    if (mPluginsSettings) {
+        if (mPluginUsageFlo && mPluginUsageFlo->isModified()) {
+            mPluginsSettings->setValue(Settings::kPluginFloUsage, static_cast<uint32_t>(mPluginUsageFlo->toUsage()));
+            pluginsChanged = true;
+        }
+        if (mPluginUsageSvg && mPluginUsageSvg->isModified()) {
+            mPluginsSettings->setValue(Settings::kPluginSvgUsage, static_cast<uint32_t>(mPluginUsageSvg->toUsage()));
+            pluginsChanged = true;
+        }
+        if (mEditSvgLibcairo && mEditSvgLibcairo->isModified()) {
+            mPluginsSettings->setValue(Settings::kPluginSvgLibcairo, mEditSvgLibcairo->text());
+            pluginsChanged = true;
+        }
+        if (mEditSvgLibrsvg && mEditSvgLibrsvg->isModified()) {
+            mPluginsSettings->setValue(Settings::kPluginSvgLibrsvg, mEditSvgLibrsvg->text());
+            pluginsChanged = true;
+        }
     }
-    if (mPluginUsageSvg && mPluginUsageSvg->isModified()) {
-        mPluginsSettings->setValue(Settings::kPluginSvgUsage, static_cast<uint32_t>(mPluginUsageSvg->toUsage()));
-        pluginsChanged = true;
-    }
-    if (mEditSvgLibcairo && mEditSvgLibcairo->isModified()) {
-        mPluginsSettings->setValue(Settings::kPluginSvgLibcairo, mEditSvgLibcairo->text());
-        pluginsChanged = true;
-    }
-    if (mEditSvgLibrsvg && mEditSvgLibrsvg->isModified()) {
-        mPluginsSettings->setValue(Settings::kPluginSvgLibrsvg, mEditSvgLibrsvg->text());
-        pluginsChanged = true;
-    }
+
     if (pluginsChanged) {
         PluginManager::getInstance().reload();
     }
