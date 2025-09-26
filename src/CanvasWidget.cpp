@@ -1550,8 +1550,9 @@ void CanvasWidget::wheelEvent(QWheelEvent* event)
     if(!mClick) {
         const QPoint degrees = event->angleDelta();
         if (!degrees.isNull() && degrees.y() != 0) {
+            const int dir = 2 * static_cast<int>(mSettings->value(Settings::kParamInvertZoom, Settings::kParamShowCloseButtonDefault).toBool()) - 1;   // 0,1 -> -1,1
             mCursorPosition = event->position().toPoint();
-            zoomToTarget(mCursorPosition, (degrees.y() > 0) ? 1 : -1);
+            zoomToTarget(mCursorPosition, (degrees.y() > 0) ? -dir : dir);
             invalidateTooltip();
         }
     }

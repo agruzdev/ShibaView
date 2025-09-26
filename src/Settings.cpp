@@ -58,6 +58,8 @@ const QString Settings::kParamTextColorKey = "TextColor";
 const QString Settings::kParamTextColorDefault = "#FFFFFF";
 const QString Settings::kParamShowCloseButtonKey = "ShowCloseButton";
 const QString Settings::kParamShowCloseButtonDefault = "0";
+const QString Settings::kParamInvertZoom = "InvertZoom";
+const QString Settings::kParamInvertZoomDefault = "0";
 
 // [Plugins]
 const QString  Settings::kPluginFloUsage  = "Flo";

@@ -106,6 +106,10 @@ SettingsWidget::SettingsWidget()
         mShowCloseButton = appendOption(gridGlobal, "Show Close button", std::make_unique<QCheckBox2>(nullptr));
         mShowCloseButton->setChecked(mSettings->value(Settings::kParamShowCloseButtonKey, Settings::kParamShowCloseButtonDefault).toBool());
 
+        //
+        mInvertZoom = appendOption(gridGlobal, "Invert zoom direction", std::make_unique<QCheckBox2>(nullptr));
+        mInvertZoom->setChecked(mSettings->value(Settings::kParamInvertZoom, Settings::kParamInvertZoomDefault).toBool());
+
         vlayout->addWidget(gridWidget);
 
     } // [Global]
@@ -205,6 +209,10 @@ void SettingsWidget::onApply()
     }
     if (mShowCloseButton && mShowCloseButton->isModified()) {
         mSettings->setValue(Settings::kParamShowCloseButtonKey, mShowCloseButton->isChecked());
+        globalsChanged = true;
+    }
+    if (mInvertZoom && mInvertZoom->isModified()) {
+        mSettings->setValue(Settings::kParamInvertZoom, mInvertZoom->isChecked());
         globalsChanged = true;
     }
 

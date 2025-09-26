@@ -44,6 +44,8 @@ public:
     static const QString kParamTextColorDefault;
     static const QString kParamShowCloseButtonKey;
     static const QString kParamShowCloseButtonDefault;
+    static const QString kParamInvertZoom;
+    static const QString kParamInvertZoomDefault;
 
     // [Plugins]
     static const QString  kPluginFloUsage;

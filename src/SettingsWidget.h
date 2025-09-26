@@ -61,6 +61,7 @@ private:
     QLineEdit* mEditBackgroundColor{ nullptr };
     QLineEdit* mEditTextColor{ nullptr };
     QCheckBox2* mShowCloseButton{ nullptr };
+    QCheckBox2* mInvertZoom{ nullptr };
 
     std::unique_ptr<UsageCheckboxes> mPluginUsageFlo;
     std::unique_ptr<UsageCheckboxes> mPluginUsageSvg;
