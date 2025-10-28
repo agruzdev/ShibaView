@@ -171,8 +171,8 @@ SettingsWidget::SettingsWidget()
         ++lineIndex;
 
         //
-        mPluginUsageFlo = appendPluginUsage(gridPlugins, "FLO", static_cast<PluginUsage>(mPluginsSettings->value(Settings::kPluginFloUsage, Settings::kPluginFloUsageDefault).toUInt()));
-        mPluginUsageSvg = appendPluginUsage(gridPlugins, "SVG", static_cast<PluginUsage>(mPluginsSettings->value(Settings::kPluginSvgUsage, Settings::kPluginSvgUsageDefault).toUInt()));
+        mPluginUsageFlo = appendPluginUsage(gridPlugins, "FLO", PluginUsage::eNone);
+        mPluginUsageSvg = appendPluginUsage(gridPlugins, "SVG", PluginUsage::eNone);
 
         //
         vlayout->addWidget(gridWidget);
@@ -183,10 +183,7 @@ SettingsWidget::SettingsWidget()
         gridExtra->setSpacing(8);
 
         mEditSvgLibcairo = appendOption(gridExtra, "SVG: libcairo-2", std::make_unique<QLineEdit>(nullptr));
-        mEditSvgLibcairo->setText(mPluginsSettings->value(Settings::kPluginSvgLibcairo, QString{}).toString());
-
-        mEditSvgLibrsvg = appendOption(gridExtra, "SVG: librsvg", std::make_unique<QLineEdit>(nullptr));
-        mEditSvgLibrsvg->setText(mPluginsSettings->value(Settings::kPluginSvgLibrsvg, QString{}).toString());
+        mEditSvgLibrsvg  = appendOption(gridExtra, "SVG: librsvg",    std::make_unique<QLineEdit>(nullptr));
 
         //
         vlayout->addWidget(gridExtraWidget);
@@ -231,10 +228,10 @@ void SettingsWidget::showEvent(QShowEvent* event)
             mPluginUsageSvg->setFromUsage(static_cast<PluginUsage>(mPluginsSettings->value(Settings::kPluginSvgUsage, Settings::kPluginSvgUsageDefault).toUInt()));
         }
         if (mEditSvgLibcairo) {
-            mEditSvgLibcairo->setText(mSettings->value(Settings::kPluginSvgLibcairo, QString{}).toString());
+            mEditSvgLibcairo->setText(mPluginsSettings->value(Settings::kPluginSvgLibcairo, QString{}).toString());
         }
         if (mEditSvgLibrsvg) {
-            mEditSvgLibrsvg->setText(mSettings->value(Settings::kPluginSvgLibrsvg, QString{}).toString());
+            mEditSvgLibrsvg->setText(mPluginsSettings->value(Settings::kPluginSvgLibrsvg, QString{}).toString());
         }
     }
 }
