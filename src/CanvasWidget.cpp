@@ -159,6 +159,7 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     mInfoText->enableShadow();
 
     mErrorText = new TextWidget(this);
+    mErrorText->setColor(Qt::white);    // background is always black
 
     const auto kDefaultGeometry = QRect(200, 200, 1280, 720);
 
