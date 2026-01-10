@@ -80,7 +80,7 @@ void ViewerApplication::scanDirectory()
     else {
         QCollator collator;
         collator.setNumericMode(true);
-        mFilesInDirectory = mDirectory.entryList(Global::getSupportedExtensionFilters());
+        mFilesInDirectory = mDirectory.entryList(Global::getSupportedExtensionFilters(), QDir::Files);
         std::sort(mFilesInDirectory.begin(), mFilesInDirectory.end(), collator);
 
         mCurrentIdx = 0;
