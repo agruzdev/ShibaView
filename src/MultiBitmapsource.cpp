@@ -28,6 +28,11 @@
 MultibitmapSource::MultibitmapSource(const QString & filename, FREE_IMAGE_FORMAT fif)
     : mImageFormat(fif)
 {
+    int loadFlags = 0;
+    if (mImageFormat == FIF_ICO) {
+        loadFlags = ICO_MAKEALPHA;  // load all pages with transparency
+    }
+
 #ifdef _WIN32
     const auto uniName = filename.toStdWString();
     // ToDo: Since FreeImage is missing FreeImage_OpenMultiBitmapU function, read through memory buffer
@@ -52,12 +57,12 @@ MultibitmapSource::MultibitmapSource(const QString & filename, FREE_IMAGE_FORMAT
 
         mBuffer->stream = FreeImage_OpenMemory(mBuffer->data.data(), static_cast<uint32_t>(mBuffer->data.size()));
         if (mBuffer->stream) {
-            mMultibitmap = FreeImage_LoadMultiBitmapFromMemory(static_cast<FREE_IMAGE_FORMAT>(mImageFormat), mBuffer->stream, JPEG_EXIFROTATE);
+            mMultibitmap = FreeImage_LoadMultiBitmapFromMemory(static_cast<FREE_IMAGE_FORMAT>(mImageFormat), mBuffer->stream, loadFlags);
         }
     }
 #else
     const auto utfName = filename.toUtf8().toStdString();
-    mMultibitmap = FreeImage_OpenMultiBitmap(static_cast<FREE_IMAGE_FORMAT>(fif), utfName.c_str(), FALSE, TRUE, FALSE, JPEG_EXIFROTATE);
+    mMultibitmap = FreeImage_OpenMultiBitmap(static_cast<FREE_IMAGE_FORMAT>(fif), utfName.c_str(), FALSE, TRUE, FALSE, loadFlags);
 #endif
     if (nullptr == mMultibitmap) {
         throw std::runtime_error("MultibitmapSource[MultibitmapSource]: Failed to load file.");
