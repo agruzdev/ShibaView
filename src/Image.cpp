@@ -72,7 +72,13 @@ Image::Image(QString name, QString filename) noexcept
     mInfo.bytes    = file.size();
     mInfo.modified = file.lastModified();
     mInfo.dims     = { width, height };
-    mInfo.animated = (mImageSource->getFormat() == FIF_GIF);
+
+    if (mImageSource) {
+        mInfo.animated = (mImageSource->getFormat() == FIF_GIF);
+    }
+    else {
+        mInfo.animated = false;
+    }
 }
 
 Image::~Image() = default;

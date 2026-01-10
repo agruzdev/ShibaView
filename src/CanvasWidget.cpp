@@ -932,7 +932,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             mInfoIsValid = true;
         }
         mInfoText->show();
-        if (mImage && mImage->pagesCount() > 1) {
+        if (mImage && mImage->notNull() && (mImage->pagesCount() > 1)) {
             mPageText->show();
         }
         else {
