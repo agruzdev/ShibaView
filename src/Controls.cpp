@@ -148,8 +148,8 @@ Controls::Controls()
     loadKey(ControlAction::eZoomOut, "Zoom out", Qt::Key_Minus, Qt::KeypadModifier | Qt::Key_Minus);
     loadKey(ControlAction::eSwitchZoom, "Switch 100%/fit zoom modes", Qt::Key_Asterisk, Qt::KeypadModifier | Qt::Key_Asterisk, Qt::ShiftModifier | Qt::Key_Asterisk);
     loadKey(ControlAction::ePause, "Pause animation playback", Qt::Key_Space);
-    loadKey(ControlAction::eNextFrame, "Next animation frame", Qt::Key_PageUp);
-    loadKey(ControlAction::ePreviousFrame, "Previous animation frame", Qt::Key_PageDown);
+    loadKey(ControlAction::eNextFrame, "Next animation frame", Qt::Key_PageUp, Qt::KeypadModifier | Qt::Key_PageUp);
+    loadKey(ControlAction::ePreviousFrame, "Previous animation frame", Qt::Key_PageDown, Qt::KeypadModifier | Qt::Key_PageDown);
     loadKey(ControlAction::eRotation0, "Toggle rotation 0" UTF8_DEGREE, Qt::ControlModifier | Qt::Key_Up);
     loadKey(ControlAction::eRotation90, "Toggle rotation 90" UTF8_DEGREE, Qt::ControlModifier | Qt::Key_Right);
     loadKey(ControlAction::eRotation180, "Toggle rotation 180" UTF8_DEGREE, Qt::ControlModifier | Qt::Key_Down);
