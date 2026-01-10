@@ -158,6 +158,9 @@ CanvasWidget::CanvasWidget(std::chrono::steady_clock::time_point t)
     mInfoText->move(kTextPaddingLeft, kTextPaddingTop);
     mInfoText->enableShadow();
 
+    mPageText = new TextWidget(this);
+    mPageText->enableShadow();
+
     mErrorText = new TextWidget(this);
     mErrorText->setColor(Qt::white);    // background is always black
 
@@ -627,13 +630,8 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
         mContextMenu = nullptr;
     }
 
-    if (mPageText) {
-        delete mPageText;
-        mPageText = nullptr;
-    }
     mEnableAnimation = false;
     mAnimIndex = kNoneIndex;
-
 
     mImage = std::move(image);
     if (mImage) {
@@ -662,10 +660,6 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
 
             // Animation
             if (mImage->pagesCount() > 1) {
-                if (mPageText == nullptr) {
-                    mPageText = new TextWidget(this);
-                    mPageText->enableShadow();
-                }
                 mPageText->setText("Page 1/" + QString::number(mImage->pagesCount()));
                 repositionPageText();
 
@@ -908,7 +902,7 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
 
             const uint32_t currIndex = mImage->currentPage().index();
 
-            if (mPageText) {
+            if (mImage->pagesCount() > 1) {
                 mPageText->setText("Page " + QString::number(currIndex + 1) + "/" + QString::number(mImage->pagesCount()));
             }
 
@@ -936,15 +930,16 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             mInfoIsValid = true;
         }
         mInfoText->show();
-        if (mPageText) {
+        if (mImage && mImage->pagesCount() > 1) {
             mPageText->show();
+        }
+        else {
+            mPageText->hide();
         }
     }
     else {
         mInfoText->hide();
-        if (mPageText) {
-            mPageText->hide();
-        }
+        mPageText->hide();
     }
 
     if (!success) {
@@ -1006,9 +1001,9 @@ void CanvasWidget::resizeEvent(QResizeEvent * event)
         if (mZoomController && (mZoomMode == ZoomMode::eFitWindow)) {
             mZoomController->moveToFit();
         }
-    }
-    if (mPageText) {
-        repositionPageText();
+        if (mImage->pagesCount() > 1) {
+            repositionPageText();
+        }
     }
     repaint();
     emit eventResized();
