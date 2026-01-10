@@ -901,18 +901,20 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             painter.drawPixmap(imageRect, mImageProcessor->getResultPixmap());
 
             const uint32_t currIndex = mImage->currentPage().index();
+            if (currIndex != mAnimIndex) {
+                mImageDescription->setImageInfo(mImage->info());
+                mInfoIsValid = false;
 
-            if (mImage->pagesCount() > 1) {
-                mPageText->setText("Page " + QString::number(currIndex + 1) + "/" + QString::number(mImage->pagesCount()));
-            }
+                if (mImage->pagesCount() > 1) {
+                    mPageText->setText("Page " + QString::number(currIndex + 1) + "/" + QString::number(mImage->pagesCount()));
+                }
 
-            if (mEnableAnimation) {
-                if (currIndex != mAnimIndex) {
+                if (mEnableAnimation) {
                     new UniqueTick(mImage->id(), mImage->currentPage().animation().duration, this, &CanvasWidget::onAnimationTick, this);
                 }
-                mAnimIndex = currIndex;
             }
 
+            mAnimIndex = currIndex;
             success = true;
         }
     }
@@ -1476,13 +1478,11 @@ void CanvasWidget::invalidateTooltip()
             unsetCursor();
 
             QPoint imgPos = mCursorPosition - imageRect.topLeft();
-
-            // Invert zoom
-            imgPos.setX(static_cast<int>(std::floor((imgPos.x() + 0.5) / mZoomController->getFactor())));
-            imgPos.setY(static_cast<int>(std::floor((imgPos.y() + 0.5) / mZoomController->getFactor())));
+            const uint32_t px = static_cast<uint32_t>(mImage->width()  * imgPos.x() / static_cast<float>(imageRect.width()));
+            const uint32_t py = static_cast<uint32_t>(mImage->height() * imgPos.y() / static_cast<float>(imageRect.height()));
 
             Pixel pixelValue{};
-            if (mImageProcessor->getPixel(imgPos.y(), imgPos.x(), &pixelValue)) {
+            if (mImageProcessor->getPixel(py, px, &pixelValue)) {
                 mTooltip->move(mapToGlobal(mCursorPosition));
                 mTooltip->setText({ QString("Y: %1, X: %2").arg(pixelValue.y).arg(pixelValue.x), pixelValue.repr });
                 mTooltip->show();

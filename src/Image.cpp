@@ -72,7 +72,7 @@ Image::Image(QString name, QString filename) noexcept
     mInfo.bytes    = file.size();
     mInfo.modified = file.lastModified();
     mInfo.dims     = { width, height };
-    mInfo.animated = (file.suffix().compare("gif", Qt::CaseInsensitive) == 0);
+    mInfo.animated = (mImageSource->getFormat() == FIF_GIF);
 }
 
 Image::~Image() = default;
@@ -100,17 +100,25 @@ uint32_t Image::channels() const
 
 void Image::next()
 {
-    mImagePlayer->next();
-    for (auto listener : mListeners) {
-        listener->onInvalidated(this);
+    if (mImagePlayer) {
+        mImagePlayer->next();
+        mInfo.dims.width  = mImagePlayer->getWidth();
+        mInfo.dims.height = mImagePlayer->getHeight();
+        for (auto listener : mListeners) {
+            listener->onInvalidated(this);
+        }
     }
 }
 
 void Image::prev()
 {
-    mImagePlayer->prev();
-    for (auto listener : mListeners) {
-        listener->onInvalidated(this);
+    if (mImagePlayer) {
+        mImagePlayer->prev();
+        mInfo.dims.width = mImagePlayer->getWidth();
+        mInfo.dims.height = mImagePlayer->getHeight();
+        for (auto listener : mListeners) {
+            listener->onInvalidated(this);
+        }
     }
 }
 
