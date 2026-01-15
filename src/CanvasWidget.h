@@ -50,6 +50,8 @@ class ToolbarButton;
 class Tooltip;
 class ZoomController;
 
+struct ImageLoadResult;
+
 enum class FilteringMode
 {
     eNone,
@@ -93,7 +95,7 @@ public:
     QRect getAvailableSpace() const;
 
 public slots:
-    void onImageReady(ImagePtr image, size_t imgIdx, size_t totalCount);
+    void onImageReady(const ImageLoadResult& result);
     void onImageDirScanned(size_t imgIdx, size_t totalCount);
 
     void onTransitionCanceled();

@@ -61,6 +61,15 @@ QVector<QString> ImageDescription::toLines(bool fullPath) const
     res.push_back("Resolution: " + QString::number(mFileInfo.dims.width) + "x" + QString::number(mFileInfo.dims.height));
     res.push_back("");
     res.push_back("Zoom: " + toPercent(mZoomFactor));
+
+    if (!mError.isEmpty()) {
+        res.push_back("");
+        res.push_back("Loaded with diagnostic:");
+        for (const auto& p : mError.split('\n', Qt::SkipEmptyParts)) {
+            res.push_back("> " + p);
+        }
+    }
+
     return res;
 }
 

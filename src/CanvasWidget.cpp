@@ -46,6 +46,7 @@
 #include "ExifWidget.h"
 #include "Global.h"
 #include "Image.h"
+#include "ImageLoader.h"
 #include "ImagePage.h"
 #include "ImageProcessor.h"
 #include "ImageSource.h"
@@ -621,7 +622,7 @@ void CanvasWidget::invalidateImageDescription()
     update();
 }
 
-void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
+void CanvasWidget::onImageReady(const ImageLoadResult& result)
 {
     mImageProcessor->detachSource();
 
@@ -633,9 +634,8 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
     mEnableAnimation = false;
     mAnimIndex = kNoneIndex;
 
-    mImage = std::move(image);
+    mImage = result.image;
     if (mImage) {
-        //mImageDescription = std::make_unique<ImageDescription>();
         mImageDescription->setImageInfo(mImage->info());
 
         if (!mImage->isNull()) {
@@ -670,9 +670,6 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
             mImageDescription->setZoom(mZoomController->getFactor());
             mImageDescription->setFormat(mImage->currentPage().describeFormat());
             mImageDescription->setToneMapping(mImageProcessor->toneMappingMode());
-            if (imgIdx < imgCount) {
-                mImageDescription->setImageIndex(imgIdx, imgCount);
-            }
 
             mImageProcessor->attachSource(mImage);
         }
@@ -682,6 +679,8 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
             mImageDescription->setToneMapping(FITMO_CLAMP);
         }
     }
+    mImageDescription->setImageIndex(result.imgIdx, result.imgCount);
+    mImageDescription->setError(result.error);
 
     setWindowTitle(Global::makeTitle(mImage->info().path));
 

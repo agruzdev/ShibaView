@@ -2,13 +2,13 @@
  * @file
  *
  * Copyright 2018-2023 Alexey Gruzdev
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,12 +22,20 @@
 #include <QFileInfo>
 #include <QDebug>
 
+#include "FreeImageExt.h"
 #include "Image.h"
+
+namespace {
+
+
+} // namespace
+
 
 ImageLoader::QtMetaRegisterInvoker::QtMetaRegisterInvoker()
 {
     qRegisterMetaType<ImagePtr>("ImagePtr");
     qRegisterMetaType<size_t>("size_t");
+    qRegisterMetaType<ImageLoadResult>("ImageLoadResult");
 }
 
 ImageLoader::QtMetaRegisterInvoker ImageLoader::msQtRegisterInvoker{};
@@ -49,9 +57,19 @@ void ImageLoader::onRun(const QString & path)
     bool success = false;
     QString error;
 
+    FreeImage_SetProcessMessageFunction(&error, [](void* ctx, const FIMESSAGE* msg) {
+        qWarning() << FreeImage_GetMessageString(msg);
+        QString& errStr = *static_cast<QString*>(ctx);
+        errStr += "\n" + QString::fromUtf8(FreeImage_GetMessageString(msg));
+    });
+
     try {
-        auto pimage = QSharedPointer<Image>::create(mName, path);
-        emit eventResult(std::move(pimage), mImgIdx, mImgCount);
+        ImageLoadResult result{};
+        result.image = QSharedPointer<Image>::create(mName, path);
+        result.imgCount = mImgCount;
+        result.imgIdx = mImgIdx;
+        result.error = error;
+        emit eventResult(std::move(result));
         success = true;
     }
     catch(std::exception & e) {
@@ -67,6 +85,7 @@ void ImageLoader::onRun(const QString & path)
         emit eventError(error);
     }
 
+    FreeImage_SetProcessMessageFunction(nullptr, nullptr);
     deleteLater();
 }
 

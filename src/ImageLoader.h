@@ -23,6 +23,16 @@
 
 #include "Image.h"
 
+
+struct ImageLoadResult
+{
+    ImagePtr image;
+    QString error;
+    size_t imgIdx;
+    size_t imgCount;
+};
+
+
 class ImageLoader
     : public QObject
 {
@@ -36,7 +46,7 @@ public:
     ~ImageLoader();
 
 signals:
-    void eventResult(ImagePtr image, size_t imgIdx, size_t imgCount);
+    void eventResult(ImageLoadResult result);
 
     void eventError(QString what);
 
