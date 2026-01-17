@@ -25,7 +25,7 @@
 # include <string>
 #endif
 
-#include "FreeImage.h"
+#include "FreeImage.hpp"
 
 
 

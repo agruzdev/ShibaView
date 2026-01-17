@@ -36,9 +36,7 @@
 
 ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
 {
-    mLogProcId = FreeImage_AddProcessMessageFunction(this, [](void* thiz, const FIMESSAGE* msg) {
-        static_cast<ViewerApplication*>(thiz)->processMessageImpl(msg);
-    });
+    mMessageProc = std::make_unique<fi::MessageProcessFunctionGuard>([this](const fi::MessageView& msg) { processMessageImpl(msg); });
 
     PluginManager::getInstance().init(PluginUsage::eViewer);
 
@@ -66,8 +64,6 @@ ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
 
 ViewerApplication::~ViewerApplication()
 {
-    FreeImage_RemoveProcessMessageFunction(mLogProcId);
-
     mBackgroundThread->quit();
     mBackgroundThread->wait();
 }
@@ -250,9 +246,9 @@ void ViewerApplication::onToggleLog()
     }
 }
 
-void ViewerApplication::processMessageImpl(const FIMESSAGE* msg)
+void ViewerApplication::processMessageImpl(const fi::MessageView& msg)
 {
-    const char* what = FreeImage_GetMessageString(msg);
+    const char* what = msg.GetCString();
     if (!what) {
         return;
     }

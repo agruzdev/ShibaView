@@ -29,7 +29,11 @@
 
 #include <CanvasWidget.h>
 
-struct FIMESSAGE;
+namespace fi {
+    class MessageView;
+    class MessageProcessFunctionGuard;
+}
+
 class LoggerWidget;
 
 class ViewerApplication
@@ -74,8 +78,9 @@ private:
     void loadImageAsync(const QString & path, size_t imgIdx, size_t totalCount);
     void scanDirectory();
 
-    void processMessageImpl(const FIMESSAGE* msg);
+    void processMessageImpl(const fi::MessageView& msg);
 
+    std::unique_ptr<fi::MessageProcessFunctionGuard> mMessageProc = nullptr;
     std::unique_ptr<LoggerWidget> mLoggerWidget = nullptr;
     std::unique_ptr<CanvasWidget> mCanvasWidget = nullptr;
     std::unique_ptr<QThread> mBackgroundThread = nullptr;
@@ -87,7 +92,6 @@ private:
     QStringList mFilesInDirectory;
     QStringList::const_iterator mCurrentFile;
     size_t mCurrentIdx = 0;
-    uint32_t mLogProcId = 0;
 };
 
 #endif // VIEWERAPPLICATION_H

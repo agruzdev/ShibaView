@@ -24,7 +24,10 @@
 #include "Image.h"
 
 
-struct FIMESSAGE;
+namespace fi
+{
+    class MessageView;
+}
 
 
 struct ImageLoadResult
@@ -58,7 +61,7 @@ public slots:
     void onRun(const QString & path);
 
 private:
-    void processMessageImpl(const FIMESSAGE* msg);
+    void processMessageImpl(const fi::MessageView& msg);
 
     QString mName;
     size_t mImgIdx;

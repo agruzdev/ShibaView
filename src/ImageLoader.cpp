@@ -58,11 +58,9 @@ void ImageLoader::onRun(const QString & path)
     bool success = false;
     QString error;
 
-    const auto msgProcId = FreeImage_AddProcessMessageFunction(this, [](void* thiz, const FIMESSAGE* msg) {
-        static_cast<ImageLoader*>(thiz)->processMessageImpl(msg);
-    });
-
     try {
+        fi::MessageProcessFunctionGuard msgProc([this](const fi::MessageView& msg) { processMessageImpl(msg); });
+
         ImageLoadResult result{};
         result.image = QSharedPointer<Image>::create(mName, path);
         result.imgCount = mImgCount;
@@ -84,14 +82,13 @@ void ImageLoader::onRun(const QString & path)
         emit eventError(std::move(error));
     }
 
-    FreeImage_RemoveProcessMessageFunction(msgProcId);
     deleteLater();
 }
 
 
-void ImageLoader::processMessageImpl(const FIMESSAGE* msg)
+void ImageLoader::processMessageImpl(const fi::MessageView& msg)
 {
-    const char* what = FreeImage_GetMessageString(msg);
+    const char* what = msg.GetCString();
     if (!what) {
         return;
     }
