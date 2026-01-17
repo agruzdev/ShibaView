@@ -132,6 +132,8 @@ set(app_sources
     ./src/ImageProcessor.cpp
     ./src/ImageSource.h
     ./src/ImageSource.cpp
+    ./src/LoggerWidget.h
+    ./src/LoggerWidget.cpp
     ./src/MenuWidget.h
     ./src/MenuWidget.cpp
     ./src/MultiBitmapsource.h

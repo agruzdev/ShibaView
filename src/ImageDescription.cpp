@@ -62,10 +62,10 @@ QVector<QString> ImageDescription::toLines(bool fullPath) const
     res.push_back("");
     res.push_back("Zoom: " + toPercent(mZoomFactor));
 
-    if (!mError.isEmpty()) {
+    if (!mErrors.isEmpty()) {
         res.push_back("");
         res.push_back("Loaded with diagnostic:");
-        for (const auto& p : mError.split('\n', Qt::SkipEmptyParts)) {
+        for (const auto& p : mErrors) {
             res.push_back("> " + p);
         }
     }

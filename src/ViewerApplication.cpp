@@ -29,13 +29,24 @@
 #include "Global.h"
 #include "ImageLoader.h"
 #include "PluginManager.h"
+#include "LoggerWidget.h"
+#include "FreeImageExt.h"
+
 
 
 ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
 {
+    mLogProcId = FreeImage_AddProcessMessageFunction(this, [](void* thiz, const FIMESSAGE* msg) {
+        static_cast<ViewerApplication*>(thiz)->processMessageImpl(msg);
+    });
+
     PluginManager::getInstance().init(PluginUsage::eViewer);
 
-    mCanvasWidget.reset(new CanvasWidget(t));
+    mLoggerWidget = std::make_unique<LoggerWidget>();
+    mLoggerWidget->hide();
+    connect(this, &ViewerApplication::eventMessage, mLoggerWidget.get(), &LoggerWidget::onMessage, Qt::QueuedConnection);
+
+    mCanvasWidget = std::make_unique<CanvasWidget>(t);
 
     connect(mCanvasWidget.get(), &CanvasWidget::eventNextImage,   this, &ViewerApplication::onNextImage,   Qt::QueuedConnection);
     connect(mCanvasWidget.get(), &CanvasWidget::eventPrevImage,   this, &ViewerApplication::onPrevImage,   Qt::QueuedConnection);
@@ -43,6 +54,7 @@ ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
     connect(mCanvasWidget.get(), &CanvasWidget::eventLastImage,   this, &ViewerApplication::onLastImage,   Qt::QueuedConnection);
     connect(mCanvasWidget.get(), &CanvasWidget::eventReloadImage, this, &ViewerApplication::onReloadImage, Qt::QueuedConnection);
     connect(mCanvasWidget.get(), &CanvasWidget::eventOpenImage,   this, &ViewerApplication::onOpenImage,   Qt::QueuedConnection);
+    connect(mCanvasWidget.get(), &CanvasWidget::eventToggleLog,   this, &ViewerApplication::onToggleLog,   Qt::QueuedConnection);
     connect(this, &ViewerApplication::eventCancelTransition, mCanvasWidget.get(), &CanvasWidget::onTransitionCanceled, Qt::QueuedConnection);
     connect(this, &ViewerApplication::eventImageDirScanned,  mCanvasWidget.get(), &CanvasWidget::onImageDirScanned,    Qt::QueuedConnection);
 
@@ -54,6 +66,8 @@ ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
 
 ViewerApplication::~ViewerApplication()
 {
+    FreeImage_RemoveProcessMessageFunction(mLogProcId);
+
     mBackgroundThread->quit();
     mBackgroundThread->wait();
 }
@@ -61,11 +75,15 @@ ViewerApplication::~ViewerApplication()
 void ViewerApplication::loadImageAsync(const QString &path, size_t imgIdx, size_t totalCount)
 {
     auto loader = std::make_unique<ImageLoader>(QFileInfo(path).fileName(), imgIdx, totalCount);
-    connect(this, &ViewerApplication::eventLoadImage, loader.get(), &ImageLoader::onRun, Qt::ConnectionType::QueuedConnection);
-    connect(loader.get(), &ImageLoader::eventResult, mCanvasWidget.get(), &CanvasWidget::onImageReady, Qt::ConnectionType::QueuedConnection);
-    connect(loader.get(), &ImageLoader::eventError, this, &ViewerApplication::onError, Qt::ConnectionType::QueuedConnection);
+    connect(this, &ViewerApplication::eventLoadImage, loader.get(), &ImageLoader::onRun, Qt::QueuedConnection);
+    connect(loader.get(), &ImageLoader::eventResult,  mCanvasWidget.get(), &CanvasWidget::onImageReady, Qt::QueuedConnection);
+    connect(loader.get(), &ImageLoader::eventMessage, mLoggerWidget.get(), &LoggerWidget::onMessage,    Qt::QueuedConnection);
+    connect(loader.get(), &ImageLoader::eventError,   this, &ViewerApplication::onError, Qt::QueuedConnection);
     loader->moveToThread(mBackgroundThread.get());
+
+    emit eventMessage(QDateTime::currentDateTime(), path);
     emit eventLoadImage(path);
+
     disconnect(this, &ViewerApplication::eventLoadImage, loader.get(), &ImageLoader::onRun);
     loader.release();
 }
@@ -115,11 +133,14 @@ void ViewerApplication::open(const QString & path)
     scanDirectory();
 }
 
-void ViewerApplication::onError(const QString & what)
+void ViewerApplication::onError(const QString& what)
 {
     qWarning() << what;
-    if(mCanvasWidget) {
+    if (mCanvasWidget) {
         mCanvasWidget->close();
+    }
+    if (mLoggerWidget) {
+        mLoggerWidget->close();
     }
     QApplication::exit(-1);
 }
@@ -198,7 +219,7 @@ void ViewerApplication::onLastImage()
 
 void ViewerApplication::onReloadImage()
 {
-    if (!mFilesInDirectory.empty()) {
+    if (mDirectory.exists() && !mOpenedName.isEmpty()) {
         loadImageAsync(mDirectory.absoluteFilePath(mOpenedName), mCurrentIdx, mFilesInDirectory.size());
     }
     else {
@@ -215,4 +236,26 @@ void ViewerApplication::onOpenImage()
     else {
         emit eventCancelTransition();
     }
+}
+
+void ViewerApplication::onToggleLog()
+{
+    if (mLoggerWidget) {
+        if (mLoggerWidget->isVisible()) {
+            mLoggerWidget->hide();
+        }
+        else {
+            mLoggerWidget->show();
+        }
+    }
+}
+
+void ViewerApplication::processMessageImpl(const FIMESSAGE* msg)
+{
+    const char* what = FreeImage_GetMessageString(msg);
+    if (!what) {
+        return;
+    }
+
+    emit eventMessage(QDateTime::currentDateTime(), QString::fromUtf8(what));
 }

@@ -54,13 +54,12 @@ ImageLoader::~ImageLoader() = default;
 
 void ImageLoader::onRun(const QString & path)
 {
+    mLoadErrors.clear();
     bool success = false;
     QString error;
 
-    FreeImage_SetProcessMessageFunction(&error, [](void* ctx, const FIMESSAGE* msg) {
-        qWarning() << FreeImage_GetMessageString(msg);
-        QString& errStr = *static_cast<QString*>(ctx);
-        errStr += "\n" + QString::fromUtf8(FreeImage_GetMessageString(msg));
+    const auto msgProcId = FreeImage_AddProcessMessageFunction(this, [](void* thiz, const FIMESSAGE* msg) {
+        static_cast<ImageLoader*>(thiz)->processMessageImpl(msg);
     });
 
     try {
@@ -68,7 +67,7 @@ void ImageLoader::onRun(const QString & path)
         result.image = QSharedPointer<Image>::create(mName, path);
         result.imgCount = mImgCount;
         result.imgIdx = mImgIdx;
-        result.error = error;
+        result.errors.swap(mLoadErrors);
         emit eventResult(std::move(result));
         success = true;
     }
@@ -81,11 +80,27 @@ void ImageLoader::onRun(const QString & path)
         qWarning() << error;
     }
 
-    if(!success) {
-        emit eventError(error);
+    if (!success) {
+        emit eventError(std::move(error));
     }
 
-    FreeImage_SetProcessMessageFunction(nullptr, nullptr);
+    FreeImage_RemoveProcessMessageFunction(msgProcId);
     deleteLater();
+}
+
+
+void ImageLoader::processMessageImpl(const FIMESSAGE* msg)
+{
+    const char* what = FreeImage_GetMessageString(msg);
+    if (!what) {
+        return;
+    }
+
+    auto qwhat = QString::fromUtf8(what);
+
+    qWarning() << qwhat;
+    mLoadErrors.push_back(qwhat);
+
+    emit eventMessage(QDateTime::currentDateTime(), std::move(qwhat));
 }
 

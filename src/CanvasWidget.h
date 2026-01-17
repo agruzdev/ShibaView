@@ -132,6 +132,7 @@ signals:
     void eventLastImage();
     void eventReloadImage();
     void eventOpenImage();
+    void eventToggleLog();
 
     void eventResized();
 

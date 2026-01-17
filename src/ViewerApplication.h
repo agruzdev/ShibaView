@@ -29,6 +29,9 @@
 
 #include <CanvasWidget.h>
 
+struct FIMESSAGE;
+class LoggerWidget;
+
 class ViewerApplication
     : public QObject
 {
@@ -52,6 +55,8 @@ signals:
 
     void eventImageDirScanned(size_t imgIdx, size_t totalCount);
 
+    void eventMessage(QDateTime time, QString what);
+
 public slots:
     void onNextImage();
     void onPrevImage();
@@ -59,8 +64,9 @@ public slots:
     void onLastImage();
     void onReloadImage();
     void onOpenImage();
+    void onToggleLog();
 
-    void onError(const QString & what);
+    void onError(const QString& what);
 
     void onDirectoryChanged(const QString &path);
 
@@ -68,6 +74,9 @@ private:
     void loadImageAsync(const QString & path, size_t imgIdx, size_t totalCount);
     void scanDirectory();
 
+    void processMessageImpl(const FIMESSAGE* msg);
+
+    std::unique_ptr<LoggerWidget> mLoggerWidget = nullptr;
     std::unique_ptr<CanvasWidget> mCanvasWidget = nullptr;
     std::unique_ptr<QThread> mBackgroundThread = nullptr;
 
@@ -78,6 +87,7 @@ private:
     QStringList mFilesInDirectory;
     QStringList::const_iterator mCurrentFile;
     size_t mCurrentIdx = 0;
+    uint32_t mLogProcId = 0;
 };
 
 #endif // VIEWERAPPLICATION_H

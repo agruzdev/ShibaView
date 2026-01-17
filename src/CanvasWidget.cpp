@@ -680,7 +680,7 @@ void CanvasWidget::onImageReady(const ImageLoadResult& result)
         }
     }
     mImageDescription->setImageIndex(result.imgIdx, result.imgCount);
-    mImageDescription->setError(result.error);
+    mImageDescription->setErrors(result.errors);
 
     setWindowTitle(Global::makeTitle(mImage->info().path));
 
@@ -1037,16 +1037,16 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
 
     case ControlAction::eReload:
         if (!mTransitionRequested) {
-            emit eventReloadImage();
             mTransitionRequested = true;
-            mTransitionIsReload = true;
+            mTransitionIsReload  = true;
+            emit eventReloadImage();
         }
         break;
 
     case ControlAction::eOpenFile:
         if (!mTransitionRequested) {
-            emit eventOpenImage();
             mTransitionRequested = true;
+            emit eventOpenImage();
         }
         break;
 
@@ -1143,29 +1143,29 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
 
     case ControlAction::ePreviousImage:
         if (!mTransitionRequested) {
-            emit eventPrevImage();
             mTransitionRequested = true;
+            emit eventPrevImage();
         }
         break;
         
     case ControlAction::eNextImage:
         if (!mTransitionRequested) {
-            emit eventNextImage();
             mTransitionRequested = true;
+            emit eventNextImage();
         }
         break;
         
     case ControlAction::eFirstImage:
         if (!mTransitionRequested) {
-            emit eventFirstImage();
             mTransitionRequested = true;
+            emit eventFirstImage();
         }
         break;
 
     case ControlAction::eLastImage:
         if (!mTransitionRequested) {
-            emit eventLastImage();
             mTransitionRequested = true;
+            emit eventLastImage();
         }
         break;
 
@@ -1256,6 +1256,10 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         invalidateExif();
         break;
 
+    case ControlAction::eLog:
+        emit eventToggleLog();
+        break;
+
     case ControlAction::eQuit:
         close();
         break;
@@ -1272,6 +1276,7 @@ void CanvasWidget::keyReleaseEvent(QKeyEvent* /*event*/)
 void CanvasWidget::onTransitionCanceled()
 {
     mTransitionRequested = false;
+    mTransitionIsReload  = false;
 }
 
 void CanvasWidget::mousePressEvent(QMouseEvent* event)

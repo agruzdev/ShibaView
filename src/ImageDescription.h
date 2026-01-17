@@ -66,9 +66,9 @@ public:
         mImagesCount = count;
     }
 
-    void setError(QString err)
+    void setErrors(QStringList err)
     {
-        mError = std::move(err);
+        mErrors = std::move(err);
     }
 
     QVector<QString> toLines(bool fullPath = false) const;
@@ -83,7 +83,7 @@ private:
     bool mChangedFlag = false;
     size_t mImageIndex = 0;
     size_t mImagesCount = 0;
-    QString mError;
+    QStringList mErrors;
 };
 
 #endif // IMAGEDESCRIPTION_H

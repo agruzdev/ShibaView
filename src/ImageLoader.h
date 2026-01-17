@@ -24,10 +24,13 @@
 #include "Image.h"
 
 
+struct FIMESSAGE;
+
+
 struct ImageLoadResult
 {
     ImagePtr image;
-    QString error;
+    QStringList errors;
     size_t imgIdx;
     size_t imgCount;
 };
@@ -48,15 +51,20 @@ public:
 signals:
     void eventResult(ImageLoadResult result);
 
+    void eventMessage(QDateTime time, QString what);
     void eventError(QString what);
 
 public slots:
     void onRun(const QString & path);
 
 private:
+    void processMessageImpl(const FIMESSAGE* msg);
+
     QString mName;
-    size_t mImgIdx; 
+    size_t mImgIdx;
     size_t mImgCount;
+
+    QStringList mLoadErrors;
 
     /**
      * Helper class for class registration
