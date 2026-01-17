@@ -74,6 +74,8 @@ public slots:
 
     void onDirectoryChanged(const QString &path);
 
+    void onCanvasClosed();
+
 private:
     void loadImageAsync(const QString & path, size_t imgIdx, size_t totalCount);
     void scanDirectory();

@@ -276,6 +276,10 @@ void CanvasWidget::closeEvent(QCloseEvent* event)
     if (mAboutWidget) {
         mAboutWidget->close();
     }
+
+    QWidget::closeEvent(event);
+
+    emit eventClosed();
 }
 
 void CanvasWidget::setGeometry2(QRect r)

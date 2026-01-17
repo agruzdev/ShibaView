@@ -135,6 +135,7 @@ signals:
     void eventToggleLog();
 
     void eventResized();
+    void eventClosed();
 
 protected:
     void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;

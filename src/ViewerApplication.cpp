@@ -53,6 +53,7 @@ ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
     connect(mCanvasWidget.get(), &CanvasWidget::eventReloadImage, this, &ViewerApplication::onReloadImage, Qt::QueuedConnection);
     connect(mCanvasWidget.get(), &CanvasWidget::eventOpenImage,   this, &ViewerApplication::onOpenImage,   Qt::QueuedConnection);
     connect(mCanvasWidget.get(), &CanvasWidget::eventToggleLog,   this, &ViewerApplication::onToggleLog,   Qt::QueuedConnection);
+    connect(mCanvasWidget.get(), &CanvasWidget::eventClosed,      this, &ViewerApplication::onCanvasClosed);
     connect(this, &ViewerApplication::eventCancelTransition, mCanvasWidget.get(), &CanvasWidget::onTransitionCanceled, Qt::QueuedConnection);
     connect(this, &ViewerApplication::eventImageDirScanned,  mCanvasWidget.get(), &CanvasWidget::onImageDirScanned,    Qt::QueuedConnection);
 
@@ -60,6 +61,13 @@ ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
     mBackgroundThread->start();
 
     connect(&mDirWatcher, &QFileSystemWatcher::directoryChanged, this, &ViewerApplication::onDirectoryChanged);
+}
+
+void ViewerApplication::onCanvasClosed()
+{
+    if (mLoggerWidget) {
+        mLoggerWidget->close();
+    }
 }
 
 ViewerApplication::~ViewerApplication()
