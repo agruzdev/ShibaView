@@ -355,6 +355,10 @@ namespace fi
         MessageView& operator=(const MessageView&) = default;
         MessageView& operator=(MessageView&&) noexcept = default;
 
+        operator bool() const {
+            return (mHandle != nullptr);
+        }
+
         const char* GetCString() const {
             return FreeImage_GetMessageString(mHandle);
         }
