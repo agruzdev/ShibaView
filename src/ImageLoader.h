@@ -23,6 +23,22 @@
 
 #include "Image.h"
 
+
+namespace fi
+{
+    class MessageView;
+}
+
+
+struct ImageLoadResult
+{
+    ImagePtr image;
+    QStringList errors;
+    size_t imgIdx;
+    size_t imgCount;
+};
+
+
 class ImageLoader
     : public QObject
 {
@@ -36,17 +52,22 @@ public:
     ~ImageLoader();
 
 signals:
-    void eventResult(ImagePtr image, size_t imgIdx, size_t imgCount);
+    void eventResult(ImageLoadResult result);
 
+    void eventMessage(QDateTime time, QString what);
     void eventError(QString what);
 
 public slots:
     void onRun(const QString & path);
 
 private:
+    void processMessageImpl(const fi::MessageView& msg);
+
     QString mName;
-    size_t mImgIdx; 
+    size_t mImgIdx;
     size_t mImgCount;
+
+    QStringList mLoadErrors;
 
     /**
      * Helper class for class registration

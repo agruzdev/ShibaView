@@ -79,6 +79,8 @@ QString toQString(ControlAction a)
         return "Histogram";
     case ControlAction::eSettings:
         return "Settings";
+    case ControlAction::eLog:
+        return "Log";
     default:
         assert(false);
         return "None";
@@ -158,6 +160,7 @@ Controls::Controls()
     loadKey(ControlAction::eDisplayPath, "Display full path", Qt::ControlModifier | Qt::Key_P);
     loadKey(ControlAction::eHistogram, "Display/hide histogram", Qt::ControlModifier | Qt::Key_H);
     loadKey(ControlAction::eSettings, "Open settings window", Qt::Key_F9);
+    loadKey(ControlAction::eLog, "Display/hide log", Qt::Key_F10);
     loadKey(ControlAction::eQuit, "Quit", Qt::Key_Escape);
 }
 

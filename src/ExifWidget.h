@@ -47,9 +47,11 @@ public:
     void setExif(const Exif& exif);
 
     void setEmpty();
-public:
+
+protected:
     void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
 
+private:
     QScrollArea* mScrollArea = nullptr;
     TextWidget* mText = nullptr;
 };

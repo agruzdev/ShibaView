@@ -53,6 +53,7 @@ enum class ControlAction
     eDisplayPath,
     eHistogram,
     eSettings,
+    eLog,
     eQuit,
 
     length_

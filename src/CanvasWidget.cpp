@@ -46,6 +46,7 @@
 #include "ExifWidget.h"
 #include "Global.h"
 #include "Image.h"
+#include "ImageLoader.h"
 #include "ImagePage.h"
 #include "ImageProcessor.h"
 #include "ImageSource.h"
@@ -275,6 +276,10 @@ void CanvasWidget::closeEvent(QCloseEvent* event)
     if (mAboutWidget) {
         mAboutWidget->close();
     }
+
+    QWidget::closeEvent(event);
+
+    emit eventClosed();
 }
 
 void CanvasWidget::setGeometry2(QRect r)
@@ -621,7 +626,7 @@ void CanvasWidget::invalidateImageDescription()
     update();
 }
 
-void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
+void CanvasWidget::onImageReady(const ImageLoadResult& result)
 {
     mImageProcessor->detachSource();
 
@@ -633,9 +638,8 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
     mEnableAnimation = false;
     mAnimIndex = kNoneIndex;
 
-    mImage = std::move(image);
+    mImage = result.image;
     if (mImage) {
-        //mImageDescription = std::make_unique<ImageDescription>();
         mImageDescription->setImageInfo(mImage->info());
 
         if (!mImage->isNull()) {
@@ -670,9 +674,6 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
             mImageDescription->setZoom(mZoomController->getFactor());
             mImageDescription->setFormat(mImage->currentPage().describeFormat());
             mImageDescription->setToneMapping(mImageProcessor->toneMappingMode());
-            if (imgIdx < imgCount) {
-                mImageDescription->setImageIndex(imgIdx, imgCount);
-            }
 
             mImageProcessor->attachSource(mImage);
         }
@@ -682,6 +683,8 @@ void CanvasWidget::onImageReady(ImagePtr image, size_t imgIdx, size_t imgCount)
             mImageDescription->setToneMapping(FITMO_CLAMP);
         }
     }
+    mImageDescription->setImageIndex(result.imgIdx, result.imgCount);
+    mImageDescription->setErrors(result.errors);
 
     setWindowTitle(Global::makeTitle(mImage->info().path));
 
@@ -1038,16 +1041,16 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
 
     case ControlAction::eReload:
         if (!mTransitionRequested) {
-            emit eventReloadImage();
             mTransitionRequested = true;
-            mTransitionIsReload = true;
+            mTransitionIsReload  = true;
+            emit eventReloadImage();
         }
         break;
 
     case ControlAction::eOpenFile:
         if (!mTransitionRequested) {
-            emit eventOpenImage();
             mTransitionRequested = true;
+            emit eventOpenImage();
         }
         break;
 
@@ -1144,29 +1147,29 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
 
     case ControlAction::ePreviousImage:
         if (!mTransitionRequested) {
-            emit eventPrevImage();
             mTransitionRequested = true;
+            emit eventPrevImage();
         }
         break;
         
     case ControlAction::eNextImage:
         if (!mTransitionRequested) {
-            emit eventNextImage();
             mTransitionRequested = true;
+            emit eventNextImage();
         }
         break;
         
     case ControlAction::eFirstImage:
         if (!mTransitionRequested) {
-            emit eventFirstImage();
             mTransitionRequested = true;
+            emit eventFirstImage();
         }
         break;
 
     case ControlAction::eLastImage:
         if (!mTransitionRequested) {
-            emit eventLastImage();
             mTransitionRequested = true;
+            emit eventLastImage();
         }
         break;
 
@@ -1257,6 +1260,10 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
         invalidateExif();
         break;
 
+    case ControlAction::eLog:
+        emit eventToggleLog();
+        break;
+
     case ControlAction::eQuit:
         close();
         break;
@@ -1273,6 +1280,7 @@ void CanvasWidget::keyReleaseEvent(QKeyEvent* /*event*/)
 void CanvasWidget::onTransitionCanceled()
 {
     mTransitionRequested = false;
+    mTransitionIsReload  = false;
 }
 
 void CanvasWidget::mousePressEvent(QMouseEvent* event)

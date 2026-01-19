@@ -29,6 +29,13 @@
 
 #include <CanvasWidget.h>
 
+namespace fi {
+    class MessageView;
+    class MessageProcessFunctionGuard;
+}
+
+class LoggerWidget;
+
 class ViewerApplication
     : public QObject
 {
@@ -52,6 +59,8 @@ signals:
 
     void eventImageDirScanned(size_t imgIdx, size_t totalCount);
 
+    void eventMessage(QDateTime time, QString what);
+
 public slots:
     void onNextImage();
     void onPrevImage();
@@ -59,15 +68,22 @@ public slots:
     void onLastImage();
     void onReloadImage();
     void onOpenImage();
+    void onToggleLog();
 
-    void onError(const QString & what);
+    void onError(const QString& what);
 
     void onDirectoryChanged(const QString &path);
+
+    void onCanvasClosed();
 
 private:
     void loadImageAsync(const QString & path, size_t imgIdx, size_t totalCount);
     void scanDirectory();
 
+    void processMessageImpl(const fi::MessageView& msg);
+
+    std::unique_ptr<fi::MessageProcessFunctionGuard> mMessageProc = nullptr;
+    std::unique_ptr<LoggerWidget> mLoggerWidget = nullptr;
     std::unique_ptr<CanvasWidget> mCanvasWidget = nullptr;
     std::unique_ptr<QThread> mBackgroundThread = nullptr;
 
