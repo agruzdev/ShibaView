@@ -17,11 +17,6 @@
  */
 
 #include "MultiBitmapsource.h"
-
-#include <stdio.h>
-#include <limits>
-#include <vector>
-#include <fstream>
 #include "FreeImageExt.h"
 
 
@@ -35,31 +30,7 @@ MultibitmapSource::MultibitmapSource(const QString & filename, FREE_IMAGE_FORMAT
 
 #ifdef _WIN32
     const auto uniName = filename.toStdWString();
-    // ToDo: Since FreeImage is missing FreeImage_OpenMultiBitmapU function, read through memory buffer
-# ifdef _MSC_VER
-    FILE* file{ nullptr };
-    _wfopen_s(&file, uniName.c_str(), L"rb");
-# else
-    FILE* file = _wfopen(uniName.c_str(), L"rb");
-# endif
-    if (file) {
-        mBuffer = std::make_unique<MultibitmapBuffer>();
-
-        fseek(file, 0, SEEK_END);
-        mBuffer->data.resize(ftell(file));
-        fseek(file, 0, SEEK_SET);
-        fread(mBuffer->data.data(), sizeof(unsigned char), mBuffer->data.size(), file);
-        fclose(file);
-
-        if(mBuffer->data.size() > std::numeric_limits<uint32_t>::max()) {
-            throw std::runtime_error("MultibitmapSource[MultibitmapSource]: Input file is too big!");
-        }
-
-        mBuffer->stream = FreeImage_OpenMemory(mBuffer->data.data(), static_cast<uint32_t>(mBuffer->data.size()));
-        if (mBuffer->stream) {
-            mMultibitmap = FreeImage_LoadMultiBitmapFromMemory(static_cast<FREE_IMAGE_FORMAT>(mImageFormat), mBuffer->stream, loadFlags);
-        }
-    }
+    mMultibitmap = FreeImage_OpenMultiBitmapU(static_cast<FREE_IMAGE_FORMAT>(fif), uniName.c_str(), FALSE, TRUE, FALSE, loadFlags);
 #else
     const auto utfName = filename.toUtf8().toStdString();
     mMultibitmap = FreeImage_OpenMultiBitmap(static_cast<FREE_IMAGE_FORMAT>(fif), utfName.c_str(), FALSE, TRUE, FALSE, loadFlags);
@@ -72,9 +43,6 @@ MultibitmapSource::MultibitmapSource(const QString & filename, FREE_IMAGE_FORMAT
 MultibitmapSource::~MultibitmapSource()
 {
     FreeImage_CloseMultiBitmap(mMultibitmap);
-    if (mBuffer && mBuffer->stream) {
-        FreeImage_CloseMemory(mBuffer->stream);
-    }
 }
 
 uint32_t MultibitmapSource::doPagesCount() const

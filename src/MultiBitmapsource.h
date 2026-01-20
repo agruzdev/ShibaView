@@ -20,11 +20,8 @@
 #define MULTIBITMAPSOURCE_H
 
 #include "ImageSource.h"
-
 #include <QString>
-#include <vector>
 
-struct MultibitmapBuffer;
 
 class MultibitmapSource
     : public ImageSource
@@ -53,16 +50,9 @@ private:
 
     FREE_IMAGE_FORMAT doGetFormat() const Q_DECL_OVERRIDE;
 
-    // Internal buffer for FreeImage_OpenMultiBitmapU issue workaround
-    struct MultibitmapBuffer
-    {
-        std::vector<unsigned char> data;
-        FIMEMORY* stream = nullptr;
-    };
 
     FREE_IMAGE_FORMAT mImageFormat;
     FIMULTIBITMAP* mMultibitmap = nullptr;
-    std::unique_ptr<MultibitmapBuffer> mBuffer = nullptr;
 };
 
 #endif // MULTIBITMAPSOURCE_H
