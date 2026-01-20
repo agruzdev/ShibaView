@@ -683,7 +683,9 @@ void CanvasWidget::onImageReady(const ImageLoadResult& result)
             mImageDescription->setToneMapping(FITMO_CLAMP);
         }
     }
-    mImageDescription->setImageIndex(result.imgIdx, result.imgCount);
+    if (result.imgIdx < result.imgCount) {
+        mImageDescription->setImageIndex(result.imgIdx, result.imgCount);
+    }
     mImageDescription->setErrors(result.errors);
 
     setWindowTitle(Global::makeTitle(mImage->info().path));
@@ -707,16 +709,15 @@ void CanvasWidget::onImageReady(const ImageLoadResult& result)
 
 void CanvasWidget::onImageDirScanned(size_t imgIdx, size_t totalCount)
 {
-    if (!mImageDescription) {
-        mImageDescription = std::make_unique<ImageDescription>();
+    if (mImageDescription) {
+        if (imgIdx < totalCount) {
+            mImageDescription->setImageIndex(imgIdx, totalCount);
+        }
+        else {
+            mImageDescription->setImageIndex(0, 0);
+        }
+        invalidateImageDescription();
     }
-    if (imgIdx < totalCount) {
-        mImageDescription->setImageIndex(imgIdx, totalCount);
-    }
-    else {
-        mImageDescription->setImageIndex(0, 0);
-    }
-    invalidateImageDescription();
 }
 
 void CanvasWidget::updateOffsets()
