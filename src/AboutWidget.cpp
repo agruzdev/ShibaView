@@ -86,7 +86,7 @@ AboutWidget::AboutWidget(QWidget* parent)
         textLines.emplace_back("");
         textLines.emplace_back("Dependencies:");
         textLines.emplace_back("  Qt v" + QString(qVersion()));
-        textLines.emplace_back("  FreeImageRe v" + QString(FreeImageRe_GetVersion()) + " (" + QString::number(FREEIMAGE_MAJOR_VERSION) + "." + QString::number(FREEIMAGE_MINOR_VERSION) + ")");
+        textLines.emplace_back("  FreeImageRe v" + QString(FreeImageRe_GetVersion()));
         for (uint32_t depIdx = 0; depIdx < FreeImage_GetDependenciesCount(); ++depIdx) {
             if (const auto* depInfo = FreeImage_GetDependencyInfo(depIdx)) {
                 textLines.emplace_back(MakeDependencyString(depInfo));
