@@ -5,7 +5,7 @@ Fast and lightweighed image viewer for Windows
 
 ## License
 
-Copyright 2018-2021 Alexey Gruzdev
+Copyright 2018-2026 Alexey Gruzdev
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
