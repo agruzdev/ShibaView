@@ -108,8 +108,10 @@ void Image::next()
 {
     if (mImagePlayer) {
         mImagePlayer->next();
-        mInfo.dims.width  = mImagePlayer->getWidth();
-        mInfo.dims.height = mImagePlayer->getHeight();
+        if (!mInfo.animated) {
+            mInfo.dims.width  = mImagePlayer->getWidth();
+            mInfo.dims.height = mImagePlayer->getHeight();
+        }
         for (auto listener : mListeners) {
             listener->onInvalidated(this);
         }
@@ -120,8 +122,10 @@ void Image::prev()
 {
     if (mImagePlayer) {
         mImagePlayer->prev();
-        mInfo.dims.width = mImagePlayer->getWidth();
-        mInfo.dims.height = mImagePlayer->getHeight();
+        if (!mInfo.animated) {
+            mInfo.dims.width  = mImagePlayer->getWidth();
+            mInfo.dims.height = mImagePlayer->getHeight();
+        }
         for (auto listener : mListeners) {
             listener->onInvalidated(this);
         }
