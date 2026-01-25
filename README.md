@@ -22,7 +22,7 @@ limitations under the License.
 
 ## Installation
 
-Prebuilt ShibaView executable requires MSVC 2019 runtime on Windows, so please install the latest version of [Microsoft Visual C++ Redistributable for Visual Studio 2019](https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads)
+Prebuilt ShibaView executable requires MSVC 2026 x64 runtime on Windows, so please install the latest version of [Microsoft Visual C++ Redistributable x64](https://aka.ms/vc14/vc_redist.x64.exe)
 
 
 ## Usage
