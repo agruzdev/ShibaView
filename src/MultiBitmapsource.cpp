@@ -54,9 +54,9 @@ const ImagePage* MultibitmapSource::doDecodePage(uint32_t pageIdx)
 {
     auto page = std::make_unique<ImagePage>(FreeImage_LockPage(mMultibitmap, static_cast<int>(pageIdx)), pageIdx);
     AnimationInfo anim{};
-    anim.offsetX  = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getSourceBitmap(), "FrameLeft", 0);
-    anim.offsetY  = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getSourceBitmap(), "FrameTop",  0);
-    anim.duration = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getSourceBitmap(), "FrameTime", 0);
+    anim.offsetX  = FreeImageExt_GetMetadataValue<uint16_t>(FIMD_ANIMATION, page->getSourceBitmap(), "FrameLeft", 0);
+    anim.offsetY  = FreeImageExt_GetMetadataValue<uint16_t>(FIMD_ANIMATION, page->getSourceBitmap(), "FrameTop",  0);
+    anim.duration = FreeImageExt_GetMetadataValue<uint32_t>(FIMD_ANIMATION, page->getSourceBitmap(), "FrameTime", 0);
     anim.disposal = FreeImageExt_GetMetadataValue(FIMD_ANIMATION, page->getSourceBitmap(), "DisposalMethod", DisposalType::eLeave);
     page->setAnimation(std::move(anim));
     return page.release();
