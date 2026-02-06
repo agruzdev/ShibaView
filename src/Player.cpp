@@ -58,11 +58,12 @@ Player::Player(std::shared_ptr<ImageSource> src)
             mFramesCache.emplace_back(loadZeroFrame(src.get()));
             mCacheIndex = 0;
 
-            if (auto bmp = mFramesCache[0]->page->getSourceBitmap()) {
-                if (FreeImage_HasBackgroundColor(bmp)) {
-                    FreeImage_GetBackgroundColor(bmp, &mBgColor);
-                }
-            }
+            //if (auto bmp = mFramesCache[0]->page->getSourceBitmap()) {
+            //    if (FreeImage_HasBackgroundColor(bmp)) {
+            //        FreeImage_GetBackgroundColor(bmp, &mBgColor);
+            //        mBgColor.alpha = mBgColor.alpha ? 255 : 0;  // backgroung cannot be semi-transparent
+            //    }
+            //}
         }
         catch(...) {
             mFramesCache.clear();
@@ -109,13 +110,14 @@ std::unique_ptr<Player::CacheEntry> Player::loadNextFrame(ImageSource* source, c
         const auto& nextAnim = nextEntry->page->animation();
 
         UniqueBitmap canvas(nullptr, &::FreeImage_Unload);
-        if ((disposal == DisposalType::eBackground) && (FreeImage_GetImageType(nextBmp) == FIT_BITMAP)) {
-            // animation is usually FIT_BITMAP
-            canvas.reset(FreeImageExt_AllocateLike(nextBmp));
-            if (!FreeImage_FillBackground(canvas.get(), &mBgColor)) {
-                // failed...
-                canvas.reset();
-            }
+        // animation is usually FIT_BITMAP
+        if ((disposal == DisposalType::eBackground)) {
+            // Background color is not always set correctly.
+            // Taking frame without any blending is more robust.
+            //if ((mBgColor.alpha == 255) && (FreeImage_GetImageType(nextBmp) == FIT_BITMAP)) {
+            //    canvas.reset(FreeImageExt_AllocateLike(nextBmp));
+            //    FreeImage_FillBackground(canvas.get(), &mBgColor);
+            //}
         }
         else {
             // by default DisposalType::eLeave
