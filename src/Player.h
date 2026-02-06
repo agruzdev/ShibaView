@@ -74,6 +74,8 @@ private:
     std::deque<std::unique_ptr<CacheEntry>> mFramesCache;
     size_t mCacheIndex   = 0;
     size_t mMaxCacheSize = 1;
+
+    FIRGBA8 mBgColor{};
 };
 
 #endif // PLAYER_H

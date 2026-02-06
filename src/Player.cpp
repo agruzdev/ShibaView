@@ -57,6 +57,12 @@ Player::Player(std::shared_ptr<ImageSource> src)
         try {
             mFramesCache.emplace_back(loadZeroFrame(src.get()));
             mCacheIndex = 0;
+
+            if (auto bmp = mFramesCache[0]->page->getSourceBitmap()) {
+                if (FreeImage_HasBackgroundColor(bmp)) {
+                    FreeImage_GetBackgroundColor(bmp, &mBgColor);
+                }
+            }
         }
         catch(...) {
             mFramesCache.clear();
@@ -88,29 +94,39 @@ std::unique_ptr<Player::CacheEntry> Player::loadZeroFrame(ImageSource* source)
 std::unique_ptr<Player::CacheEntry> Player::loadNextFrame(ImageSource* source, const CacheEntry& prev)
 {
     assert(prev.page != nullptr);
+
     const uint32_t prevIdx = prev.page->index();
     const uint32_t nextIdx = (prevIdx + 1) % mSource->pagesCount();
 
+    const auto disposal = prev.page->animation().disposal;
     auto nextEntry = std::make_unique<CacheEntry>(source->lockPage(nextIdx));
     if (!nextEntry->page) {
         throw std::runtime_error("Player[loadNextFrame]: Failed to decode the next page.");
     }
+    FIBITMAP* nextBmp = nextEntry->page->getBitmap();
 
     if (source->storesDifference()) {
         const auto& nextAnim = nextEntry->page->animation();
-        if (nextAnim.disposal == DisposalType::eLeave) {
-            UniqueBitmap canvas(FreeImage_Clone(prev.blendedImage ? prev.blendedImage.get() : prev.page->getBitmap()), &::FreeImage_Unload);
-            const auto drawSuccess = FreeImage_DrawBitmap(canvas.get(), nextEntry->page->getBitmap(), FIAO_SrcAlpha, nextAnim.offsetX, nextAnim.offsetY);
-            if (!drawSuccess) {
-                throw std::runtime_error("Player[loadNextFrame]: Failed to combine frames.");
+
+        UniqueBitmap canvas(nullptr, &::FreeImage_Unload);
+        if ((disposal == DisposalType::eBackground) && (FreeImage_GetImageType(nextBmp) == FIT_BITMAP)) {
+            // animation is usually FIT_BITMAP
+            canvas.reset(FreeImageExt_AllocateLike(nextBmp));
+            if (!FreeImage_FillBackground(canvas.get(), &mBgColor)) {
+                // failed...
+                canvas.reset();
             }
-            nextEntry->blendedImage = std::move(canvas);
-        }
-        else if (nextAnim.disposal == DisposalType::eBackground) {
-            // do nothing, use frame as it is
         }
         else {
-            // not implemented...
+            // by default DisposalType::eLeave
+            canvas.reset(FreeImage_Clone(prev.blendedImage ? prev.blendedImage.get() : prev.page->getBitmap()));
+        }
+
+        if (canvas) {
+            if (FreeImage_DrawBitmap(canvas.get(), nextBmp, FIAO_SrcAlpha, nextAnim.offsetX, nextAnim.offsetY)) {
+                // successfully blended
+                nextEntry->blendedImage = std::move(canvas);
+            }
         }
     }
 

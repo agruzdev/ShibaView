@@ -92,7 +92,7 @@ namespace
             }
             else if (8 == bpp) {
                 const auto colorType = FreeImage_GetColorType(src);
-                if (FIC_PALETTE == colorType) {
+                if (FIC_PALETTE == colorType || FreeImage_IsTransparent(src)) {
                     flags = FrameFlags::eRGB;
                     result = FreeImage_ConvertTo32Bits(src);
                     dstNeedUnload = true;

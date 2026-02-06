@@ -54,7 +54,8 @@ Ty_ FreeImageExt_GetMetadataValue(FREE_IMAGE_MDMODEL model, FIBITMAP* dib, const
 {
     FITAG* tag = nullptr;
     const auto succ = FreeImage_GetMetadata(model, dib, key, &tag);
-    if(succ && tag) {
+    if (succ && tag) {
+        assert(sizeof(Ty_) == FreeImage_GetTagLength(tag));
         return *static_cast<std::add_const_t<Ty_>*>(FreeImage_GetTagValue(tag));
     }
     return std::move(defaultVal);
@@ -106,6 +107,14 @@ bool FreeImageExt_SetMetadataValue(FREE_IMAGE_MDMODEL model, FIBITMAP* dib, cons
     }
     return false;
 }
+
+inline
+FIBITMAP* FreeImageExt_AllocateLike(FIBITMAP* dib)
+{
+    return FreeImage_AllocateT(FreeImage_GetImageType(dib), FreeImage_GetWidth(dib), FreeImage_GetHeight(dib), FreeImage_GetBPP(dib),
+        FreeImage_GetRedMask(dib), FreeImage_GetGreenMask(dib), FreeImage_GetBlueMask(dib));
+}
+
 
 #endif //__cplusplus
 
