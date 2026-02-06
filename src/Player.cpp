@@ -97,15 +97,21 @@ std::unique_ptr<Player::CacheEntry> Player::loadNextFrame(ImageSource* source, c
     }
 
     if (source->storesDifference()) {
-        UniqueBitmap canvas(FreeImage_Clone(prev.blendedImage ? prev.blendedImage.get() : prev.page->getBitmap()), &::FreeImage_Unload);
         const auto& nextAnim = nextEntry->page->animation();
-        const auto drawSuccess = FreeImage_DrawBitmap(canvas.get(), nextEntry->page->getBitmap(), FIAO_SrcAlpha, nextAnim.offsetX, nextAnim.offsetY);
-
-        if (!drawSuccess) {
-            throw std::runtime_error("Player[loadNextFrame]: Failed to combine frames.");
+        if (nextAnim.disposal == DisposalType::eLeave) {
+            UniqueBitmap canvas(FreeImage_Clone(prev.blendedImage ? prev.blendedImage.get() : prev.page->getBitmap()), &::FreeImage_Unload);
+            const auto drawSuccess = FreeImage_DrawBitmap(canvas.get(), nextEntry->page->getBitmap(), FIAO_SrcAlpha, nextAnim.offsetX, nextAnim.offsetY);
+            if (!drawSuccess) {
+                throw std::runtime_error("Player[loadNextFrame]: Failed to combine frames.");
+            }
+            nextEntry->blendedImage = std::move(canvas);
         }
-
-        nextEntry->blendedImage = std::move(canvas);
+        else if (nextAnim.disposal == DisposalType::eBackground) {
+            // do nothing, use frame as it is
+        }
+        else {
+            // not implemented...
+        }
     }
 
     return nextEntry;
