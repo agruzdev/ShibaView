@@ -37,8 +37,8 @@
 
 // Version information ------------------------------------------------------
 
-#define FREEIMAGE_MAJOR_VERSION   3
-#define FREEIMAGE_MINOR_VERSION   18
+#define FREEIMAGE_MAJOR_VERSION   4
+#define FREEIMAGE_MINOR_VERSION   1
 #define FREEIMAGE_RELEASE_SERIAL  0
 
 #define FREEIMAGE_RESURRECTED     1
@@ -421,6 +421,7 @@ FI_ENUM(FREE_IMAGE_FORMAT) {
 	FIF_JXR		= 36,
 	FIF_HEIF	= FIF_MAX_USER_ID + 1,
 	FIF_AVIF,
+	FIF_JPEGXL
 };
 
 /** Image type used in FreeImage.
@@ -733,8 +734,9 @@ FI_STRUCT (FIDEPENDENCY) {
 
 // Load / Save flag constants -----------------------------------------------
 
-#define FIF_LOAD_NOPIXELS 0x8000	//! loading: load the image header only (not supported by all plugins, default to full loading)
+#define FIF_LOAD_NOPIXELS    0x8000		//! loading: load the image header only (not supported by all plugins, default to full loading)
 #define FIF_LOAD_NOTHUMBNAIL 0x10000
+#define FIF_LOAD_NOEXIF      0x20000
 
 #define BMP_DEFAULT         0
 #define BMP_SAVE_RLE        1

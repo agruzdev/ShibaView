@@ -118,7 +118,8 @@ namespace fi
         eWebp    = FIF_WEBP,
         eJxr     = FIF_JXR,
         eHeif    = FIF_HEIF,
-        eAvif    = FIF_AVIF
+        eAvif    = FIF_AVIF,
+        eJpegXL  = FIF_JPEGXL
     };
 
     enum class ImageType
@@ -797,7 +798,7 @@ namespace fi
 
         template <typename Deleter_ = BitmapDeleter>
         explicit
-        Bitmap(FIBITMAP* handle, Deleter_&& deleter = BitmapDeleter{})
+        Bitmap(FIBITMAP* handle, Deleter_&& deleter = Deleter_{})
             : mHandlePtr(handle, std::move(deleter))
         {
             if (!mHandlePtr) {
@@ -1392,7 +1393,7 @@ namespace fi
 
         template <typename Deleter_ = MultiBitmapDeleter>
         explicit
-        MultiBitmap(FIMULTIBITMAP* handle, Deleter_&& deleter = MultiBitmapDeleter{})
+        MultiBitmap(FIMULTIBITMAP* handle, Deleter_&& deleter = Deleter_{})
             : mHandlePtr(handle, std::move(deleter))
         {
             if (!mHandlePtr) {
