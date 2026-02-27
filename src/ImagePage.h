@@ -78,16 +78,13 @@ public:
 
     ImagePage(ImagePage&&) = delete;
 
-    virtual ~ImagePage();
+    ~ImagePage();
 
     ImagePage& operator=(const ImagePage&) = delete;
 
     ImagePage& operator=(ImagePage&&) = delete;
 
-    QString describeFormat() const
-    {
-        return doDescribeFormat();
-    }
+    QString describeFormat() const;
 
     /**
      * Original image source bitmap
@@ -120,10 +117,7 @@ public:
         return mAnimation;
     }
 
-    bool getPixel(uint32_t y, uint32_t x, Pixel* pixel) const
-    {
-        return doGetPixel(y, x, pixel);
-    }
+    bool getPixel(uint32_t y, uint32_t x, Pixel* pixel) const;
 
     const FrameFlags& flags() const
     {
@@ -135,13 +129,6 @@ public:
     size_t getMemorySize() const;
 
     UniqueBitmap getOrMakeThumbnail(uint32_t maxSize) const;
-
-protected:
-    virtual QString doDescribeFormat() const;
-
-    virtual Exif doGetExif() const;
-
-    virtual bool doGetPixel(uint32_t y, uint32_t x, Pixel* pixel) const;
 
 private:
     FIBITMAP* mBitmap;

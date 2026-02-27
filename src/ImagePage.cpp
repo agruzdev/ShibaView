@@ -159,7 +159,7 @@ ImagePage::~ImagePage()
     }
 }
 
-QString ImagePage::doDescribeFormat() const
+QString ImagePage::describeFormat() const
 {
     const std::string customDescription = FreeImageExt_GetMetadataValue<std::string>(FIMD_CUSTOM, mBitmap, "ImageType", "");
     if (!customDescription.empty()) {
@@ -168,14 +168,9 @@ QString ImagePage::doDescribeFormat() const
     return FreeImageExt_DescribeImageType(mBitmap);
 }
 
-bool ImagePage::doGetPixel(uint32_t y, uint32_t x, Pixel* pixel) const
+bool ImagePage::getPixel(uint32_t y, uint32_t x, Pixel* pixel) const
 {
     return Pixel::getBitmapPixel(mBitmap, y, x, pixel);
-}
-
-Exif ImagePage::doGetExif() const
-{
-    return Exif::load(mBitmap);
 }
 
 size_t ImagePage::getMemorySize() const
@@ -186,7 +181,7 @@ size_t ImagePage::getMemorySize() const
 const Exif& ImagePage::getExif() const
 {
     if (!mExif) {
-        mExif = std::make_unique<Exif>(doGetExif());
+        mExif = std::make_unique<Exif>(Exif::load(mBitmap));
     }
     return *mExif;
 }
