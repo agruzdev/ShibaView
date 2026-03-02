@@ -185,6 +185,11 @@ const Exif& ImagePage::getExif() const
     return *mExif;
 }
 
+bool ImagePage::isEmpty() const
+{
+    return (mBitmap == nullptr);
+}
+
 UniqueBitmap ImagePage::getOrMakeThumbnail(uint32_t maxSize) const
 {
     UniqueBitmap result(nullptr, &FreeImage_Unload);

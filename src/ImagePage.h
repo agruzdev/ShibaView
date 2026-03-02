@@ -128,6 +128,9 @@ public:
 
     size_t getMemorySize() const;
 
+    bool isEmpty() const;
+
+
     UniqueBitmap getOrMakeThumbnail(uint32_t maxSize) const;
 
 private:

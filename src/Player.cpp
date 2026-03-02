@@ -29,7 +29,8 @@
 
 namespace
 {
-    constexpr size_t kMaxCacheBytes = 256 * 1024 * 1024;
+    constexpr size_t kMaxCacheBytes  = 256 * 1024 * 1024;
+    constexpr size_t kMaxCacheLength = 100;
 }
 
 
@@ -54,24 +55,20 @@ Player::Player(std::shared_ptr<ImageSource> src)
 
     const auto framesNum = src->pagesCount();
     if (framesNum > 0) {
-        try {
-            mFramesCache.emplace_back(loadZeroFrame(src.get()));
-            mCacheIndex = 0;
+        mFramesCache.emplace_back(loadZeroFrame(src.get()));
 
-            //if (auto bmp = mFramesCache[0]->page->getSourceBitmap()) {
-            //    if (FreeImage_HasBackgroundColor(bmp)) {
-            //        FreeImage_GetBackgroundColor(bmp, &mBgColor);
-            //        mBgColor.alpha = mBgColor.alpha ? 255 : 0;  // backgroung cannot be semi-transparent
-            //    }
-            //}
-        }
-        catch(...) {
-            mFramesCache.clear();
-            throw;
-        }
+        //if (auto bmp = mFramesCache[0]->page->getSourceBitmap()) {
+        //    if (FreeImage_HasBackgroundColor(bmp)) {
+        //        FreeImage_GetBackgroundColor(bmp, &mBgColor);
+        //        mBgColor.alpha = mBgColor.alpha ? 255 : 0;  // backgroung cannot be semi-transparent
+        //    }
+        //}
 
         const size_t frameSize = mFramesCache[0]->page->getMemorySize();
-        mMaxCacheSize = std::max(static_cast<size_t>(1), kMaxCacheBytes / frameSize);
+        if (frameSize > 0) {
+            const size_t maxLenth = std::min<size_t>(framesNum, kMaxCacheLength);
+            mMaxCacheSize = std::clamp(kMaxCacheBytes / frameSize, static_cast<size_t>(1), maxLenth);
+        }
     }
 
     mSource = std::move(src);
@@ -86,7 +83,7 @@ Player::~Player()
 std::unique_ptr<Player::CacheEntry> Player::loadZeroFrame(ImageSource* source)
 {
     auto entry = std::make_unique<CacheEntry>(source->lockPage(0));
-    if (!entry->page) {
+    if (!entry->page || entry->page->isEmpty()) {
         throw std::runtime_error("Player[loadZeroFrame]: Failed to decode zero page.");
     }
     return entry;
