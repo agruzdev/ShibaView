@@ -22,6 +22,10 @@
 Exif Exif::load(FIBITMAP* dib)
 {
     Exif exif{};
+    if (!dib) {
+        return exif;
+    }
+
     for (auto model : { FIMD_COMMENTS, FIMD_EXIF_MAIN, FIMD_EXIF_EXIF, FIMD_EXIF_GPS, FIMD_EXIF_MAKERNOTE,
                     FIMD_EXIF_INTEROP, FIMD_IPTC, /*FIMD_XMP,*/ FIMD_GEOTIFF, FIMD_ANIMATION, FIMD_CUSTOM })
     {

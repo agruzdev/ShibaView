@@ -143,12 +143,11 @@ ImagePage::ImagePage(FIBITMAP* bmp, uint32_t index)
     : mBitmap(bmp)
     , mIndex(index)
 {
-    if (!mBitmap) {
-        throw std::runtime_error("ImagePage[ctor]: Page bitmap is null.");
-    }
-    mConvertedBitmap = cvtToInternalType(mBitmap, mFlags, mFrameNeedsUnload);
-    if (!mConvertedBitmap) {
-        throw std::runtime_error("ImagePage[ctor]: Failed to convert frame to internal representation.");
+    if (mBitmap) {
+        mConvertedBitmap = cvtToInternalType(mBitmap, mFlags, mFrameNeedsUnload);
+        if (!mConvertedBitmap) {
+            throw std::runtime_error("ImagePage[ctor]: Failed to convert frame to internal representation.");
+        }
     }
 }
 

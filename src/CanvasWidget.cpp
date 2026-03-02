@@ -786,8 +786,8 @@ QRect CanvasWidget::fitWidth(int w, int h) const
 
 QRect CanvasWidget::calculateImageRegion() const
 {
-    const int w = mImage->width();
-    const int h = mImage->height();
+    const int w = std::max(1U, mImage->width());
+    const int h = std::max(1U, mImage->height());
 
     int dw{ 0 }, dh{ 0 };
     switch(mImageProcessor->rotation()) {
@@ -881,10 +881,20 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
         mLocalSettingsAreInvalidated = false;
     }
 
-
     bool success = false;
-    try {
-        if (mImage && !mImage->isNull()) {
+    if (mImage && !mImage->isNull()) {
+        const uint32_t currIndex = mImage->currentPage().index();
+        if (currIndex != mAnimIndex) {
+            mImageDescription->setImageInfo(mImage->info());
+            mInfoIsValid = false;
+
+            if (mImage->pagesCount() > 1) {
+                mPageText->setText(QString("Page %1/%2").arg(mImage->currentPage().index() + 1).arg(mImage->pagesCount()));
+            }
+        }
+
+        // Try to render
+        try {
             QPainter painter(this);
             if (mFilteringMode == FilteringMode::eAntialiasing) {
                 painter.setRenderHint(QPainter::RenderHint::SmoothPixmapTransform, true);
@@ -904,29 +914,19 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
             }
             painter.drawPixmap(imageRect, mImageProcessor->getResultPixmap());
 
-            const uint32_t currIndex = mImage->currentPage().index();
-            if (currIndex != mAnimIndex) {
-                mImageDescription->setImageInfo(mImage->info());
-                mInfoIsValid = false;
-
-                if (mImage->pagesCount() > 1) {
-                    mPageText->setText("Page " + QString::number(currIndex + 1) + "/" + QString::number(mImage->pagesCount()));
-                }
-
-                if (mEnableAnimation) {
-                    new UniqueTick(mImage->id(), mImage->currentPage().animation().duration, this, &CanvasWidget::onAnimationTick, this);
-                }
+            if (mEnableAnimation && currIndex != mAnimIndex) {
+                new UniqueTick(mImage->id(), mImage->currentPage().animation().duration, this, &CanvasWidget::onAnimationTick, this);
             }
 
             mAnimIndex = currIndex;
             success = true;
         }
-    }
-    catch(const std::exception& err) {
-        qDebug() << err.what();
-    }
-    catch(...) {
-    }
+        catch (const std::exception& err) {
+            qDebug() << err.what();
+        }
+        catch (...) {
+        }
+    } // if Image
 
     if (mShowInfo) {
         if (!mInfoIsValid) {
@@ -963,6 +963,8 @@ void CanvasWidget::paintEvent(QPaintEvent * event)
         mErrorText->setText(error);
         mErrorText->move(width() / 2 - mErrorText->width() / 2, height() / 2 - mErrorText->height() / 2);
         mErrorText->show();
+
+        mAnimIndex = kNoneIndex;
     }
     else {
         mErrorText->hide();

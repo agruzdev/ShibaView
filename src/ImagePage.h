@@ -131,13 +131,13 @@ public:
     UniqueBitmap getOrMakeThumbnail(uint32_t maxSize) const;
 
 private:
-    FIBITMAP* mBitmap;
-    uint32_t mIndex;
-    FIBITMAP* mConvertedBitmap;
+    FIBITMAP* mBitmap{ nullptr };
+    uint32_t mIndex{ 0 };
+    FIBITMAP* mConvertedBitmap{ nullptr };
     bool mFrameNeedsUnload = false;
-    FrameFlags mFlags;
-    AnimationInfo mAnimation;
-    mutable std::unique_ptr<Exif> mExif;
+    FrameFlags mFlags{ FrameFlags::eNone };
+    AnimationInfo mAnimation{};
+    mutable std::unique_ptr<Exif> mExif{ nullptr };
 };
 
 
