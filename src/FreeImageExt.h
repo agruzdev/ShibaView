@@ -77,6 +77,22 @@ std::string FreeImageExt_GetMetadataValue<std::string>(FREE_IMAGE_MDMODEL model,
 }
 
 inline
+bool FreeImageExt_SetMetadataValue(FREE_IMAGE_MDMODEL model, FIBITMAP* dib, const char* key, const uint32_t& val)
+{
+    std::unique_ptr<FITAG, decltype(&::FreeImage_DeleteTag)> tag(FreeImage_CreateTag(), &::FreeImage_DeleteTag);
+    if (tag) {
+        if (FreeImage_SetTagKey(tag.get(), key) &&
+            FreeImage_SetTagLength(tag.get(), sizeof(uint32_t)) &&
+            FreeImage_SetTagCount(tag.get(), 1) &&
+            FreeImage_SetTagType(tag.get(), FIDT_LONG) &&
+            FreeImage_SetTagValue(tag.get(), &val)) {
+            return FreeImage_SetMetadata(model, dib, key, tag.get());
+        }
+    }
+    return false;
+}
+
+inline
 bool FreeImageExt_SetMetadataValue(FREE_IMAGE_MDMODEL model, FIBITMAP* dib, const char* key, const float& val)
 {
     std::unique_ptr<FITAG, decltype(&::FreeImage_DeleteTag)> tag(FreeImage_CreateTag(), &::FreeImage_DeleteTag);

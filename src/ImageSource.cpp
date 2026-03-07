@@ -23,11 +23,30 @@
 
 #include "BitmapSource.h"
 #include "MultiBitmapsource.h"
+#include "PluginManager.h"
+
+
+namespace
+{
+    constexpr
+    bool isMultiPage(FREE_IMAGE_FORMAT fif) {
+        switch (fif) {
+            case FIF_GIF:
+            case FIF_ICO:
+            case FIF_TIFF:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+} // namespace
 
 
 std::shared_ptr<ImageSource> ImageSource::Load(const QString & filename) Q_DECL_NOEXCEPT
 {
     std::shared_ptr<ImageSource> source = nullptr;
+
 #ifdef _WIN32
     const auto uniName = filename.toStdWString();
     FREE_IMAGE_FORMAT fif = FreeImage_GetFileTypeU(uniName.c_str(), 0);
@@ -41,17 +60,14 @@ std::shared_ptr<ImageSource> ImageSource::Load(const QString & filename) Q_DECL_
         fif = FreeImage_GetFIFFromFilename(utfName.c_str());
     }
 #endif
+
     if ((fif != FIF_UNKNOWN) && FreeImage_FIFSupportsReading(fif)) {
         try {
-            switch(fif) {
-            case FIF_GIF:
-            case FIF_ICO:
-            case FIF_TIFF:
+            if (isMultiPage(fif) || fif == PluginManager::getInstance().getSvgId()) {
                 source = std::make_shared<MultibitmapSource>(filename, fif);
-                break;
-            default:
+            }
+            else {
                 source = std::make_shared<BitmapSource>(filename, fif);
-                break;
             }
         }
         catch(std::exception & err) {
@@ -61,6 +77,7 @@ std::shared_ptr<ImageSource> ImageSource::Load(const QString & filename) Q_DECL_
             qDebug() << "ImageSource[Load]: Unknown error";
         }
     }
+
     return source;
 }
 
@@ -77,11 +94,15 @@ void ImageSource::Save(FIBITMAP* bmp, const QString& filename)
         throw std::runtime_error("Unknown file format");
     }
 
+    bool success{ false };
+    if (FreeImage_FIFSupportsWriting(fif)) {
 #ifdef _WIN32
-    const auto success = FreeImage_SaveU(fif, bmp, uniName.c_str());
+        success = FreeImage_SaveU(fif, bmp, uniName.c_str());
 #else
-    const auto success = FreeImage_Save(fif, bmp, utfName.c_str());
+        success = FreeImage_Save(fif, bmp, utfName.c_str());
 #endif
+    }
+
     if (!success) {
         throw std::runtime_error("Failed to write file");
     }

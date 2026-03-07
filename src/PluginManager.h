@@ -67,6 +67,10 @@ public:
         return static_cast<FREE_IMAGE_FORMAT>(mPluginFlo.id);
     }
 
+    FREE_IMAGE_FORMAT getSvgId() const {
+        return static_cast<FREE_IMAGE_FORMAT>(mPluginSvg.id);
+    }
+
 
 private:
     struct PluginCell

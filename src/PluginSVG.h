@@ -31,6 +31,12 @@ public:
     const char* FormatProc() override;
     const char* DescriptionProc() override;
     const char* ExtensionListProc() override;
+
+    void* OpenPersistentProc(FreeImageIO* io, fi_handle handle, bool read) override;
+    void ClosePersistentProc(FreeImageIO* io, fi_handle handle, void* data) override;
+
+    uint32_t PageCountProc(FreeImageIO* io, fi_handle handle, void* data) override;
+
     FIBITMAP* LoadProc(FreeImageIO* io, fi_handle handle, uint32_t page, uint32_t flags, void* data) override;
     //bool ValidateProc(FreeImageIO* io, fi_handle handle) override;
 };
