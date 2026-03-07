@@ -26,6 +26,7 @@
 #include <QFileInfo>
 
 #include "ImageSource.h"
+#include "PluginManager.h"
 
 namespace
 {
@@ -73,11 +74,14 @@ Image::Image(QString name, QString filename) noexcept
     mInfo.modified = file.lastModified();
     mInfo.dims     = { width, height };
 
+    mInfo.animated = false;
     if (mImageSource) {
-        mInfo.animated = (mImageSource->getFormat() == FIF_GIF);
-    }
-    else {
-        mInfo.animated = false;
+        if (mImageSource->getFormat() == FIF_GIF) {
+            mInfo.animated = true;
+        }
+        if (mImageSource->getFormat() == PluginManager::getInstance().getSvgId() && mImageSource->pagesCount() > 1) {
+            mInfo.animated = true;
+        }
     }
 }
 
