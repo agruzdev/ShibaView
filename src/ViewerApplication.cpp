@@ -38,8 +38,6 @@ ViewerApplication::ViewerApplication(std::chrono::steady_clock::time_point t)
 {
     mMessageProc = std::make_unique<fi::MessageProcessFunctionGuard>([this](const fi::MessageView& msg) { processMessageImpl(msg); });
 
-    PluginManager::getInstance().init(PluginUsage::eViewer);
-
     mLoggerWidget = std::make_unique<LoggerWidget>();
     mLoggerWidget->hide();
     connect(this, &ViewerApplication::eventMessage, mLoggerWidget.get(), &LoggerWidget::onMessage, Qt::QueuedConnection);
@@ -102,7 +100,7 @@ void ViewerApplication::scanDirectory()
     else {
         QCollator collator;
         collator.setNumericMode(true);
-        mFilesInDirectory = mDirectory.entryList(Global::getSupportedExtensionFilters(), QDir::Files);
+        mFilesInDirectory = mDirectory.entryList(PluginManager::getInstance().getSupportedExtensionFilters(), QDir::Files);
         std::sort(mFilesInDirectory.begin(), mFilesInDirectory.end(), collator);
 
         mCurrentIdx = 0;
@@ -231,9 +229,16 @@ void ViewerApplication::onReloadImage()
     }
 }
 
+
+QString ViewerApplication::spawnOpenFileDialog(const QString& dir)
+{
+    return QFileDialog::getOpenFileName(nullptr, "Open File", dir, PluginManager::getInstance().getSupportedExtensionsFilterString() + ";;All files (*.*)");
+}
+
+
 void ViewerApplication::onOpenImage()
 {
-    QString input = QFileDialog::getOpenFileName(nullptr, "Open File", mDirectory.absolutePath(), Global::getSupportedExtensionsFilterString() + ";;All files (*.*)");
+    const QString input = spawnOpenFileDialog(mDirectory.absolutePath());
     if (!input.isEmpty()) {
         open(input);
     }

@@ -53,6 +53,10 @@ public:
 
     void open(const QString & path);
 
+
+    static
+    QString spawnOpenFileDialog(const QString& dir);
+
 signals:
     void eventLoadImage(const QString & path);
     void eventCancelTransition();

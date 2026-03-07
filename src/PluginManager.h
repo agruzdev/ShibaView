@@ -63,6 +63,13 @@ public:
     bool reload();
 
 
+    const QStringList& getSupportedExtensions();
+
+    QStringList getSupportedExtensionFilters();
+
+    QString getSupportedExtensionsFilterString();
+
+
     FREE_IMAGE_FORMAT getFloId() const {
         return static_cast<FREE_IMAGE_FORMAT>(mPluginFlo.id);
     }
@@ -98,9 +105,10 @@ private:
 
     bool mInitialized{ false };
     PluginUsage mTargetUsage{ PluginUsage::eNone };
-    std::unique_ptr<QSettings> mSettings;
     PluginCell mPluginFlo;
     PluginCell mPluginSvg;
+
+    QStringList mSupportedExtensions{};
 };
 
 

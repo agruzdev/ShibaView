@@ -36,6 +36,31 @@ namespace
         return (v > 0) && ((v & (v - 1)) == 0);
     }
 
+    QStringList enumerateFreeImageExtensions()
+    {
+        QStringList extensions{};
+        for (int fifIdx = 0; fifIdx < FreeImage_GetFIFCount2(); ++fifIdx) {
+            const auto fif = FreeImage_GetFIFFromIndex(fifIdx);
+            if (fif == FIF_UNKNOWN) {
+                continue;
+            }
+            if (const char* extsString = FreeImage_GetFIFExtensionList(fif)) {
+                extensions.append(QString(extsString).split(',', Qt::SplitBehaviorFlags::SkipEmptyParts));
+            }
+        }
+        return extensions;
+    }
+
+    QStringList cvtExtensionsToFilters(const QStringList& exts)
+    {
+        QStringList filters;
+        filters.reserve(exts.size());
+        for (const auto& ext : exts) {
+            filters.emplace_back("*" + ext);
+        }
+        return filters;
+    }
+
 } // namespace
 
 
@@ -92,7 +117,6 @@ bool PluginManager::init(PluginUsage usage)
         throw std::runtime_error("PluginManager[init]: Invalid usage.");
     }
     mTargetUsage = usage;
-    mSettings = Settings::getSettings(Settings::Group::ePlugins);
     const bool success = reload();
     mInitialized = true;
     return success;
@@ -104,14 +128,40 @@ bool PluginManager::reload()
     bool success = true;
     success &= setupPluginFlo();
     success &= setupPluginSvg();
+
+    // invalidate
+    mSupportedExtensions.clear();
+
     return success;
+}
+
+
+const QStringList& PluginManager::getSupportedExtensions()
+{
+    if (mSupportedExtensions.isEmpty()) {
+        mSupportedExtensions = enumerateFreeImageExtensions();
+    }
+    return mSupportedExtensions;
+}
+
+
+QStringList PluginManager::getSupportedExtensionFilters()
+{
+    return cvtExtensionsToFilters(getSupportedExtensions());
+}
+
+
+QString PluginManager::getSupportedExtensionsFilterString()
+{
+    return "Images (" + getSupportedExtensionFilters().join(" ") + ")";
 }
 
 
 bool PluginManager::setupPluginFlo()
 try
 {
-    mPluginFlo.usageMask = static_cast<PluginUsage>(mSettings->value(Settings::kPluginFloUsage, Settings::kPluginFloUsageDefault).toUInt());
+    auto settings = Settings::getSettings(Settings::Group::ePlugins);
+    mPluginFlo.usageMask = static_cast<PluginUsage>(settings->value(Settings::kPluginFloUsage, Settings::kPluginFloUsageDefault).toUInt());
     if (testFlag(mPluginFlo.usageMask, mTargetUsage)) {
         return InitOrUpdatePlugin<PluginFlo>(mPluginFlo);
     }
@@ -129,10 +179,11 @@ catch (std::exception& err) {
 bool PluginManager::setupPluginSvg()
 try
 {
-    mPluginSvg.usageMask = static_cast<PluginUsage>(mSettings->value(Settings::kPluginSvgUsage, Settings::kPluginSvgUsageDefault).toUInt());
+    auto settings = Settings::getSettings(Settings::Group::ePlugins);
+    mPluginSvg.usageMask = static_cast<PluginUsage>(settings->value(Settings::kPluginSvgUsage, Settings::kPluginSvgUsageDefault).toUInt());
     if (testFlag(mPluginSvg.usageMask, mTargetUsage)) {
-        const QString libcairo = mSettings->value(Settings::kPluginSvgLibcairo, QString{}).toString();
-        const QString librsvg  = mSettings->value(Settings::kPluginSvgLibrsvg,  QString{}).toString();
+        const QString libcairo = settings->value(Settings::kPluginSvgLibcairo, QString{}).toString();
+        const QString librsvg  = settings->value(Settings::kPluginSvgLibrsvg,  QString{}).toString();
         if (!libcairo.isEmpty() && !librsvg.isEmpty()) {
             return InitOrUpdatePlugin<PluginSvgCairo>(mPluginSvg, libcairo, librsvg);
         }

@@ -42,12 +42,6 @@ public:
 
     static QString makeTitle(const QString& tag);
 
-    static const QStringList& getSupportedExtensions() noexcept;
-
-    static QStringList getSupportedExtensionFilters();
-
-    static QString getSupportedExtensionsFilterString();
-
 private:
     Global() = delete;
 };

@@ -29,11 +29,11 @@
 #include <QSettings>
 #include <QFileInfo>
 #include "Global.h"
-#include "ViewerApplication.h"
-#include "Player.h"
 #include "ImageSource.h"
+#include "Player.h"
+#include "PluginManager.h"
+#include "ViewerApplication.h"
 
-#include <fstream>
 
 namespace
 {
@@ -106,6 +106,8 @@ try
     std::cout << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t).count() / 1e3 << std::endl;
 #endif
 
+    PluginManager::getInstance().init(PluginUsage::eViewer);
+
     QString input;
     if (argc > 1) {
 #ifdef _WIN32
@@ -123,7 +125,7 @@ try
     }
     else {
         QSettings settings;
-        input = QFileDialog::getOpenFileName(nullptr, "Open File", settings.value(kSettingsLoadDir, "/").toString(), Global::getSupportedExtensionsFilterString() + ";;All files (*.*)");
+        input = ViewerApplication::spawnOpenFileDialog(settings.value(kSettingsLoadDir, "/").toString());
         if (!input.isEmpty()) {
             settings.setValue(kSettingsLoadDir, QFileInfo(input).dir().absolutePath());
         }
