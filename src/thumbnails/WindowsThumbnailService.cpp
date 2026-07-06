@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "../Global.h"
+#include "../PluginManager.h"
 
 #define SZ_ITHUMBNAILPROVIDER_SHELLEXTENSION  L"{E357FCCD-A995-4576-B01F-234630154E96}"
 
@@ -233,7 +234,7 @@ STDAPI DllRegisterServer()
             hr = CreateRegKeyAndSetValue(&rgRegistryEntries[i]);
         }
 
-         for (const QString& ext : Global::getSupportedExtensions()) {
+         for (const QString& ext : PluginManager::getInstance().getSupportedExtensions()) {
             const auto key = L"Software\\Classes\\" + ext.toStdWString() + L"\\ShellEx\\" SZ_ITHUMBNAILPROVIDER_SHELLEXTENSION;
 
             REGISTRY_ENTRY entry{};
@@ -278,7 +279,7 @@ STDAPI DllUnregisterServer()
         }
     }
 
-     for (const QString& ext : Global::getSupportedExtensions()) {
+     for (const QString& ext : PluginManager::getInstance().getSupportedExtensions()) {
         const auto key = L"Software\\Classes\\" + ext.toStdWString() + "\\ShellEx\\" SZ_ITHUMBNAILPROVIDER_SHELLEXTENSION;
         hr = HRESULT_FROM_WIN32(RegDeleteTreeW(HKEY_CURRENT_USER, key.c_str()));
         if (hr == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)) {
