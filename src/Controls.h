@@ -56,7 +56,9 @@ enum class ControlAction
     eLog,
     eQuit,
 
-    length_
+    eNumber,
+    eCtrlNumber,
+    eAltNumber
 };
 
 
@@ -79,9 +81,11 @@ public:
     Controls& operator=(Controls&&) = delete;
 
 
-    ControlAction decodeAction(QKeyEvent* event, Qt::KeyboardModifiers modifiers = QApplication::keyboardModifiers()) const;
+    ControlAction decodeAction(QKeyEvent* event, Qt::KeyboardModifiers modifiers = QApplication::keyboardModifiers(), uint32_t* index = nullptr) const;
 
     std::vector<std::tuple<QString, QString>> printControls() const;
+
+    QStringList printExtra() const;
 
 private:
     Controls();

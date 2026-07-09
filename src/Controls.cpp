@@ -143,8 +143,8 @@ Controls::Controls()
     loadKey(ControlAction::eReload, "Reload current image", Qt::ControlModifier | Qt::Key_R);
     loadKey(ControlAction::eCopyFrame, "Copy current frame to clipboard", Qt::ControlModifier | Qt::Key_C);
     loadKey(ControlAction::ePreviousImage, "Previous image", Qt::Key_Left, Qt::KeypadModifier | Qt::Key_Left);
-    loadKey(ControlAction::eNextImage, "Next image", Qt::Key_Right, Qt::KeypadModifier | Qt::Key_Right);
-    loadKey(ControlAction::eFirstImage, "First image", Qt::Key_Home);
+    loadKey(ControlAction::eNextImage, "Next image*", Qt::Key_Right, Qt::KeypadModifier | Qt::Key_Right);
+    loadKey(ControlAction::eFirstImage, "First image*", Qt::Key_Home);
     loadKey(ControlAction::eLastImage, "Last image", Qt::Key_End);
     loadKey(ControlAction::eZoomIn, "Zoom in", Qt::Key_Plus, Qt::KeypadModifier | Qt::Key_Plus);
     loadKey(ControlAction::eZoomOut, "Zoom out", Qt::Key_Minus, Qt::KeypadModifier | Qt::Key_Minus);
@@ -168,26 +168,49 @@ Controls::~Controls()
 {
 }
 
-ControlAction Controls::decodeAction(QKeyEvent* event, Qt::KeyboardModifiers modifiers) const
+ControlAction Controls::decodeAction(QKeyEvent* event, Qt::KeyboardModifiers modifiers, uint32_t* index) const
 {
-    if (event) {
-        const QKeySequence inputSequence = QKeySequence(modifiers | event->key());
-        //qDebug() << inputSequence;
-        const auto it = mSeqToAction.find(inputSequence);
-        if (it != mSeqToAction.cend()) {
-            return (*it).second;
-        }
+    if (!event) {
+        return ControlAction::eNone;
     }
+
+    if (event->key() >= Qt::Key_0 && event->key() <= Qt::Key_9) {
+        if (index) {
+            *index = static_cast<uint32_t>(event->key() - Qt::Key_0);
+        }
+        if (modifiers & Qt::ControlModifier) {
+            return ControlAction::eCtrlNumber;
+        }
+        if (modifiers & Qt::AltModifier) {
+            return ControlAction::eAltNumber;
+        }
+        return ControlAction::eNumber;
+    }
+
+    const QKeySequence inputSequence = QKeySequence(modifiers | event->key());
+    const auto it = mSeqToAction.find(inputSequence);
+    if (it != mSeqToAction.cend()) {
+        return (*it).second;
+    }
+
     return ControlAction::eNone;
 }
 
 std::vector<std::tuple<QString, QString>> Controls::printControls() const
 {
     std::vector<std::tuple<QString, QString>> result;
-    result.reserve(static_cast<size_t>(ControlAction::length_));
+    result.reserve(mActionDescriptions.size());
     for (const auto& [action, comment, keys] : mActionDescriptions) {
         static_cast<void>(action);
         result.emplace_back(comment, keys.join(","));
     }
+    return result;
+}
+
+QStringList Controls::printExtra() const
+{
+    QStringList result;
+    result.emplace_back("");
+    result.emplace_back("* Use Ctrl+<Num> to vary image step.");
     return result;
 }

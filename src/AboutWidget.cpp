@@ -111,6 +111,7 @@ AboutWidget::AboutWidget(QWidget* parent)
         for (const auto& [action, keys] : Controls::getInstance().printControls()) {
             textLines.emplace_back("- " + action + " | " + keys);
         }
+        textLines.append(Controls::getInstance().printExtra());
 
         ctrlText->setColumnSeperator('|');
         ctrlText->appendColumnOffset(250);

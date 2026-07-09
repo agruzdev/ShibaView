@@ -66,8 +66,8 @@ signals:
     void eventMessage(QDateTime time, QString what);
 
 public slots:
-    void onNextImage();
-    void onPrevImage();
+    void onNextImage(uint32_t step = 1);
+    void onPrevImage(uint32_t step = 1);
     void onFirstImage();
     void onLastImage();
     void onReloadImage();
@@ -96,7 +96,6 @@ private:
     QFileSystemWatcher mDirWatcher;
 
     QStringList mFilesInDirectory;
-    QStringList::const_iterator mCurrentFile;
     size_t mCurrentIdx = 0;
 };
 

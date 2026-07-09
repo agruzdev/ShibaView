@@ -126,8 +126,8 @@ public slots:
 signals:
     void eventInfoText(QString s);
 
-    void eventNextImage();
-    void eventPrevImage();
+    void eventNextImage(uint32_t step = 1);
+    void eventPrevImage(uint32_t step = 1);
     void eventFirstImage();
     void eventLastImage();
     void eventReloadImage();
@@ -199,6 +199,7 @@ private:
 
     bool mTransitionRequested = true;
     bool mTransitionIsReload = false;
+    uint32_t mImageStep = 1u;
 
     bool mFullScreen = false;
 

@@ -686,6 +686,7 @@ void CanvasWidget::onImageReady(const ImageLoadResult& result)
     if (result.imgIdx < result.imgCount) {
         mImageDescription->setImageIndex(result.imgIdx, result.imgCount);
     }
+    mImageDescription->setImageStep(mImageStep);
     mImageDescription->setErrors(result.errors);
 
     setWindowTitle(Global::makeTitle(mImage->info().path));
@@ -1020,7 +1021,9 @@ void CanvasWidget::resizeEvent(QResizeEvent * event)
 void CanvasWidget::keyPressEvent(QKeyEvent* event)
 {
     QWidget::keyPressEvent(event);
-    switch(Controls::getInstance().decodeAction(event)) {
+
+    uint32_t number{};
+    switch (Controls::getInstance().decodeAction(event, QApplication::keyboardModifiers(), &number)) {
 
     case ControlAction::eOverlay:
         mShowInfo = !mShowInfo;
@@ -1151,14 +1154,14 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
     case ControlAction::ePreviousImage:
         if (!mTransitionRequested) {
             mTransitionRequested = true;
-            emit eventPrevImage();
+            emit eventPrevImage(mImageStep);
         }
         break;
         
     case ControlAction::eNextImage:
         if (!mTransitionRequested) {
             mTransitionRequested = true;
-            emit eventNextImage();
+            emit eventNextImage(mImageStep);
         }
         break;
         
@@ -1265,6 +1268,14 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event)
 
     case ControlAction::eLog:
         emit eventToggleLog();
+        break;
+
+    case ControlAction::eCtrlNumber:
+        mImageStep = std::clamp(number, 1u, 9u);
+        if (mImageDescription) {
+            mImageDescription->setImageStep(mImageStep);
+            invalidateImageDescription();
+        }
         break;
 
     case ControlAction::eQuit:

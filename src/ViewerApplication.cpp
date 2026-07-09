@@ -94,7 +94,6 @@ void ViewerApplication::scanDirectory()
 {
     if(!mDirectory.exists()) {
         mFilesInDirectory.clear();
-        mCurrentFile  = mFilesInDirectory.cend();
         mCurrentIdx = 0;
     }
     else {
@@ -104,13 +103,13 @@ void ViewerApplication::scanDirectory()
         std::sort(mFilesInDirectory.begin(), mFilesInDirectory.end(), collator);
 
         mCurrentIdx = 0;
-        for (mCurrentFile = mFilesInDirectory.cbegin(); mCurrentFile != mFilesInDirectory.cend(); ++mCurrentFile, ++mCurrentIdx) {
-            if (*mCurrentFile == mOpenedName) {
+        for (auto it = mFilesInDirectory.cbegin(); it != mFilesInDirectory.cend(); ++it, ++mCurrentIdx) {
+            if (*it == mOpenedName) {
                 break;
             }
         }
 
-        if (mCurrentFile != mFilesInDirectory.cend()) {
+        if (mCurrentIdx < mFilesInDirectory.size()) {
             emit eventImageDirScanned(mCurrentIdx, mFilesInDirectory.size());
         }
         else {
@@ -147,22 +146,11 @@ void ViewerApplication::onError(const QString& what)
     QApplication::exit(-1);
 }
 
-void ViewerApplication::onNextImage()
+void ViewerApplication::onNextImage(uint32_t step)
 {
-    if(!mFilesInDirectory.empty()) {
-        if(mCurrentFile != mFilesInDirectory.cend()) {
-            ++mCurrentFile;
-            ++mCurrentIdx;
-            if(mCurrentFile == mFilesInDirectory.cend()) {
-                mCurrentFile = mFilesInDirectory.cbegin();
-                mCurrentIdx  = 0;
-            }
-        }
-        else {
-            mCurrentFile = mFilesInDirectory.cbegin();
-            mCurrentIdx  = 0;
-        }
-        mOpenedName = *mCurrentFile;
+    if (!mFilesInDirectory.empty()) {
+        mCurrentIdx = (mCurrentIdx + step) % mFilesInDirectory.size();
+        mOpenedName = mFilesInDirectory.at(mCurrentIdx);
         loadImageAsync(mDirectory.absoluteFilePath(mOpenedName), mCurrentIdx, mFilesInDirectory.size());
     }
     else {
@@ -170,22 +158,12 @@ void ViewerApplication::onNextImage()
     }
 }
 
-void ViewerApplication::onPrevImage()
+void ViewerApplication::onPrevImage(uint32_t step)
 {
     if(!mFilesInDirectory.empty()) {
-        if(mCurrentFile != mFilesInDirectory.cend()) {
-            if(mCurrentFile == mFilesInDirectory.begin()) {
-                mCurrentFile = mFilesInDirectory.cend();
-                mCurrentIdx = mFilesInDirectory.size();
-            }
-            --mCurrentFile;
-            --mCurrentIdx;
-        }
-        else {
-            mCurrentFile = std::prev(mFilesInDirectory.cend());
-            mCurrentIdx = mFilesInDirectory.size() - 1;
-        }
-        mOpenedName = *mCurrentFile;
+        const size_t size = mFilesInDirectory.size();
+        mCurrentIdx = (mCurrentIdx + size - (step % size)) % size;
+        mOpenedName = mFilesInDirectory.at(mCurrentIdx);
         loadImageAsync(mDirectory.absoluteFilePath(mOpenedName), mCurrentIdx, mFilesInDirectory.size());
     }
     else {
@@ -196,9 +174,8 @@ void ViewerApplication::onPrevImage()
 void ViewerApplication::onFirstImage()
 {
     if(!mFilesInDirectory.empty()) {
-        mCurrentFile = mFilesInDirectory.cbegin();
-        mCurrentIdx  = 0;
-        mOpenedName = *mCurrentFile;
+        mCurrentIdx = 0;
+        mOpenedName = mFilesInDirectory[0];
         loadImageAsync(mDirectory.absoluteFilePath(mOpenedName), mCurrentIdx, mFilesInDirectory.size());
     }
     else {
@@ -209,9 +186,8 @@ void ViewerApplication::onFirstImage()
 void ViewerApplication::onLastImage()
 {
     if(!mFilesInDirectory.empty()) {
-        mCurrentFile = std::prev(mFilesInDirectory.cend());
         mCurrentIdx = mFilesInDirectory.size() - 1;
-        mOpenedName = *mCurrentFile;
+        mOpenedName = mFilesInDirectory.back();
         loadImageAsync(mDirectory.absoluteFilePath(mOpenedName), mCurrentIdx, mFilesInDirectory.size());
     }
     else {

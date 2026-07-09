@@ -66,6 +66,11 @@ public:
         mImagesCount = count;
     }
 
+    void setImageStep(uint32_t step)
+    {
+        mImageStep = step;
+    }
+
     void setErrors(QStringList err)
     {
         mErrors = std::move(err);
@@ -83,6 +88,7 @@ private:
     bool mChangedFlag = false;
     size_t mImageIndex = 0;
     size_t mImagesCount = 0;
+    uint32_t mImageStep = 1;
     QStringList mErrors;
 };
 

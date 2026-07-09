@@ -44,10 +44,13 @@ QVector<QString> ImageDescription::toLines(bool fullPath) const
         res.back().append("*");
     }
     if (mImagesCount > 0 && mImageIndex < mImagesCount) {
-        res.back().append(" [" + QString::number(mImageIndex + 1) + '/' + QString::number(mImagesCount) + "]");
+        res.back().append(QString(" [%1/%2]").arg(mImageIndex + 1).arg(mImagesCount));
     }
     else {
         res.back().append(" [?]");
+    }
+    if (mImageStep > 1) {
+        res.back().append(QString(" x%1").arg(mImageStep));
     }
     res.push_back("File size: " + QString::number(mFileInfo.bytes / 1024.0f, 'f', 1) + "KB");
     res.push_back("Format: " + mFormat);
